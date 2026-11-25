@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // RestartTraefikContainerAndConfirm verifies Traefik is running, issues a 10s graceful restart,
@@ -38,19 +39,43 @@ func (m *Client) RestartTraefikContainerAndConfirm(ctx context.Context) (*Contai
 	}
 
 	resp, err := m.httpClient.Do(req)
-	if err != nil || (resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK) {
-		if resp != nil {
-			_ = resp.Body.Close()
+	if err == nil {
+		code := resp.StatusCode
+		_ = resp.Body.Close()
+		if code != http.StatusNoContent && code != http.StatusOK {
+			return nil, ErrRestartUnconfirmed // refused: no permission, unknown container...
 		}
-		return nil, ErrRestartUnconfirmed
+	} else if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
-	_ = resp.Body.Close()
+	// Docker answers only once Traefik is back, after its graceful stop (up to t=10s), which can
+	// outlast the client's wait for an answer. A late or lost answer is not a failure: wait for
+	// the container to be running again with a newer StartedAt.
+	return m.waitRestarted(ctx, before)
+}
 
-	// Confirm new StartedAt timestamp is strictly after `before.StartedAt`
-	after, err := m.inspectContainer(ctx, m.traefikRef)
-	if err != nil || !after.Running || !after.StartedAt.After(before.StartedAt) {
-		return nil, ErrRestartUnconfirmed
+// Restart confirmation window and polling interval (variables so tests can shorten them).
+var (
+	restartConfirmWindow = 40 * time.Second
+	restartPollInterval  = 500 * time.Millisecond
+)
+
+func (m *Client) waitRestarted(ctx context.Context, before *ContainerStatus) (*ContainerStatus, error) {
+	deadline := time.Now().Add(restartConfirmWindow)
+	for {
+		after, err := m.inspectContainer(ctx, m.traefikRef)
+		if err == nil && after.Running && after.StartedAt.After(before.StartedAt) {
+			return after, nil
+		}
+		if time.Now().After(deadline) {
+			return nil, ErrRestartUnconfirmed
+		}
+		timer := time.NewTimer(restartPollInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
 	}
-
-	return after, nil
 }
