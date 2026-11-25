@@ -132,9 +132,9 @@ If you run CrowdSec, uncomment `CROWDSEC_LAPI_URL` and `CROWDSEC_CONTAINER`.
 DNS certificate resolvers (Let's Encrypt with Cloudflare, OVH and so on): Traefik
 reads their credentials only from its environment. Console keeps the variables in
 `dns-providers.env` in your Traefik config folder, and your Traefik must export it
-when it starts. Copy the `entrypoint:` block of the `traefik` service in
-`traefik-console/docker-compose.yml` into your Traefik service (replacing its
-`command:`; adjust the `--configFile` path if yours differs), make sure your config
+when it starts. Copy the `entrypoint:` line of the `traefik` service in
+`traefik-console/docker-compose.yml` into your Traefik service (your `command:`
+stays as it is), make sure your config
 folder is mounted at `/etc/traefik` (with `secrets/` inside it), and recreate Traefik
 once (`docker compose up -d`). From then on Console adds the variables and restarts
 Traefik itself.

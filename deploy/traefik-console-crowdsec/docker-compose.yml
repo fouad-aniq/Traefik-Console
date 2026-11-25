@@ -18,21 +18,11 @@ services:
   traefik:
     image: traefik:v3.7.20
     container_name: traefik   # Console finds Traefik by this name (TRAEFIK_CONTAINER below)
-    # Starts Traefik after exporting the DNS provider variables Console keeps in
-    # config/traefik/dns-providers.env (Console adds them when you create a resolver,
-    # then restarts Traefik). Only NAME_FILE lines pointing into the secrets folder are
-    # exported; nothing in the file is executed.
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        f=/etc/traefik/dns-providers.env
-        if [ -f "$$f" ]; then
-          while IFS='=' read -r k v; do
-            case "$$k=$$v" in [A-Z]*_FILE=/etc/traefik/secrets/*) export "$$k=$$v" ;; esac
-          done < "$$f"
-        fi
-        exec traefik --configFile=/etc/traefik/static/traefik.yml
+    # Exports the DNS provider variables Console keeps in config/traefik/dns-providers.env,
+    # then starts Traefik with the command below. Only NAME_FILE lines pointing into the
+    # secrets folder are exported; nothing in the file is executed.
+    entrypoint: ["/bin/sh", "-c", "f=/etc/traefik/dns-providers.env; [ -f \"$$f\" ] && while IFS='=' read -r k v; do case \"$$k=$$v\" in [A-Z]*_FILE=/etc/traefik/secrets/*) export \"$$k=$$v\" ;; esac; done < \"$$f\"; exec traefik \"$$@\"", "traefik"]
+    command: ["--configFile=/etc/traefik/static/traefik.yml"]
     user: "1000:1000"   # owner of ./config and ./data (see `id -u` and `id -g`); same as console below
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
