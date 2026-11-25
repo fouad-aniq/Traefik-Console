@@ -1530,6 +1530,10 @@
       "type": "string",
       "optional": false
     },
+    "loads_dns_env_file": {
+      "type": "bool",
+      "optional": false
+    },
     "name": {
       "type": "string",
       "optional": false
@@ -2429,6 +2433,10 @@
     "file_path": {
       "type": "string",
       "optional": false
+    },
+    "via_env_file": {
+      "type": "bool",
+      "optional": true
     }
   },
   "internal/models.ItemChange": {
