@@ -2197,11 +2197,11 @@
     "serverErrors": "Le changement contient des erreurs de validation",
     "mounts": {
       "title": "Montages d’identifiants",
-      "help": "Traefik doit voir ces fichiers secrets. Un nouveau montage peut exiger la recréation du conteneur.",
+      "help": "Traefik lit ces identifiants dans les fichiers ci-dessous. Les fichiers Compose fournis avec Traefik Console les déclarent déjà (config/traefik/dns-providers.env).",
       "set": "Défini",
       "missing": "Manquant",
       "blockedTitle": "Traefik a d’abord besoin de ces variables",
-      "blocked": "Appliquer est désactivé : core-v2 n’applique que si le conteneur Traefik possède déjà toutes les variables ci-dessous. Ajoutez-les, recréez le conteneur, puis rouvrez cette revue.",
+      "blocked": "Appliquer est désactivé tant que le conteneur Traefik n’a pas toutes les variables ci-dessous. Chargez config/traefik/dns-providers.env dans Traefik (env_file dans son service Compose) ou ajoutez ces lignes, recréez le conteneur, puis rouvrez cette revue.",
       "snippet": "Extrait Compose pour le service Traefik"
     },
     "diff": {
@@ -2797,7 +2797,7 @@
     "loadingPreview": "Préparation de la comparaison…",
     "errorsTitle": "Cet instantané ne peut pas être restauré tel quel",
     "envTitle": "Traefik a besoin de paramètres de conteneur à jour",
-    "envHelp": "Recréez le conteneur Traefik avec ces variables de fichiers secrets, puis rechargez cette page. La restauration reste désactivée tant qu’elles ne sont pas définies.",
+    "envHelp": "Chargez config/traefik/dns-providers.env dans Traefik (env_file) ou ajoutez ces variables, recréez le conteneur, puis rechargez cette page. La restauration reste désactivée tant qu’elles ne sont pas définies.",
     "warningsTitle": "À surveiller",
     "restartTitle": "Traefik va redémarrer",
     "restartHelp": "Un redémarrage est nécessaire : Traefik est brièvement indisponible pendant l’application.",

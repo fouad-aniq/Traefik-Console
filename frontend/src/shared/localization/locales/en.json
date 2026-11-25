@@ -2197,11 +2197,11 @@
     "serverErrors": "The change has validation errors",
     "mounts": {
       "title": "Credential mounts",
-      "help": "Traefik must see these secret files. A new mount may require recreating the container.",
+      "help": "Traefik reads these credentials from the files below. The Compose files shipped with Traefik Console declare them already (config/traefik/dns-providers.env).",
       "set": "Set",
       "missing": "Missing",
       "blockedTitle": "Traefik needs these variables first",
-      "blocked": "Apply is disabled: core-v2 only applies once the Traefik container already has every variable below. Add them, recreate the container, then reopen this review.",
+      "blocked": "Apply is disabled until the Traefik container has every variable below. Load config/traefik/dns-providers.env into Traefik (env_file in its Compose service) or add these lines, recreate the container, then reopen this review.",
       "snippet": "Compose snippet for the Traefik service"
     },
     "diff": {
@@ -2797,7 +2797,7 @@
     "loadingPreview": "Preparing the comparison…",
     "errorsTitle": "This snapshot cannot be restored as is",
     "envTitle": "Traefik needs updated container settings",
-    "envHelp": "Recreate the Traefik container with these secret file variables, then reload this page. Restore stays disabled until they are set.",
+    "envHelp": "Load config/traefik/dns-providers.env into Traefik (env_file) or add these variables, recreate the container, then reload this page. Restore stays disabled until they are set.",
     "warningsTitle": "Worth a look",
     "restartTitle": "Traefik will restart",
     "restartHelp": "This needs a restart, so Traefik is briefly unavailable while it applies.",

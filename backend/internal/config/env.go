@@ -86,6 +86,9 @@ func Load() (*Options, error) {
 	if st, e := os.Stat(acmeDir); e != nil || !st.IsDir() {
 		acmeDir = ""
 	}
+	// DNS credential variables Traefik loads from the shipped env file (env_file in Compose),
+	// read from the same folder so they can be confirmed without Docker access.
+	presetEnv := loadPresetSecretEnv(filepath.Join(filepath.Dir(dynamicDir), DNSProvidersEnvFile), filepath.Clean(runtimeSecrets))
 	timeoutSec := getInt("TRAEFIK_CONVERGENCE_TIMEOUT_SEC", 15)
 	if timeoutSec > 60 {
 		return nil, fmt.Errorf("convergence timeout exceeds 60 seconds")
@@ -162,6 +165,7 @@ func Load() (*Options, error) {
 		TraefikStaticPath:        staticPath,
 		TraefikDynamicDir:        dynamicDir,
 		ACMEObservationDir:       acmeDir,
+		PresetSecretEnv:          presetEnv,
 		RuntimeACMEDir:           TraefikACMEDir,
 
 		RuntimeSecretsDir:   filepath.Clean(runtimeSecrets),

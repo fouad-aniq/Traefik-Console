@@ -115,3 +115,39 @@ func TestAutoSnapshotBeforeStaticCanBeEnabled(t *testing.T) {
 		t.Fatal("invalid AUTO_SNAPSHOT_BEFORE_STATIC accepted")
 	}
 }
+
+func TestShippedDNSEnvFileIsReadNextToTheDynamicFolder(t *testing.T) {
+	resetDockerEnv(t)
+	t.Setenv("PORT", "8081")
+	t.Setenv("BIND_ADDRESS", "127.0.0.1")
+	root := t.TempDir()
+	t.Setenv("DYNAMIC_DIR", filepath.Join(root, "dynamic"))
+	opts, err := Load()
+	if err != nil || opts.PresetSecretEnv != nil {
+		t.Fatalf("missing env file must give no preset: %v %v", err, opts.PresetSecretEnv)
+	}
+	content := "# comment\n\nCLOUDFLARE_DNS_API_TOKEN_FILE=/etc/traefik/secrets/cloudflare_dns_api_token.secret\n" +
+		"HETZNER_API_KEY_FILE=\"/etc/traefik/secrets/hetzner_api_key.secret\"\n" +
+		"PLAIN_VALUE=not-a-file\n" +
+		"ESCAPE_FILE=/etc/traefik/secrets/../../etc/passwd\n" +
+		"ELSEWHERE_FILE=/run/secrets/token\n"
+	if err := os.WriteFile(filepath.Join(root, DNSProvidersEnvFile), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	opts, err = Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"CLOUDFLARE_DNS_API_TOKEN_FILE": "/etc/traefik/secrets/cloudflare_dns_api_token.secret",
+		"HETZNER_API_KEY_FILE":          "/etc/traefik/secrets/hetzner_api_key.secret",
+	}
+	if len(opts.PresetSecretEnv) != len(want) {
+		t.Fatalf("unexpected preset: %v", opts.PresetSecretEnv)
+	}
+	for k, v := range want {
+		if opts.PresetSecretEnv[k] != v {
+			t.Fatalf("%s = %q, want %q", k, opts.PresetSecretEnv[k], v)
+		}
+	}
+}

@@ -58,7 +58,14 @@ More:
 - Traefik listens on ports 80 and 443. Change them to `"127.0.0.1:80:8000"` and
   `"127.0.0.1:443:8443"` to keep Traefik private while you try things out.
 - Traefik's config lives in `config/traefik/` (static file in `static/`, routes in
-  `dynamic/`); Let's Encrypt files are kept in `config/traefik/acme/`. Console
+  `dynamic/`); Let's Encrypt files are kept in `config/traefik/acme/`.
+- **DNS certificate resolvers need no setup.** Traefik only reads DNS provider
+  credentials (Cloudflare tokens and the like) from its environment, which is fixed
+  when the container is created. `config/traefik/dns-providers.env`, loaded with
+  `env_file`, declares every supported provider's variables in advance, each
+  pointing to a file in `config/traefik/secrets/`. When you create or update a
+  resolver, Console writes those files; Traefik needs only the restart Console asks
+  for. Don't edit that file. Console
   edits these files too; you can edit them directly or from Console.
 - **The all-services file** runs a socket-proxy so Console can restart Traefik
   after static changes and create CrowdSec keys, without getting the whole Docker
@@ -123,6 +130,15 @@ Set `group_add` to the socket's group (`stat -c %g /var/run/docker.sock`). To ru
 without Docker access, remove the socket volume line and the `DOCKER_HOST` and
 `ALLOW_TRAEFIK_RESTART` lines; Console then asks you to restart Traefik yourself.
 If you run CrowdSec, uncomment `CROWDSEC_LAPI_URL` and `CROWDSEC_CONTAINER`.
+
+DNS certificate resolvers (Let's Encrypt with Cloudflare, OVH and so on): Traefik
+reads their credentials only from its environment, so your Traefik needs the
+provider variables once. Copy `dns-providers.env` from
+`traefik-console/config/traefik/` into your Traefik config folder, add
+`env_file: <that folder>/dns-providers.env` to your Traefik service, make sure the
+config folder's `secrets/` is mounted at `/etc/traefik/secrets`, and recreate
+Traefik once (`docker compose up -d`). From then on Console only writes the
+credential files.
 
 ## Day-to-day
 

@@ -22,14 +22,24 @@ type generator struct {
 	inspector runtimeObserver
 	validator *validation.ConfigValidator
 	runtime   docker.TraefikContainerInspector
+	// presetEnv is the *_FILE environment declared in Traefik's shipped env file; it answers the
+	// credential check when the Traefik container cannot be inspected.
+	presetEnv map[string]string
 }
 
+// NewGenerator builds the renderer. presetEnv (optional) lists the *_FILE variables Traefik loads
+// from its env file, used when Docker access is not configured.
 func NewGenerator(
 	inspector runtimeObserver,
 	validator *validation.ConfigValidator,
 	runtimeClient docker.TraefikContainerInspector,
+	presetEnv ...map[string]string,
 ) Generator {
-	return &generator{inspector: inspector, validator: validator, runtime: runtimeClient}
+	g := &generator{inspector: inspector, validator: validator, runtime: runtimeClient}
+	if len(presetEnv) > 0 {
+		g.presetEnv = presetEnv[0]
+	}
+	return g
 }
 
 type runtimeObserver interface {

@@ -19,7 +19,7 @@ import (
 func newOperations(opts *config.Options, store db.Store, filesMgr *files.Repository, secretsMgr *secrets.Vault,
 	inspector *status.ObservationClient, validator *validation.ConfigValidator, runtimeClient *docker.Client,
 ) engine.Operations {
-	generator := engine.NewGenerator(inspector, validator, runtimeClient)
+	generator := engine.NewGenerator(inspector, validator, runtimeClient, opts.PresetSecretEnv)
 	return engine.NewOperations(store, filesMgr, secretsMgr, generator, inspector, runtimeClient, opts.VerifyConvergenceTo, engine.Options{
 		AutoSnapshotBeforeStatic:   opts.AutoSnapshotBeforeStatic,
 		AutomaticSnapshotRetention: opts.SnapshotRetentionAuto,

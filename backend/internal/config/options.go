@@ -28,7 +28,10 @@ type Options struct {
 	TraefikStaticPath  string
 	TraefikDynamicDir  string
 	ACMEObservationDir string
-	RuntimeACMEDir     string
+	// PresetSecretEnv holds the *_FILE variables declared in DNSProvidersEnvFile next to the dynamic
+	// folder (variable -> path inside Traefik). Nil when the file is absent.
+	PresetSecretEnv map[string]string
+	RuntimeACMEDir  string
 
 	RuntimeSecretsDir string
 	SecretsDir        string

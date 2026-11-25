@@ -291,11 +291,14 @@ func (g *generator) Validate(ctx context.Context, in ValidationInput) (*Validati
 	for _, issue := range result.Errors {
 		out.Errors = append(out.Errors, models.ValidationError{ItemID: issue.Path, Field: issue.RuleCode, Message: issue.Message})
 	}
-	out.EnvVars = checkContainerSecretEnvVars(ctx, in.Candidate, in.Secrets, g.runtime)
+	out.EnvVars = checkContainerSecretEnvVars(ctx, in.Candidate, in.Secrets, g.runtime, g.presetEnv)
 	return out, nil
 }
 
-func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemRow, allSecrets []models.SecretRow, d docker.TraefikContainerInspector) []models.EnvMountInstruction {
+// checkContainerSecretEnvVars lists the credential variables the candidate resolvers need and whether
+// Traefik already has each one. The live container (Docker inspect) is authoritative; without Docker
+// access the variables declared in Traefik's shipped env file (presetEnv) are used instead.
+func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemRow, allSecrets []models.SecretRow, d docker.TraefikContainerInspector, presetEnv map[string]string) []models.EnvMountInstruction {
 	if len(allSecrets) == 0 {
 		return nil
 	}
@@ -317,6 +320,9 @@ func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemR
 		if containerStatus, err := d.InspectTraefikContainer(ctx); err == nil && containerStatus != nil {
 			containerEnv = containerStatus.SecretFileEnv
 		}
+	}
+	if containerEnv == nil {
+		containerEnv = presetEnv
 	}
 	var instructions []models.EnvMountInstruction
 	for _, sec := range allSecrets {

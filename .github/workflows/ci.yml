@@ -24,6 +24,8 @@ jobs:
         with:
           go-version: "1.27.3"
           cache-dependency-path: backend/go.sum
+      - name: DNS provider env files match the provider list
+        run: python3 tools/dns-env/generate.py --check
       - name: Download modules
         working-directory: backend
         run: make deps GOPROXY=https://proxy.golang.org,direct GOCACHE="$RUNNER_TEMP/go-build"
