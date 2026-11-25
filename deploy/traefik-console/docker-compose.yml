@@ -16,14 +16,27 @@ name: traefik-console
 services:
   traefik:
     image: traefik:v3.7.20
-    command: ["--configFile=/etc/traefik/static/traefik.yml"]
+    # Starts Traefik after exporting the DNS provider variables Console keeps in
+    # config/traefik/dns-providers.env (Console adds them when you create a resolver,
+    # then restarts Traefik). Only NAME_FILE lines pointing into the secrets folder are
+    # exported; nothing in the file is executed.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        f=/etc/traefik/dns-providers.env
+        if [ -f "$$f" ]; then
+          while IFS='=' read -r k v; do
+            case "$$k=$$v" in [A-Z]*_FILE=/etc/traefik/secrets/*) export "$$k=$$v" ;; esac
+          done < "$$f"
+        fi
+        exec traefik --configFile=/etc/traefik/static/traefik.yml
     user: "1000:1000"   # owner of ./config and ./data (see `id -u` and `id -g`); same as console below
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
     environment:
       CONSOLE_HOST: console.example.com   # routes this address to Console (config/traefik/dynamic/management.yml); same as console below
-    env_file: ./config/traefik/dns-providers.env   # DNS provider credentials for certificate resolvers; Console writes the files they point to
     ports:
       - "80:8000"     # HTTP  (use "127.0.0.1:80:8000" to keep it private to this machine)
       - "443:8443"    # HTTPS (use "127.0.0.1:443:8443" to keep it private to this machine)

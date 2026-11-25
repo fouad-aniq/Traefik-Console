@@ -37,6 +37,8 @@ export interface EnvMountInstruction {
 	already_set: boolean;
 	env_var_name: string;
 	file_path: string;
+	/** Console adds this variable to Traefik's DNS env file on Apply. */
+	via_env_file?: boolean;
 }
 
 export interface ValidationIssue {

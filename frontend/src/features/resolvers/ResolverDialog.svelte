@@ -633,7 +633,7 @@
 								{#each review.env_vars_to_mount as m}
 									<li>
 										<div class="mount-text"><code>{m.env_var_name}</code><span class="mount-path">{m.file_path}</span></div>
-										<StatusBadge size="sm" tone={m.already_set ? 'success' : 'warning'} text={v2(m.already_set ? 'mounts.set' : 'mounts.missing')} />
+										<StatusBadge size="sm" tone={m.already_set ? 'success' : 'warning'} text={v2(m.via_env_file ? 'mounts.managed' : m.already_set ? 'mounts.set' : 'mounts.missing')} />
 									</li>
 								{/each}
 							</ul>

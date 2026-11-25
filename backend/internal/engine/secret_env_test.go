@@ -3,8 +3,11 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/docker"
 	"github.com/traefik-console/internal/models"
 )
@@ -18,7 +21,7 @@ func (r inspectResult) InspectTraefikContainer(context.Context) (*docker.Contain
 	return r.status, r.err
 }
 
-func TestCredentialVariablesComeFromContainerOrShippedEnvFile(t *testing.T) {
+func TestCredentialVariablesComeFromContainerOrConsoleEnvFile(t *testing.T) {
 	payload, err := json.Marshal(models.ResolverInput{Values: map[string]string{"CLOUDFLARE_DNS_API_TOKEN": "x"}})
 	if err != nil {
 		t.Fatal(err)
@@ -26,22 +29,38 @@ func TestCredentialVariablesComeFromContainerOrShippedEnvFile(t *testing.T) {
 	items := []models.ConfigItemRow{{Kind: models.KindResolver, Name: "le", Payload: payload}}
 	path := "/etc/traefik/secrets/cloudflare_dns_api_token.secret"
 	secrets := []models.SecretRow{{Name: "cloudflare_dns_api_token", EnvVarName: "CLOUDFLARE_DNS_API_TOKEN_FILE", FilePath: path}}
-	preset := map[string]string{"CLOUDFLARE_DNS_API_TOKEN_FILE": path}
+	envFile := &config.DNSEnvFile{Path: filepath.Join(t.TempDir(), config.DNSProvidersEnvFile), SecretsRoot: "/etc/traefik/secrets"}
 	disabled := inspectResult{err: docker.ErrCapabilityDisabled}
+	has := map[string]string{"CLOUDFLARE_DNS_API_TOKEN_FILE": path}
 	for _, tc := range []struct {
-		name   string
-		d      docker.TraefikContainerInspector
-		preset map[string]string
-		want   bool
+		name         string
+		d            docker.TraefikContainerInspector
+		file         *config.DNSEnvFile
+		set, viaFile bool
 	}{
-		{"no Docker access and no env file", disabled, nil, false},
-		{"no Docker access, shipped env file declares it", disabled, preset, true},
-		{"container has it", inspectResult{status: &docker.ContainerStatus{SecretFileEnv: map[string]string{"CLOUDFLARE_DNS_API_TOKEN_FILE": path}}}, nil, true},
-		{"container lacks it, env file does not override the container", inspectResult{status: &docker.ContainerStatus{SecretFileEnv: map[string]string{}}}, preset, false},
+		{"no Docker access and no env file", disabled, nil, false, false},
+		{"no Docker access, Console keeps the env file", disabled, envFile, true, true},
+		{"container has it", inspectResult{status: &docker.ContainerStatus{SecretFileEnv: has}}, envFile, true, false},
+		{"Traefik loads the env file", inspectResult{status: &docker.ContainerStatus{SecretFileEnv: map[string]string{}, LoadsDNSEnvFile: true}}, envFile, true, true},
+		{"Traefik does not load the env file", inspectResult{status: &docker.ContainerStatus{SecretFileEnv: map[string]string{}}}, envFile, false, false},
 	} {
-		got := checkContainerSecretEnvVars(context.Background(), items, secrets, tc.d, tc.preset)
-		if len(got) != 1 || got[0].EnvVarName != "CLOUDFLARE_DNS_API_TOKEN_FILE" || got[0].AlreadySet != tc.want {
-			t.Fatalf("%s: got %+v, want AlreadySet=%v", tc.name, got, tc.want)
+		got := checkContainerSecretEnvVars(context.Background(), items, secrets, tc.d, tc.file)
+		if len(got) != 1 || got[0].EnvVarName != "CLOUDFLARE_DNS_API_TOKEN_FILE" || got[0].AlreadySet != tc.set || got[0].ViaEnvFile != tc.viaFile {
+			t.Fatalf("%s: got %+v, want set=%v viaFile=%v", tc.name, got, tc.set, tc.viaFile)
 		}
+	}
+
+	g := &generator{dnsEnv: envFile}
+	envs := checkContainerSecretEnvVars(context.Background(), items, secrets, disabled, envFile)
+	changed, err := g.EnsureDNSEnv(envs)
+	if err != nil || !changed {
+		t.Fatalf("EnsureDNSEnv: changed=%v err=%v", changed, err)
+	}
+	if envFile.Load()["CLOUDFLARE_DNS_API_TOKEN_FILE"] != path {
+		raw, _ := os.ReadFile(envFile.Path)
+		t.Fatalf("variable not written:\n%s", raw)
+	}
+	if changed, _ = g.EnsureDNSEnv(envs); changed {
+		t.Fatal("a second Apply must not change the file again")
 	}
 }

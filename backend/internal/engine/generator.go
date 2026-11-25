@@ -10,6 +10,7 @@ import (
 
 	yamlv3 "gopkg.in/yaml.v3"
 
+	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/config/yaml"
 	"github.com/traefik-console/internal/docker"
 	"github.com/traefik-console/internal/models"
@@ -291,14 +292,15 @@ func (g *generator) Validate(ctx context.Context, in ValidationInput) (*Validati
 	for _, issue := range result.Errors {
 		out.Errors = append(out.Errors, models.ValidationError{ItemID: issue.Path, Field: issue.RuleCode, Message: issue.Message})
 	}
-	out.EnvVars = checkContainerSecretEnvVars(ctx, in.Candidate, in.Secrets, g.runtime, g.presetEnv)
+	out.EnvVars = checkContainerSecretEnvVars(ctx, in.Candidate, in.Secrets, g.runtime, g.dnsEnv)
 	return out, nil
 }
 
 // checkContainerSecretEnvVars lists the credential variables the candidate resolvers need and whether
-// Traefik already has each one. The live container (Docker inspect) is authoritative; without Docker
-// access the variables declared in Traefik's shipped env file (presetEnv) are used instead.
-func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemRow, allSecrets []models.SecretRow, d docker.TraefikContainerInspector, presetEnv map[string]string) []models.EnvMountInstruction {
+// Traefik has each one. A variable in the live container (Docker inspect) is set. Otherwise, when
+// Traefik's start command loads the DNS env file (or Docker access is off and the file is
+// configured), it is set ViaEnvFile: Apply adds it to the file and the restart loads it.
+func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemRow, allSecrets []models.SecretRow, d docker.TraefikContainerInspector, dnsEnv *config.DNSEnvFile) []models.EnvMountInstruction {
 	if len(allSecrets) == 0 {
 		return nil
 	}
@@ -316,23 +318,24 @@ func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemR
 		}
 	}
 	var containerEnv map[string]string
+	loadsFile := dnsEnv != nil
 	if d != nil {
 		if containerStatus, err := d.InspectTraefikContainer(ctx); err == nil && containerStatus != nil {
 			containerEnv = containerStatus.SecretFileEnv
+			loadsFile = loadsFile && containerStatus.LoadsDNSEnvFile
 		}
-	}
-	if containerEnv == nil {
-		containerEnv = presetEnv
 	}
 	var instructions []models.EnvMountInstruction
 	for _, sec := range allSecrets {
 		if sec.EnvVarName == "" || !used[sec.EnvVarName] {
 			continue
 		}
+		inContainer := containerEnv != nil && containerEnv[sec.EnvVarName] == sec.FilePath
 		instructions = append(instructions, models.EnvMountInstruction{
 			EnvVarName: sec.EnvVarName,
 			FilePath:   sec.FilePath,
-			AlreadySet: containerEnv != nil && containerEnv[sec.EnvVarName] == sec.FilePath,
+			AlreadySet: inContainer || loadsFile,
+			ViaEnvFile: !inContainer && loadsFile,
 		})
 	}
 	return instructions

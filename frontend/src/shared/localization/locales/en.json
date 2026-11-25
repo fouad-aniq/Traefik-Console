@@ -2197,11 +2197,12 @@
     "serverErrors": "The change has validation errors",
     "mounts": {
       "title": "Credential mounts",
-      "help": "Traefik reads these credentials from the files below. The Compose files shipped with Traefik Console declare them already (config/traefik/dns-providers.env).",
+      "help": "Traefik reads these credentials from files in its secrets folder. On Apply, Console adds the missing variables to config/traefik/dns-providers.env and restarts Traefik.",
       "set": "Set",
+      "managed": "Added on Apply",
       "missing": "Missing",
       "blockedTitle": "Traefik needs these variables first",
-      "blocked": "Apply is disabled until the Traefik container has every variable below. Load config/traefik/dns-providers.env into Traefik (env_file in its Compose service) or add these lines, recreate the container, then reopen this review.",
+      "blocked": "Apply is disabled: this Traefik doesn't load config/traefik/dns-providers.env when it starts, so Console can't give it these variables. Use the start command (entrypoint) from the shipped Compose file, as the deploy guide explains, or add these lines; recreate the container, then reopen this review.",
       "snippet": "Compose snippet for the Traefik service"
     },
     "diff": {
@@ -2797,7 +2798,7 @@
     "loadingPreview": "Preparing the comparison…",
     "errorsTitle": "This snapshot cannot be restored as is",
     "envTitle": "Traefik needs updated container settings",
-    "envHelp": "Load config/traefik/dns-providers.env into Traefik (env_file) or add these variables, recreate the container, then reload this page. Restore stays disabled until they are set.",
+    "envHelp": "This Traefik doesn't load config/traefik/dns-providers.env when it starts. Use the start command (entrypoint) from the shipped Compose file or add these variables, recreate the container, then reload this page. Restore stays disabled until they are set.",
     "warningsTitle": "Worth a look",
     "restartTitle": "Traefik will restart",
     "restartHelp": "This needs a restart, so Traefik is briefly unavailable while it applies.",

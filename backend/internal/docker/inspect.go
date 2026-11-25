@@ -55,9 +55,11 @@ func (m *Client) inspectContainer(ctx context.Context, ref string) (*ContainerSt
 		Name         string `json:"Name"`
 		RestartCount int    `json:"RestartCount"`
 		Config       struct {
-			Image  string            `json:"Image"`
-			Env    []string          `json:"Env"`
-			Labels map[string]string `json:"Labels"`
+			Image      string            `json:"Image"`
+			Env        []string          `json:"Env"`
+			Labels     map[string]string `json:"Labels"`
+			Entrypoint []string          `json:"Entrypoint"`
+			Cmd        []string          `json:"Cmd"`
 		} `json:"Config"`
 		State struct {
 			Running   bool   `json:"Running"`
@@ -92,6 +94,7 @@ func (m *Client) inspectContainer(ctx context.Context, ref string) (*ContainerSt
 		RestartCount:  raw.RestartCount,
 		StartedAt:     startedAt.UTC(),
 		SecretFileEnv: m.secretFileEnv(envMap), RestartAllowed: m.allowTraefikRestart,
+		LoadsDNSEnvFile: strings.Contains(strings.Join(append(raw.Config.Entrypoint, raw.Config.Cmd...), " "), DNSEnvFileName),
 	}, nil
 }
 

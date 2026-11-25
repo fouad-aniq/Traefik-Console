@@ -58,15 +58,13 @@ More:
 - Traefik listens on ports 80 and 443. Change them to `"127.0.0.1:80:8000"` and
   `"127.0.0.1:443:8443"` to keep Traefik private while you try things out.
 - Traefik's config lives in `config/traefik/` (static file in `static/`, routes in
-  `dynamic/`); Let's Encrypt files are kept in `config/traefik/acme/`.
-- **DNS certificate resolvers need no setup.** Traefik only reads DNS provider
-  credentials (Cloudflare tokens and the like) from its environment, which is fixed
-  when the container is created. `config/traefik/dns-providers.env`, loaded with
-  `env_file`, declares every supported provider's variables in advance, each
-  pointing to a file in `config/traefik/secrets/`. When you create or update a
-  resolver, Console writes those files; Traefik needs only the restart Console asks
-  for. Don't edit that file. Console
+  `dynamic/`); Let's Encrypt files are kept in `config/traefik/acme/`. Console
   edits these files too; you can edit them directly or from Console.
+- **DNS certificate resolvers need no setup.** Traefik reads DNS provider
+  credentials (Cloudflare tokens and the like) only from its environment. When you
+  create a resolver, Console writes the credentials to `config/traefik/secrets/`,
+  adds the matching variables to `config/traefik/dns-providers.env` (it creates the
+  file) and restarts Traefik, whose start command exports that file's variables.
 - **The all-services file** runs a socket-proxy so Console can restart Traefik
   after static changes and create CrowdSec keys, without getting the whole Docker
   socket. The proxy allows only what Console uses: inspecting containers
@@ -132,13 +130,14 @@ without Docker access, remove the socket volume line and the `DOCKER_HOST` and
 If you run CrowdSec, uncomment `CROWDSEC_LAPI_URL` and `CROWDSEC_CONTAINER`.
 
 DNS certificate resolvers (Let's Encrypt with Cloudflare, OVH and so on): Traefik
-reads their credentials only from its environment, so your Traefik needs the
-provider variables once. Copy `dns-providers.env` from
-`traefik-console/config/traefik/` into your Traefik config folder, add
-`env_file: <that folder>/dns-providers.env` to your Traefik service, make sure the
-config folder's `secrets/` is mounted at `/etc/traefik/secrets`, and recreate
-Traefik once (`docker compose up -d`). From then on Console only writes the
-credential files.
+reads their credentials only from its environment. Console keeps the variables in
+`dns-providers.env` in your Traefik config folder, and your Traefik must export it
+when it starts. Copy the `entrypoint:` block of the `traefik` service in
+`traefik-console/docker-compose.yml` into your Traefik service (replacing its
+`command:`; adjust the `--configFile` path if yours differs), make sure your config
+folder is mounted at `/etc/traefik` (with `secrets/` inside it), and recreate Traefik
+once (`docker compose up -d`). From then on Console adds the variables and restarts
+Traefik itself.
 
 ## Day-to-day
 

@@ -2197,11 +2197,12 @@
     "serverErrors": "Le changement contient des erreurs de validation",
     "mounts": {
       "title": "Montages d’identifiants",
-      "help": "Traefik lit ces identifiants dans les fichiers ci-dessous. Les fichiers Compose fournis avec Traefik Console les déclarent déjà (config/traefik/dns-providers.env).",
+      "help": "Traefik lit ces identifiants dans des fichiers de son dossier secrets. À l’application, Console ajoute les variables manquantes à config/traefik/dns-providers.env et redémarre Traefik.",
       "set": "Défini",
+      "managed": "Ajoutée à l’application",
       "missing": "Manquant",
       "blockedTitle": "Traefik a d’abord besoin de ces variables",
-      "blocked": "Appliquer est désactivé tant que le conteneur Traefik n’a pas toutes les variables ci-dessous. Chargez config/traefik/dns-providers.env dans Traefik (env_file dans son service Compose) ou ajoutez ces lignes, recréez le conteneur, puis rouvrez cette revue.",
+      "blocked": "Appliquer est désactivé : ce Traefik ne charge pas config/traefik/dns-providers.env au démarrage, Console ne peut donc pas lui transmettre ces variables. Utilisez la commande de démarrage (entrypoint) du fichier Compose fourni, comme l’explique le guide de déploiement, ou ajoutez ces lignes ; recréez le conteneur, puis rouvrez cette revue.",
       "snippet": "Extrait Compose pour le service Traefik"
     },
     "diff": {
@@ -2797,7 +2798,7 @@
     "loadingPreview": "Préparation de la comparaison…",
     "errorsTitle": "Cet instantané ne peut pas être restauré tel quel",
     "envTitle": "Traefik a besoin de paramètres de conteneur à jour",
-    "envHelp": "Chargez config/traefik/dns-providers.env dans Traefik (env_file) ou ajoutez ces variables, recréez le conteneur, puis rechargez cette page. La restauration reste désactivée tant qu’elles ne sont pas définies.",
+    "envHelp": "Ce Traefik ne charge pas config/traefik/dns-providers.env au démarrage. Utilisez la commande de démarrage (entrypoint) du fichier Compose fourni ou ajoutez ces variables, recréez le conteneur, puis rechargez cette page. La restauration reste désactivée tant qu’elles ne sont pas définies.",
     "warningsTitle": "À surveiller",
     "restartTitle": "Traefik va redémarrer",
     "restartHelp": "Un redémarrage est nécessaire : Traefik est brièvement indisponible pendant l’application.",

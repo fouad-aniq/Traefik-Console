@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 
+	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/docker"
 	"github.com/traefik-console/internal/models"
 	"github.com/traefik-console/internal/traefik/status"
@@ -22,24 +23,40 @@ type generator struct {
 	inspector runtimeObserver
 	validator *validation.ConfigValidator
 	runtime   docker.TraefikContainerInspector
-	// presetEnv is the *_FILE environment declared in Traefik's shipped env file; it answers the
-	// credential check when the Traefik container cannot be inspected.
-	presetEnv map[string]string
+	// dnsEnv is Traefik's DNS provider env file, which the Console keeps (nil: not configured).
+	dnsEnv *config.DNSEnvFile
 }
 
-// NewGenerator builds the renderer. presetEnv (optional) lists the *_FILE variables Traefik loads
-// from its env file, used when Docker access is not configured.
+// NewGenerator builds the renderer. dnsEnv (optional) is Traefik's DNS provider env file: the
+// credential variables resolvers need are added there instead of asking for a container change.
 func NewGenerator(
 	inspector runtimeObserver,
 	validator *validation.ConfigValidator,
 	runtimeClient docker.TraefikContainerInspector,
-	presetEnv ...map[string]string,
+	dnsEnv ...*config.DNSEnvFile,
 ) Generator {
 	g := &generator{inspector: inspector, validator: validator, runtime: runtimeClient}
-	if len(presetEnv) > 0 {
-		g.presetEnv = presetEnv[0]
+	if len(dnsEnv) > 0 {
+		g.dnsEnv = dnsEnv[0]
 	}
 	return g
+}
+
+// dnsEnvWriter is implemented by the real generator; fakes in tests may leave it out.
+type dnsEnvWriter interface {
+	EnsureDNSEnv(envs []models.EnvMountInstruction) (bool, error)
+}
+
+// EnsureDNSEnv adds the variables marked ViaEnvFile to the DNS env file and reports whether the
+// file changed (Traefik then needs a restart to load them).
+func (g *generator) EnsureDNSEnv(envs []models.EnvMountInstruction) (bool, error) {
+	want := map[string]string{}
+	for _, env := range envs {
+		if env.ViaEnvFile {
+			want[env.EnvVarName] = env.FilePath
+		}
+	}
+	return g.dnsEnv.Ensure(want)
 }
 
 type runtimeObserver interface {

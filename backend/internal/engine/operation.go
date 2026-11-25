@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/config/yaml"
 	"github.com/traefik-console/internal/db"
 	"github.com/traefik-console/internal/models"
@@ -437,11 +438,31 @@ func (c *operations) Apply(ctx context.Context, m models.Mutation) (*models.Oper
 	if p.noChange() {
 		return &models.OperationResult{NoChange: true, Warnings: p.validation.Warnings}, nil
 	}
+	if e := c.ensureDNSEnv(p); e != nil {
+		return nil, e
+	}
 	summary := p.m.Summary
 	if summary == "" {
 		summary = summarize(p.changes)
 	}
 	return c.publish(ctx, publication{plan: p, key: key, mutateHash: hash, kind: p.m.Kind, target: p.m.Target, summary: summary, warnings: p.validation.Warnings})
+}
+
+// ensureDNSEnv adds the credential variables Traefik reads from the Console-kept DNS env file; when
+// the file changed, Traefik is restarted with this operation so it loads them.
+func (c *operations) ensureDNSEnv(p *plan) error {
+	w, ok := c.builder.(dnsEnvWriter)
+	if !ok || p.validation == nil {
+		return nil
+	}
+	changed, e := w.EnsureDNSEnv(p.validation.EnvVars)
+	if e != nil {
+		return fmt.Errorf("update %s: %w", config.DNSProvidersEnvFile, e)
+	}
+	if changed {
+		p.bundle.RequiresRestart = true
+	}
+	return nil
 }
 
 // replay answers a repeated Idempotency-Key from the stored operation.

@@ -210,7 +210,9 @@ type OperationPreview struct {
 type EnvMountInstruction struct {
 	EnvVarName string `json:"env_var_name"` // e.g., "CF_DNS_API_TOKEN_FILE"
 	FilePath   string `json:"file_path"`    // e.g., "/etc/traefik/secrets/cf_dns_api_token.secret"
-	AlreadySet bool   `json:"already_set"`  // Checked against the Traefik container via Docker inspect
+	AlreadySet bool   `json:"already_set"`  // Traefik has it, or will at its next start (ViaEnvFile)
+	// ViaEnvFile: Traefik loads the Console-kept DNS env file, so Apply adds this variable there.
+	ViaEnvFile bool `json:"via_env_file,omitempty"`
 }
 
 type ValidationError struct {
