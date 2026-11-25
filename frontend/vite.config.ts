@@ -3,8 +3,10 @@ import { defineConfig, loadEnv } from 'vite';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync } from 'node:fs';
 
-// The console version shown in the sidebar footer comes from package.json.
-const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+// The console version shown in the sidebar footer: the release tag passed by the
+// image build (APP_VERSION), otherwise package.json for local builds.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+const version = (process.env.APP_VERSION || pkg.version).replace(/^v/, '');
 
 // Dev: the SPA calls same-origin `/api/v1/*`; Vite proxies to core-v2
 // (default http://127.0.0.1:8081). Override with CORE_V2_URL.

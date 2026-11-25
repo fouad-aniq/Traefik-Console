@@ -6,7 +6,8 @@ COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/index.html frontend/tsconfig.json frontend/svelte.config.js frontend/vite.config.ts ./
 COPY frontend/src ./src
-RUN bun run build
+ARG VERSION=dev
+RUN APP_VERSION="$VERSION" bun run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm@sha256:dc0963f32053e4bc451d24d87e3892d42d01021b61f093e98eb95c0352bb84b0 AS backend
 WORKDIR /src
