@@ -1,0 +1,125 @@
+name: Release
+
+# Push a tag like v0.1.0 (or v0.1.0-rc.1 for a pre-release) to publish.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Image name (lowercase, as registries require)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - id: build
+        name: Build and push image (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest image provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - run: mkdir -p dist
+
+      - name: Image SBOM (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: dist/traefik-console-${{ github.ref_name }}.sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Package Compose bundle and checksums
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          ref="${IMAGE}:${version}"
+          dir="traefik-console-deploy"
+          mkdir "$dir"
+          cp -R deploy/traefik-console deploy/traefik-console-crowdsec deploy/console-only deploy/README.md "$dir/"
+          # Pin every folder to this exact release.
+          sed -i "s#ghcr.io/fouad-aniq/traefik-console:latest#${ref}#g" "$dir"/*/docker-compose.yml
+          grep -q "${ref}" "$dir/traefik-console/docker-compose.yml"
+          tar -czf dist/traefik-console-deploy.tar.gz "$dir"
+          cd dist && sha256sum * > SHA256SUMS
+
+      - name: Attest release files
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.tar.gz
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          pre=""
+          case "$GITHUB_REF_NAME" in *-*) pre="--prerelease" ;; esac
+          {
+            echo "## Image"
+            echo
+            echo '```'
+            echo "${IMAGE}@${DIGEST}"
+            echo '```'
+            echo
+            echo "Platforms: linux/amd64, linux/arm64. Provenance and SBOM are attached to the image."
+            echo
+            echo "## Quick start"
+            echo
+            echo '```sh'
+            echo "curl -fsSL https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/traefik-console-deploy.tar.gz | tar -xz"
+            echo "cd traefik-console-deploy/traefik-console      # or traefik-console-crowdsec, or console-only"
+            echo "docker compose up -d"
+            echo "docker compose exec console server admin setup-token"
+            echo '```'
+            echo
+            echo "Options (new Traefik, with CrowdSec, or your existing Traefik): see README.md in the bundle."
+            echo
+            echo "Verify downloads with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo ${GITHUB_REPOSITORY}\`."
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Traefik Console ${GITHUB_REF_NAME}" \
+            --notes-file notes.md --verify-tag $pre

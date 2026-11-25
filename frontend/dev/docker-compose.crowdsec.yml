@@ -1,0 +1,15 @@
+# Added to docker-compose.yml by `./dev/run-demo.sh --crowdsec`: Traefik writes its JSON access
+# log to the volume CrowdSec reads, and joins the network where the LAPI is reachable.
+services:
+  traefik:
+    volumes:
+      - traefik-access-logs:/logs
+    networks: [default, demo-lapi]
+networks:
+  demo-lapi:
+    external: true
+    name: tcdemo-lapi
+volumes:
+  traefik-access-logs:
+    external: true
+    name: traefik-access-logs

@@ -1,0 +1,806 @@
+{
+  "http": {
+    "addPrefix": {
+      "prefix": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "basicAuth": {
+      "headerField": {
+        "fields": {},
+        "type": "string"
+      },
+      "realm": {
+        "fields": {},
+        "type": "string"
+      },
+      "removeHeader": {
+        "fields": {},
+        "type": "bool"
+      },
+      "users": {
+        "fields": {},
+        "type": "github.com/traefik/traefik/v3/pkg/config/dynamic.Users"
+      },
+      "usersFile": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "buffering": {
+      "maxRequestBodyBytes": {
+        "fields": {},
+        "type": "int64"
+      },
+      "maxResponseBodyBytes": {
+        "fields": {},
+        "type": "int64"
+      },
+      "memRequestBodyBytes": {
+        "fields": {},
+        "type": "int64"
+      },
+      "memResponseBodyBytes": {
+        "fields": {},
+        "type": "int64"
+      },
+      "retryExpression": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "chain": {
+      "middlewares": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "circuitBreaker": {
+      "checkPeriod": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      },
+      "expression": {
+        "fields": {},
+        "type": "string"
+      },
+      "fallbackDuration": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      },
+      "recoveryDuration": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      },
+      "responseCode": {
+        "fields": {},
+        "type": "int"
+      }
+    },
+    "compress": {
+      "defaultEncoding": {
+        "fields": {},
+        "type": "string"
+      },
+      "encodings": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "excludedContentTypes": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "includedContentTypes": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "minResponseBodyBytes": {
+        "fields": {},
+        "type": "int"
+      }
+    },
+    "contentType": {
+      "autoDetect": {
+        "fields": {},
+        "type": "*bool"
+      }
+    },
+    "digestAuth": {
+      "headerField": {
+        "fields": {},
+        "type": "string"
+      },
+      "realm": {
+        "fields": {},
+        "type": "string"
+      },
+      "removeHeader": {
+        "fields": {},
+        "type": "bool"
+      },
+      "users": {
+        "fields": {},
+        "type": "github.com/traefik/traefik/v3/pkg/config/dynamic.Users"
+      },
+      "usersFile": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "encodedCharacters": {
+      "allowEncodedBackSlash": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedHash": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedNullCharacter": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedPercent": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedQuestionMark": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedSemicolon": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowEncodedSlash": {
+        "fields": {},
+        "type": "bool"
+      }
+    },
+    "errors": {
+      "errorRequestHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "query": {
+        "fields": {},
+        "type": "string"
+      },
+      "service": {
+        "fields": {},
+        "type": "string"
+      },
+      "status": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "statusRewrites": {
+        "fields": {},
+        "type": "map[string]int"
+      }
+    },
+    "forwardAuth": {
+      "addAuthCookiesToResponse": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "address": {
+        "fields": {},
+        "type": "string"
+      },
+      "authRequestHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "authResponseHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "authResponseHeadersRegex": {
+        "fields": {},
+        "type": "string"
+      },
+      "authSigninURL": {
+        "fields": {},
+        "type": "string"
+      },
+      "forwardBody": {
+        "fields": {},
+        "type": "bool"
+      },
+      "headerField": {
+        "fields": {},
+        "type": "string"
+      },
+      "maxBodySize": {
+        "fields": {},
+        "type": "*int64"
+      },
+      "maxResponseBodySize": {
+        "fields": {},
+        "type": "*int64"
+      },
+      "preserveLocationHeader": {
+        "fields": {},
+        "type": "bool"
+      },
+      "preserveRequestMethod": {
+        "fields": {},
+        "type": "bool"
+      },
+      "tls": {
+        "fields": {
+          "ca": {
+            "fields": {},
+            "type": "string"
+          },
+          "caOptional": {
+            "fields": {},
+            "type": "*bool"
+          },
+          "cert": {
+            "fields": {},
+            "type": "string"
+          },
+          "insecureSkipVerify": {
+            "fields": {},
+            "type": "bool"
+          },
+          "key": {
+            "fields": {},
+            "type": "string"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.ClientTLS"
+      },
+      "trustForwardHeader": {
+        "fields": {},
+        "type": "*bool"
+      }
+    },
+    "grpcWeb": {
+      "allowOrigins": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "headers": {
+      "accessControlAllowCredentials": {
+        "fields": {},
+        "type": "bool"
+      },
+      "accessControlAllowHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "accessControlAllowMethods": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "accessControlAllowOriginList": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "accessControlAllowOriginListRegex": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "accessControlExposeHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "accessControlMaxAge": {
+        "fields": {},
+        "type": "*int64"
+      },
+      "addVaryHeader": {
+        "fields": {},
+        "type": "bool"
+      },
+      "allowedHosts": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "browserXssFilter": {
+        "fields": {},
+        "type": "bool"
+      },
+      "contentSecurityPolicy": {
+        "fields": {},
+        "type": "string"
+      },
+      "contentSecurityPolicyReportOnly": {
+        "fields": {},
+        "type": "string"
+      },
+      "contentTypeNosniff": {
+        "fields": {},
+        "type": "bool"
+      },
+      "customBrowserXSSValue": {
+        "fields": {},
+        "type": "string"
+      },
+      "customFrameOptionsValue": {
+        "fields": {},
+        "type": "string"
+      },
+      "customRequestHeaders": {
+        "fields": {},
+        "type": "map[string]string"
+      },
+      "customResponseHeaders": {
+        "fields": {},
+        "type": "map[string]string"
+      },
+      "featurePolicy": {
+        "fields": {},
+        "type": "*string"
+      },
+      "forceSTSHeader": {
+        "fields": {},
+        "type": "bool"
+      },
+      "frameDeny": {
+        "fields": {},
+        "type": "bool"
+      },
+      "hostsProxyHeaders": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "isDevelopment": {
+        "fields": {},
+        "type": "bool"
+      },
+      "permissionsPolicy": {
+        "fields": {},
+        "type": "string"
+      },
+      "publicKey": {
+        "fields": {},
+        "type": "string"
+      },
+      "referrerPolicy": {
+        "fields": {},
+        "type": "string"
+      },
+      "sslForceHost": {
+        "fields": {},
+        "type": "*bool"
+      },
+      "sslHost": {
+        "fields": {},
+        "type": "*string"
+      },
+      "sslProxyHeaders": {
+        "fields": {},
+        "type": "map[string]string"
+      },
+      "sslRedirect": {
+        "fields": {},
+        "type": "*bool"
+      },
+      "sslTemporaryRedirect": {
+        "fields": {},
+        "type": "*bool"
+      },
+      "stsIncludeSubdomains": {
+        "fields": {},
+        "type": "bool"
+      },
+      "stsPreload": {
+        "fields": {},
+        "type": "bool"
+      },
+      "stsSeconds": {
+        "fields": {},
+        "type": "*int64"
+      }
+    },
+    "inFlightReq": {
+      "amount": {
+        "fields": {},
+        "type": "int64"
+      },
+      "sourceCriterion": {
+        "fields": {
+          "ipStrategy": {
+            "fields": {
+              "depth": {
+                "fields": {},
+                "type": "int"
+              },
+              "excludedIPs": {
+                "fields": {},
+                "type": "[]string"
+              },
+              "ipv6Subnet": {
+                "fields": {},
+                "type": "*int"
+              }
+            },
+            "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.IPStrategy"
+          },
+          "requestHeaderName": {
+            "fields": {},
+            "type": "string"
+          },
+          "requestHost": {
+            "fields": {},
+            "type": "bool"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.SourceCriterion"
+      }
+    },
+    "ipAllowList": {
+      "ipStrategy": {
+        "fields": {
+          "depth": {
+            "fields": {},
+            "type": "int"
+          },
+          "excludedIPs": {
+            "fields": {},
+            "type": "[]string"
+          },
+          "ipv6Subnet": {
+            "fields": {},
+            "type": "*int"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.IPStrategy"
+      },
+      "rejectStatusCode": {
+        "fields": {},
+        "type": "int"
+      },
+      "sourceRange": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "ipWhiteList": {
+      "ipStrategy": {
+        "fields": {
+          "depth": {
+            "fields": {},
+            "type": "int"
+          },
+          "excludedIPs": {
+            "fields": {},
+            "type": "[]string"
+          },
+          "ipv6Subnet": {
+            "fields": {},
+            "type": "*int"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.IPStrategy"
+      },
+      "sourceRange": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "passTLSClientCert": {
+      "info": {
+        "fields": {
+          "issuer": {
+            "fields": {
+              "commonName": {
+                "fields": {},
+                "type": "bool"
+              },
+              "country": {
+                "fields": {},
+                "type": "bool"
+              },
+              "domainComponent": {
+                "fields": {},
+                "type": "bool"
+              },
+              "locality": {
+                "fields": {},
+                "type": "bool"
+              },
+              "organization": {
+                "fields": {},
+                "type": "bool"
+              },
+              "province": {
+                "fields": {},
+                "type": "bool"
+              },
+              "serialNumber": {
+                "fields": {},
+                "type": "bool"
+              }
+            },
+            "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.TLSClientCertificateIssuerDNInfo"
+          },
+          "notAfter": {
+            "fields": {},
+            "type": "bool"
+          },
+          "notBefore": {
+            "fields": {},
+            "type": "bool"
+          },
+          "sans": {
+            "fields": {},
+            "type": "bool"
+          },
+          "serialNumber": {
+            "fields": {},
+            "type": "bool"
+          },
+          "subject": {
+            "fields": {
+              "commonName": {
+                "fields": {},
+                "type": "bool"
+              },
+              "country": {
+                "fields": {},
+                "type": "bool"
+              },
+              "domainComponent": {
+                "fields": {},
+                "type": "bool"
+              },
+              "locality": {
+                "fields": {},
+                "type": "bool"
+              },
+              "organization": {
+                "fields": {},
+                "type": "bool"
+              },
+              "organizationalUnit": {
+                "fields": {},
+                "type": "bool"
+              },
+              "province": {
+                "fields": {},
+                "type": "bool"
+              },
+              "serialNumber": {
+                "fields": {},
+                "type": "bool"
+              }
+            },
+            "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.TLSClientCertificateSubjectDNInfo"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.TLSClientCertificateInfo"
+      },
+      "pem": {
+        "fields": {},
+        "type": "bool"
+      }
+    },
+    "rateLimit": {
+      "average": {
+        "fields": {},
+        "type": "int64"
+      },
+      "burst": {
+        "fields": {},
+        "type": "int64"
+      },
+      "period": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      },
+      "redis": {
+        "fields": {
+          "db": {
+            "fields": {},
+            "type": "int"
+          },
+          "dialTimeout": {
+            "fields": {},
+            "type": "*github.com/traefik/paerser/types.Duration"
+          },
+          "endpoints": {
+            "fields": {},
+            "type": "[]string"
+          },
+          "maxActiveConns": {
+            "fields": {},
+            "type": "int"
+          },
+          "minIdleConns": {
+            "fields": {},
+            "type": "int"
+          },
+          "password": {
+            "fields": {},
+            "type": "string"
+          },
+          "poolSize": {
+            "fields": {},
+            "type": "int"
+          },
+          "readTimeout": {
+            "fields": {},
+            "type": "*github.com/traefik/paerser/types.Duration"
+          },
+          "tls": {
+            "fields": {
+              "ca": {
+                "fields": {},
+                "type": "string"
+              },
+              "cert": {
+                "fields": {},
+                "type": "string"
+              },
+              "insecureSkipVerify": {
+                "fields": {},
+                "type": "bool"
+              },
+              "key": {
+                "fields": {},
+                "type": "string"
+              }
+            },
+            "type": "*github.com/traefik/traefik/v3/pkg/types.ClientTLS"
+          },
+          "username": {
+            "fields": {},
+            "type": "string"
+          },
+          "writeTimeout": {
+            "fields": {},
+            "type": "*github.com/traefik/paerser/types.Duration"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.Redis"
+      },
+      "sourceCriterion": {
+        "fields": {
+          "ipStrategy": {
+            "fields": {
+              "depth": {
+                "fields": {},
+                "type": "int"
+              },
+              "excludedIPs": {
+                "fields": {},
+                "type": "[]string"
+              },
+              "ipv6Subnet": {
+                "fields": {},
+                "type": "*int"
+              }
+            },
+            "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.IPStrategy"
+          },
+          "requestHeaderName": {
+            "fields": {},
+            "type": "string"
+          },
+          "requestHost": {
+            "fields": {},
+            "type": "bool"
+          }
+        },
+        "type": "*github.com/traefik/traefik/v3/pkg/config/dynamic.SourceCriterion"
+      }
+    },
+    "redirectRegex": {
+      "permanent": {
+        "fields": {},
+        "type": "bool"
+      },
+      "regex": {
+        "fields": {},
+        "type": "string"
+      },
+      "replacement": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "redirectScheme": {
+      "permanent": {
+        "fields": {},
+        "type": "bool"
+      },
+      "port": {
+        "fields": {},
+        "type": "string"
+      },
+      "scheme": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "replacePath": {
+      "path": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "replacePathRegex": {
+      "regex": {
+        "fields": {},
+        "type": "string"
+      },
+      "replacement": {
+        "fields": {},
+        "type": "string"
+      }
+    },
+    "retry": {
+      "attempts": {
+        "fields": {},
+        "type": "int"
+      },
+      "disableRetryOnNetworkError": {
+        "fields": {},
+        "type": "bool"
+      },
+      "initialInterval": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      },
+      "maxRequestBodyBytes": {
+        "fields": {},
+        "type": "*int64"
+      },
+      "retryNonIdempotentMethod": {
+        "fields": {},
+        "type": "bool"
+      },
+      "status": {
+        "fields": {},
+        "type": "[]string"
+      },
+      "timeout": {
+        "fields": {},
+        "type": "github.com/traefik/paerser/types.Duration"
+      }
+    },
+    "stripPrefix": {
+      "forceSlash": {
+        "fields": {},
+        "type": "*bool"
+      },
+      "prefixes": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "stripPrefixRegex": {
+      "regex": {
+        "fields": {},
+        "type": "[]string"
+      }
+    }
+  },
+  "tcp": {
+    "inFlightConn": {
+      "amount": {
+        "fields": {},
+        "type": "int64"
+      }
+    },
+    "ipAllowList": {
+      "sourceRange": {
+        "fields": {},
+        "type": "[]string"
+      }
+    },
+    "ipWhiteList": {
+      "sourceRange": {
+        "fields": {},
+        "type": "[]string"
+      }
+    }
+  }
+}

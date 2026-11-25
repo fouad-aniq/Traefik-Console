@@ -1,0 +1,5 @@
+# Traefik writes JSON access records to this dedicated shared volume.
+filenames:
+  - /logs/access.log
+labels:
+  type: traefik

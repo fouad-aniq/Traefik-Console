@@ -1,0 +1,13 @@
+# Demo-only override for deploy/crowdsec/compose.yaml (used by `./dev/run-demo.sh --crowdsec`).
+# The companion network is internal and publishes nothing. For the demo the engine also joins a
+# small bridge network (Docker picks a free subnet; run-demo.sh reads the address), so that:
+#   - core-v2 (a host process) and the demo Traefik container reach the LAPI at the SAME URL
+#     (the URL core-v2 registers is the one written into the bouncer middleware);
+#   - the first start can download the crowdsecurity/traefik collection.
+# Linux only: the host reaches container addresses on a bridge network directly.
+services:
+  crowdsec:
+    networks: [demo-lapi]
+networks:
+  demo-lapi:
+    name: tcdemo-lapi

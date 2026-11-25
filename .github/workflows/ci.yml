@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' && !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  backend:
+    name: Backend (format, vet, test, race, contract, build)
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.3"
+          cache-dependency-path: backend/go.sum
+      - name: Download modules
+        working-directory: backend
+        run: make deps GOPROXY=https://proxy.golang.org,direct GOCACHE="$RUNNER_TEMP/go-build"
+      - name: Verify
+        working-directory: backend
+        run: make verify GOPROXY=off GOCACHE="$RUNNER_TEMP/go-build" OUTPUT="$RUNNER_TEMP/backend-build"
+      - name: Race tests
+        working-directory: backend
+        run: make race GOPROXY=off GOCACHE="$RUNNER_TEMP/go-build"
+
+  frontend:
+    name: Frontend (type check, test, build)
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run test
+      - run: bun run build
+
+  image:
+    name: Docker image (amd64 + arm64) and Compose files
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build multi-platform image (not pushed)
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -f deploy/Dockerfile \
+            --output type=oci,dest=${{ runner.temp }}/console.oci.tar \
+            .
+      - name: Validate Compose files
+        run: |
+          for d in traefik-console traefik-console-crowdsec console-only; do
+            docker compose -f deploy/$d/docker-compose.yml config -q
+          done

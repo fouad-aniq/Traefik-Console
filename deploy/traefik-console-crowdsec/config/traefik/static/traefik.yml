@@ -1,0 +1,19 @@
+# Traefik static configuration. Console edits this file too, so you can change it
+# here or from Console.
+entryPoints:
+  web:
+    address: ":8000"
+  websecure:
+    address: ":8443"
+  management:
+    address: ":8080"
+api: {}
+ping:
+  entryPoint: management
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+accessLog:
+  filePath: /logs/access.log
+  format: json

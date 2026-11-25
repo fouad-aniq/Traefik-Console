@@ -1,0 +1,7 @@
+{
+  "version": "Traefik v3.7.14",
+  "source": "app/core/internal/routing/middlewares/middleware_schema.json",
+  "generator": "tools/middleware-schema",
+  "sha256": "3e64ea4cd1f6e6b0fbc35c0735cb03b4265cb645219bff6c77efb1298cb29f83",
+  "scope": "native HTTP middleware recursive fields; third-party plugin configuration remains opaque"
+}

@@ -1,0 +1,16 @@
+http:
+  routers:
+    console-observation:
+      entryPoints: [management]
+      rule: PathPrefix(`/api`)
+      service: api@internal
+    console-bootstrap:
+      entryPoints: [websecure]
+      rule: 'Host(`{{ env "CONSOLE_HOST" }}`)'
+      service: console-bootstrap
+      tls: {}
+  services:
+    console-bootstrap:
+      loadBalancer:
+        servers:
+          - url: http://console:8081

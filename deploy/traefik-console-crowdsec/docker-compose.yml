@@ -1,0 +1,156 @@
+# All services: a new Traefik + CrowdSec + Traefik Console, plus a socket-proxy so
+# Console can restart Traefik and create CrowdSec keys itself.
+#
+# First time only, in this folder:
+#   mkdir -p config/traefik/secrets config/traefik/acme data/logs data/plugins
+#   mkdir -p -m 700 data/console/keys data/console/data
+#   touch data/logs/access.log
+# Then:
+#   docker compose up -d
+#   docker compose exec console server admin setup-token
+#
+# Open http://localhost:8081, paste the setup token and create the administrator.
+# Change the example values to yours (console.example.com, user 1000:1000).
+# Lines starting with # are optional settings shown with their default: remove the # to use one.
+name: traefik-console
+
+services:
+  traefik:
+    image: traefik:v3.7.20
+    container_name: traefik   # Console finds Traefik by this name (TRAEFIK_CONTAINER below)
+    command: ["--configFile=/etc/traefik/static/traefik.yml"]
+    user: "1000:1000"   # owner of ./config and ./data (see `id -u` and `id -g`); same as console below
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    environment:
+      CONSOLE_HOST: console.example.com   # routes this address to Console (config/traefik/dynamic/management.yml); same as console below
+    ports:
+      - "80:8000"     # HTTP  (use "127.0.0.1:80:8000" to keep it private to this machine)
+      - "443:8443"    # HTTPS (use "127.0.0.1:443:8443" to keep it private to this machine)
+    volumes:
+      - ./config/traefik:/etc/traefik:ro
+      - ./config/traefik/acme:/etc/traefik/acme
+      - ./data/logs:/logs
+      - ./data/plugins:/plugins-storage
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--configFile=/etc/traefik/static/traefik.yml", "--ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 15
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.8.2
+    container_name: crowdsec   # Console finds CrowdSec by this name (CROWDSEC_CONTAINER below)
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: crowdsecurity/traefik   # parsers and scenarios for Traefik access logs
+      DISABLE_ONLINE_API: "true"           # no sharing with the CrowdSec network
+      NO_HUB_UPGRADE: "true"               # keep the hub version pinned in config/crowdsec/hub-version.yaml
+    configs:
+      - source: acquisition
+        target: /etc/crowdsec/acquis.d/console.yaml
+      - source: hub-version
+        target: /etc/crowdsec/config.yaml.local
+    volumes:
+      - crowdsec-config:/etc/crowdsec
+      - crowdsec-data:/var/lib/crowdsec/data
+      - ./data/logs:/logs:ro   # Traefik's access log
+
+  # Gives Console only the Docker actions it uses, instead of the whole Docker socket.
+  # Only Console can reach it (private "docker" network).
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:3.4.4
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/run]
+    environment:
+      CONTAINERS: 1       # inspect containers: Traefik's state and restart confirmation, CrowdSec's state
+      POST: 1             # allow write requests (needed by the next two)
+      ALLOW_RESTARTS: 1   # restart Traefik after static changes
+      EXEC: 1             # cscli in CrowdSec (keys, decisions, allowlists) and `test -r` on Traefik's secret files
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker]
+
+  console:
+    image: ghcr.io/fouad-aniq/traefik-console:latest
+    depends_on: {traefik: {condition: service_healthy}}
+    entrypoint: ["/bin/sh", "-ec", "server preflight && exec server"]
+    user: "1000:1000"   # same as traefik above
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    ports:
+      - "127.0.0.1:8081:8081"   # direct access from this machine, also a way back in if a route breaks
+    environment:
+      # --- Address and sign-in ---
+      CONSOLE_HOST: console.example.com                     # same as traefik above; the address you open Console at through Traefik
+      # CONSOLE_ORIGIN: https://console.example.com         # browser origin; with https, sign-in cookies are marked Secure
+      # COOKIE_SECURE: "true"                               # force Secure cookies on or off (default: on when CONSOLE_ORIGIN is https)
+      # TRUSTED_PROXIES: 172.16.0.0/12                      # proxies trusted for the client IP in sign-in limits and the activity log (default: none)
+      # SESSION_IDLE_MINUTES: "120"                         # sign out after this much inactivity (5-10080)
+      # SESSION_MAX_HOURS: "24"                             # sign out after this long in any case (1-720)
+
+      # --- Traefik ---
+      TRAEFIK_API_URL: http://traefik:8080                  # Traefik's API (needs `api: {}`)
+      TRAEFIK_PROBE_TARGETS: websecure=traefik:8443         # where Domains > Check connects to see the certificate Traefik serves
+      # TRAEFIK_CONVERGENCE_TIMEOUT_SEC: "15"               # how long to wait for Traefik to load a change (max 60)
+      # STATIC_FILE: /config/static/traefik.yml             # traefik.yml, inside the config folder mounted at /config
+      # DYNAMIC_DIR: /config/dynamic                        # the watched folder inside Console ...
+      # TRAEFIK_DYNAMIC_DIR: /etc/traefik/dynamic           # ... and inside Traefik (must equal providers.file.directory)
+      # SECRETS_DIR: /config/secrets                        # the secrets folder inside Console ...
+      # TRAEFIK_SECRETS_DIR: /etc/traefik/secrets           # ... and inside Traefik
+
+      # --- Docker: lets Console restart Traefik and create CrowdSec keys ---
+      DOCKER_HOST: tcp://socket-proxy:2375                  # the socket-proxy above
+      TRAEFIK_CONTAINER: traefik                            # Traefik's container_name above
+      CROWDSEC_CONTAINER: crowdsec                          # CrowdSec's container_name above
+      ALLOW_TRAEFIK_RESTART: "true"                         # let Console restart Traefik after static changes
+
+      # --- CrowdSec ---
+      CROWDSEC_LAPI_URL: http://crowdsec:8080               # CrowdSec's Local API
+      # CROWDSEC_API_KEY: ""                                # an existing bouncer key (default: Console creates one)
+      # CROWDSEC_MACHINE_ID: ""                             # an existing machine account for alerts and decisions (default: Console creates one)
+      # CROWDSEC_MACHINE_PASSWORD: ""                       # password of that machine account
+      # CROWDSEC_CA_CERT: ""                                # private CA file, for a Local API over HTTPS
+      # CROWDSEC_CLIENT_CERT: ""                            # client certificate file, for a Local API that requires one
+      # CROWDSEC_CLIENT_KEY: ""                             # key file of that client certificate
+      # CROWDSEC_BOUNCER_CERT: ""                           # bouncer certificate file (mTLS instead of a bouncer key)
+      # CROWDSEC_BOUNCER_KEY: ""                            # key file of the bouncer certificate
+      # CROWDSEC_MACHINE_CERT: ""                           # machine certificate file (mTLS instead of a machine password)
+      # CROWDSEC_MACHINE_KEY: ""                            # key file of the machine certificate
+      # CROWDSEC_APPSEC_URL: ""                             # AppSec (WAF) endpoint, if you enable AppSec
+      # CROWDSEC_METRICS_URL: ""                            # CrowdSec metrics endpoint, to show measured ingestion
+      # CROWDSEC_METRICS_TOKEN: ""                          # bearer token for that metrics endpoint, if it needs one
+      # CROWDSEC_ACCESS_LOG_SOURCE: ""                      # acquisition source label that confirms Traefik's log is being read
+      # CROWDSEC_READ_TIMEOUT: "20"                         # seconds (1-120)
+      # CROWDSEC_ALERT_LIMIT: "500"                         # most alerts read at once (1-1000)
+      # CROWDSEC_PROTECTED_CIDRS: 127.0.0.0/8,::1/128       # networks that can never be banned from Console
+
+      # --- History and storage ---
+      # SNAPSHOT_RETENTION_AUTO: "20"                       # automatic snapshots kept (0-1000)
+      # AUTO_SNAPSHOT_BEFORE_STATIC: "false"                # also take a snapshot before every static change
+      # OPERATION_HISTORY_DAYS: "90"                        # days the operations log is kept (1-3650)
+      # MAX_JOURNAL_BYTES: "536870912"                      # space for the change journal (512 MiB)
+      # MAX_SNAPSHOT_BYTES: "1073741824"                    # space for snapshots (1 GiB)
+    volumes:
+      - ./data/console:/var/lib/console
+      - ./config/traefik:/config
+    networks: [default, docker]
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  docker:
+    internal: true   # only Console and the socket-proxy are on it
+
+volumes:
+  crowdsec-config: {}
+  crowdsec-data: {}
+
+configs:
+  acquisition: {file: ./config/crowdsec/acquis.yaml}
+  hub-version: {file: ./config/crowdsec/hub-version.yaml}

@@ -1,0 +1,3554 @@
+{
+  "internal/api/authgate.deleteProviderRequest": {
+    "current_password": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.loginRequest": {
+    "password": {
+      "type": "string",
+      "optional": false
+    },
+    "username": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.passwordRequest": {
+    "current_password": {
+      "type": "string",
+      "optional": false
+    },
+    "new_password": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.providerList": {
+    "items": {
+      "type": "[]auth.ProviderSettings",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.providerRequest": {
+    "allowed_identities": {
+      "type": "[]string",
+      "optional": false
+    },
+    "authorize_url": {
+      "type": "string",
+      "optional": false
+    },
+    "clear_client_secret": {
+      "type": "bool",
+      "optional": false
+    },
+    "client_id": {
+      "type": "string",
+      "optional": false
+    },
+    "client_secret": {
+      "type": "string",
+      "optional": false
+    },
+    "current_password": {
+      "type": "string",
+      "optional": false
+    },
+    "display_name": {
+      "type": "string",
+      "optional": false
+    },
+    "identity_claim": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": false
+    },
+    "kind": {
+      "type": "string",
+      "optional": false
+    },
+    "redirect_url": {
+      "type": "string",
+      "optional": false
+    },
+    "scopes": {
+      "type": "[]string",
+      "optional": false
+    },
+    "token_url": {
+      "type": "string",
+      "optional": false
+    },
+    "userinfo_url": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.sessionView": {
+    "csrf": {
+      "type": "string",
+      "optional": false
+    },
+    "expires_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "user": {
+      "type": "userView",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.setupRequest": {
+    "password": {
+      "type": "string",
+      "optional": false
+    },
+    "setup_token": {
+      "type": "string",
+      "optional": false
+    },
+    "username": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.statusView": {
+    "authenticated": {
+      "type": "bool",
+      "optional": false
+    },
+    "providers": {
+      "type": "[]auth.PublicProvider",
+      "optional": false
+    },
+    "session": {
+      "type": "*sessionView",
+      "optional": true
+    },
+    "setup_required": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/api/authgate.userView": {
+    "method": {
+      "type": "string",
+      "optional": false
+    },
+    "provider": {
+      "type": "string",
+      "optional": true
+    },
+    "username": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/handlers.crowdSecAllowlistEntryRequest": {
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "expiration": {
+      "type": "string",
+      "optional": false
+    },
+    "value": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/handlers.crowdSecAllowlistRequest": {
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/handlers.crowdSecDecisionRequest": {
+    "duration": {
+      "type": "string",
+      "optional": false
+    },
+    "ip": {
+      "type": "string",
+      "optional": false
+    },
+    "reason": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/handlers.page": {
+    "items": {
+      "type": "[]T",
+      "optional": false
+    },
+    "next_cursor": {
+      "type": "int64",
+      "optional": true
+    }
+  },
+  "internal/api/handlers.uploadCertificateRequest": {
+    "cert_pem": {
+      "type": "string",
+      "optional": false
+    },
+    "key_pem": {
+      "type": "string",
+      "optional": false
+    },
+    "purpose": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/api/response.Error": {
+    "code": {
+      "type": "string",
+      "optional": false
+    },
+    "field_errors": {
+      "type": "map[string]string",
+      "optional": true
+    },
+    "message": {
+      "type": "string",
+      "optional": false
+    },
+    "operation_id": {
+      "type": "string",
+      "optional": false
+    },
+    "retryable": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/auth.Event": {
+    "at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "detail": {
+      "type": "string",
+      "optional": false
+    },
+    "event": {
+      "type": "string",
+      "optional": false
+    },
+    "ip": {
+      "type": "string",
+      "optional": false
+    },
+    "outcome": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.ProviderSettings": {
+    "allowed_identities": {
+      "type": "[]string",
+      "optional": false
+    },
+    "authorize_url": {
+      "type": "string",
+      "optional": false
+    },
+    "client_id": {
+      "type": "string",
+      "optional": false
+    },
+    "credential_stored": {
+      "type": "bool",
+      "optional": false
+    },
+    "display_name": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "identity_claim": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": false
+    },
+    "kind": {
+      "type": "string",
+      "optional": false
+    },
+    "redirect_url": {
+      "type": "string",
+      "optional": false
+    },
+    "scopes": {
+      "type": "[]string",
+      "optional": false
+    },
+    "token_url": {
+      "type": "string",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "userinfo_url": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.PublicProvider": {
+    "display_name": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.SessionInfo": {
+    "current": {
+      "type": "bool",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "ip": {
+      "type": "string",
+      "optional": false
+    },
+    "last_seen_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "method": {
+      "type": "string",
+      "optional": false
+    },
+    "provider": {
+      "type": "string",
+      "optional": false
+    },
+    "signed_in_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "user_agent": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.discovery": {
+    "authorization_endpoint": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": false
+    },
+    "jwks_uri": {
+      "type": "string",
+      "optional": false
+    },
+    "token_endpoint": {
+      "type": "string",
+      "optional": false
+    },
+    "token_endpoint_auth_methods_supported": {
+      "type": "[]string",
+      "optional": false
+    },
+    "userinfo_endpoint": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.jwk": {
+    "alg": {
+      "type": "string",
+      "optional": false
+    },
+    "crv": {
+      "type": "string",
+      "optional": false
+    },
+    "e": {
+      "type": "string",
+      "optional": false
+    },
+    "kid": {
+      "type": "string",
+      "optional": false
+    },
+    "kty": {
+      "type": "string",
+      "optional": false
+    },
+    "n": {
+      "type": "string",
+      "optional": false
+    },
+    "use": {
+      "type": "string",
+      "optional": false
+    },
+    "x": {
+      "type": "string",
+      "optional": false
+    },
+    "y": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.jwkSet": {
+    "keys": {
+      "type": "[]jwk",
+      "optional": false
+    }
+  },
+  "internal/auth.jwsHeader": {
+    "alg": {
+      "type": "string",
+      "optional": false
+    },
+    "kid": {
+      "type": "string",
+      "optional": false
+    },
+    "typ": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/auth.tokenResponse": {
+    "access_token": {
+      "type": "string",
+      "optional": false
+    },
+    "error": {
+      "type": "string",
+      "optional": false
+    },
+    "id_token": {
+      "type": "string",
+      "optional": false
+    },
+    "token_type": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/config/files.ExternalFile": {
+    "filename": {
+      "type": "string",
+      "optional": false
+    },
+    "mod_time": {
+      "type": "string",
+      "optional": false
+    },
+    "size": {
+      "type": "int64",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.AlertPage": {
+    "has_more": {
+      "type": "bool",
+      "optional": false
+    },
+    "items": {
+      "type": "[]docker.Alert",
+      "optional": false
+    },
+    "limit": {
+      "type": "int",
+      "optional": false
+    },
+    "observed_at": {
+      "type": "string",
+      "optional": false
+    },
+    "page": {
+      "type": "int",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.ConnectionSettings": {
+    "access_log_source": {
+      "type": "string",
+      "optional": true
+    },
+    "alert_limit": {
+      "type": "int",
+      "optional": true
+    },
+    "appsec_url": {
+      "type": "string",
+      "optional": true
+    },
+    "ca_certificate": {
+      "type": "string",
+      "optional": true
+    },
+    "client_certificate": {
+      "type": "string",
+      "optional": true
+    },
+    "client_key": {
+      "type": "string",
+      "optional": true
+    },
+    "generate_key": {
+      "type": "bool",
+      "optional": true
+    },
+    "generate_machine": {
+      "type": "bool",
+      "optional": true
+    },
+    "lapi_key": {
+      "type": "string",
+      "optional": true
+    },
+    "lapi_url": {
+      "type": "string",
+      "optional": false
+    },
+    "machine_id": {
+      "type": "string",
+      "optional": true
+    },
+    "machine_password": {
+      "type": "string",
+      "optional": true
+    },
+    "metrics_token": {
+      "type": "string",
+      "optional": true
+    },
+    "metrics_url": {
+      "type": "string",
+      "optional": true
+    },
+    "protected_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "protection": {
+      "type": "*ProtectionSettings",
+      "optional": true
+    },
+    "read_timeout_seconds": {
+      "type": "int",
+      "optional": true
+    }
+  },
+  "internal/core/crowdsec.ConnectionTest": {
+    "appsec": {
+      "type": "string",
+      "optional": false
+    },
+    "can_generate_key": {
+      "type": "bool",
+      "optional": false
+    },
+    "engine": {
+      "type": "string",
+      "optional": false
+    },
+    "lapi": {
+      "type": "string",
+      "optional": false
+    },
+    "lapi_url": {
+      "type": "string",
+      "optional": false
+    },
+    "machine": {
+      "type": "string",
+      "optional": false
+    },
+    "metrics": {
+      "type": "string",
+      "optional": false
+    },
+    "observed_at": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CountItem": {
+    "count": {
+      "type": "int",
+      "optional": false
+    },
+    "key": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CrowdSecCapabilities": {
+    "alerts": {
+      "type": "bool",
+      "optional": false
+    },
+    "allowlist_read": {
+      "type": "bool",
+      "optional": false
+    },
+    "allowlist_write": {
+      "type": "bool",
+      "optional": false
+    },
+    "appsec": {
+      "type": "bool",
+      "optional": false
+    },
+    "auto_enroll": {
+      "type": "bool",
+      "optional": false
+    },
+    "decision_create": {
+      "type": "bool",
+      "optional": false
+    },
+    "decision_delete": {
+      "type": "bool",
+      "optional": false
+    },
+    "decisions": {
+      "type": "bool",
+      "optional": false
+    },
+    "hub_read": {
+      "type": "bool",
+      "optional": false
+    },
+    "metrics": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CrowdSecConfig": {
+    "access_log_source": {
+      "type": "string",
+      "optional": true
+    },
+    "active_enabled": {
+      "type": "bool",
+      "optional": false
+    },
+    "alert_limit": {
+      "type": "int",
+      "optional": false
+    },
+    "appsec_body_limit": {
+      "type": "int64",
+      "optional": false
+    },
+    "appsec_enabled": {
+      "type": "bool",
+      "optional": false
+    },
+    "appsec_failure_block": {
+      "type": "*bool",
+      "optional": true
+    },
+    "appsec_unreachable_block": {
+      "type": "*bool",
+      "optional": true
+    },
+    "appsec_url": {
+      "type": "string",
+      "optional": true
+    },
+    "auto_enroll": {
+      "type": "bool",
+      "optional": false
+    },
+    "auto_enroll_machine": {
+      "type": "bool",
+      "optional": true
+    },
+    "ca_certificate": {
+      "type": "string",
+      "optional": true
+    },
+    "client_certificate": {
+      "type": "string",
+      "optional": true
+    },
+    "client_key": {
+      "type": "string",
+      "optional": true
+    },
+    "client_trusted_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "enabled": {
+      "type": "bool",
+      "optional": false
+    },
+    "enrollment_ids": {
+      "type": "[]int64",
+      "optional": true
+    },
+    "http_timeout_seconds": {
+      "type": "int",
+      "optional": false
+    },
+    "integration_mode": {
+      "type": "string",
+      "optional": true
+    },
+    "keep_enrollments": {
+      "type": "bool",
+      "optional": true
+    },
+    "lapi_key": {
+      "type": "string",
+      "optional": false
+    },
+    "lapi_url": {
+      "type": "string",
+      "optional": false
+    },
+    "machine_enrollment_id": {
+      "type": "int64",
+      "optional": true
+    },
+    "machine_id": {
+      "type": "string",
+      "optional": true
+    },
+    "machine_password": {
+      "type": "string",
+      "optional": true
+    },
+    "metrics_token": {
+      "type": "string",
+      "optional": true
+    },
+    "metrics_token_set": {
+      "type": "bool",
+      "optional": true
+    },
+    "metrics_url": {
+      "type": "string",
+      "optional": true
+    },
+    "middleware_name": {
+      "type": "string",
+      "optional": true
+    },
+    "middleware_owned": {
+      "type": "bool",
+      "optional": false
+    },
+    "mode": {
+      "type": "string",
+      "optional": false
+    },
+    "plugin_alias": {
+      "type": "string",
+      "optional": true
+    },
+    "plugin_version": {
+      "type": "string",
+      "optional": false
+    },
+    "protected_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "read_timeout_seconds": {
+      "type": "int",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": true
+    },
+    "trusted_proxy_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "update_max_failure": {
+      "type": "int",
+      "optional": false
+    },
+    "version": {
+      "type": "int64",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CrowdSecSources": {
+    "access_log_source": {
+      "type": "string",
+      "optional": false
+    },
+    "alert_limit": {
+      "type": "string",
+      "optional": false
+    },
+    "appsec_url": {
+      "type": "string",
+      "optional": false
+    },
+    "bouncer_authentication": {
+      "type": "string",
+      "optional": false
+    },
+    "ca_certificate": {
+      "type": "string",
+      "optional": false
+    },
+    "client_certificate": {
+      "type": "string",
+      "optional": false
+    },
+    "lapi_url": {
+      "type": "string",
+      "optional": false
+    },
+    "machine": {
+      "type": "string",
+      "optional": false
+    },
+    "metrics_token": {
+      "type": "string",
+      "optional": false
+    },
+    "metrics_url": {
+      "type": "string",
+      "optional": false
+    },
+    "protected_cidrs": {
+      "type": "string",
+      "optional": false
+    },
+    "read_timeout": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CrowdSecStats": {
+    "active_decisions": {
+      "type": "int",
+      "optional": false
+    },
+    "alerts": {
+      "type": "int",
+      "optional": false
+    },
+    "available": {
+      "type": "bool",
+      "optional": false
+    },
+    "bouncers": {
+      "type": "[]docker.Bouncer",
+      "optional": false
+    },
+    "bucket_hours": {
+      "type": "int",
+      "optional": false
+    },
+    "decisions_by_origin": {
+      "type": "[]CountItem",
+      "optional": false
+    },
+    "decisions_by_type": {
+      "type": "[]CountItem",
+      "optional": false
+    },
+    "generated_at": {
+      "type": "string",
+      "optional": false
+    },
+    "metrics": {
+      "type": "*MetricsSnapshot",
+      "optional": true
+    },
+    "partial": {
+      "type": "[]string",
+      "optional": false
+    },
+    "timeline": {
+      "type": "[]TimelinePoint",
+      "optional": false
+    },
+    "top_countries": {
+      "type": "[]CountItem",
+      "optional": false
+    },
+    "top_scenarios": {
+      "type": "[]CountItem",
+      "optional": false
+    },
+    "top_sources": {
+      "type": "[]CountItem",
+      "optional": false
+    },
+    "truncated": {
+      "type": "bool",
+      "optional": false
+    },
+    "window_hours": {
+      "type": "int",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.CrowdSecStatus": {
+    "bouncers": {
+      "type": "[]docker.Bouncer",
+      "optional": false
+    },
+    "capabilities": {
+      "type": "CrowdSecCapabilities",
+      "optional": false
+    },
+    "complete": {
+      "type": "bool",
+      "optional": false
+    },
+    "config": {
+      "type": "CrowdSecConfig",
+      "optional": false
+    },
+    "engine": {
+      "type": "EngineStatus",
+      "optional": false
+    },
+    "environment": {
+      "type": "[]EnvVariable",
+      "optional": false
+    },
+    "ingestion": {
+      "type": "ObservationStatus",
+      "optional": false
+    },
+    "key": {
+      "type": "KeyStatus",
+      "optional": false
+    },
+    "lapi": {
+      "type": "LAPIStatus",
+      "optional": false
+    },
+    "machine": {
+      "type": "MachineStatus",
+      "optional": false
+    },
+    "metrics": {
+      "type": "*MetricsSnapshot",
+      "optional": true
+    },
+    "middleware": {
+      "type": "MiddlewareStatus",
+      "optional": false
+    },
+    "observed_at": {
+      "type": "string",
+      "optional": false
+    },
+    "plugin": {
+      "type": "PluginStatus",
+      "optional": false
+    },
+    "remediation": {
+      "type": "ObservationStatus",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]RouterProtection",
+      "optional": false
+    },
+    "runtime": {
+      "type": "RuntimeRegistration",
+      "optional": false
+    },
+    "sources": {
+      "type": "CrowdSecSources",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.EngineStatus": {
+    "image": {
+      "type": "string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.EnvVariable": {
+    "field": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "secret": {
+      "type": "bool",
+      "optional": false
+    },
+    "value": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/core/crowdsec.KeyStatus": {
+    "present": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.LAPIStatus": {
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "url": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.MachineStatus": {
+    "id": {
+      "type": "string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.MetricsSnapshot": {
+    "appsec_blocked": {
+      "type": "*uint64",
+      "optional": false
+    },
+    "appsec_processed": {
+      "type": "*uint64",
+      "optional": false
+    },
+    "bouncer_pulls": {
+      "type": "*uint64",
+      "optional": false
+    },
+    "capi_last_pull": {
+      "type": "string",
+      "optional": true
+    },
+    "ingestion_state": {
+      "type": "string",
+      "optional": false
+    },
+    "lapi_requests": {
+      "type": "*uint64",
+      "optional": false
+    },
+    "observed_at": {
+      "type": "string",
+      "optional": false
+    },
+    "parsed_access_log_events": {
+      "type": "*uint64",
+      "optional": false
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.MiddlewareStatus": {
+    "name": {
+      "type": "string",
+      "optional": true
+    },
+    "origin": {
+      "type": "string",
+      "optional": true
+    },
+    "plugin_alias": {
+      "type": "string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.ObservationStatus": {
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.PluginStatus": {
+    "alias": {
+      "type": "string",
+      "optional": true
+    },
+    "module_name": {
+      "type": "string",
+      "optional": true
+    },
+    "origin": {
+      "type": "string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/core/crowdsec.ProtectionSettings": {
+    "appsec_enabled": {
+      "type": "bool",
+      "optional": false
+    },
+    "bouncer_mode": {
+      "type": "string",
+      "optional": true
+    },
+    "client_trusted_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "http_timeout_seconds": {
+      "type": "int",
+      "optional": true
+    },
+    "middleware_name": {
+      "type": "string",
+      "optional": true
+    },
+    "mode": {
+      "type": "string",
+      "optional": false
+    },
+    "plugin_alias": {
+      "type": "string",
+      "optional": true
+    },
+    "plugin_version": {
+      "type": "string",
+      "optional": true
+    },
+    "trusted_proxy_cidrs": {
+      "type": "[]string",
+      "optional": true
+    },
+    "update_max_failure": {
+      "type": "int",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.RouterProtection": {
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "origin": {
+      "type": "string",
+      "optional": false
+    },
+    "protected": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.RuntimeRegistration": {
+    "accessible": {
+      "type": "bool",
+      "optional": false
+    },
+    "compose_service": {
+      "type": "string",
+      "optional": true
+    },
+    "container_id": {
+      "type": "string",
+      "optional": true
+    },
+    "docker_configured": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.TimelinePoint": {
+    "count": {
+      "type": "int",
+      "optional": false
+    },
+    "start": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/crowdsec.lapiAlert": {
+    "created_at": {
+      "type": "string",
+      "optional": false
+    },
+    "decisions": {
+      "type": "[]docker.Decision",
+      "optional": false
+    },
+    "events_count": {
+      "type": "int32",
+      "optional": false
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "kind": {
+      "type": "string",
+      "optional": false
+    },
+    "origin": {
+      "type": "string",
+      "optional": false
+    },
+    "scenario": {
+      "type": "string",
+      "optional": false
+    },
+    "source": {
+      "type": "*struct {\n\tScope\t\tstring\t`json:\"scope\"`\n\tValue\t\tstring\t`json:\"value\"`\n\tCn\t\tstring\t`json:\"cn\"`\n\tAS\t\tstring\t`json:\"as_name\"`\n\tASNumber\tstring\t`json:\"as_number\"`\n}",
+      "optional": false
+    }
+  },
+  "internal/core/middlewares.Credential": {
+    "password": {
+      "type": "string",
+      "optional": false
+    },
+    "username": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/plugins.CatalogInstallRequest": {
+    "alias": {
+      "type": "string",
+      "optional": false
+    },
+    "module_name": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/plugins.InstallFromYAMLRequest": {
+    "middleware_name": {
+      "type": "string",
+      "optional": true
+    },
+    "raw_yaml": {
+      "type": "string",
+      "optional": false
+    },
+    "short_name": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/plugins.UpdatePluginRequest": {
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/resolvers/providers.Alternative": {
+    "alternative_name": {
+      "type": "string",
+      "optional": false
+    },
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "optional_fields": {
+      "type": "[]Field",
+      "optional": false
+    },
+    "required_fields": {
+      "type": "[]Field",
+      "optional": false
+    }
+  },
+  "internal/core/resolvers/providers.Field": {
+    "aliases": {
+      "type": "[]string",
+      "optional": true
+    },
+    "bounds": {
+      "type": "string",
+      "optional": true
+    },
+    "default_value": {
+      "type": "string",
+      "optional": true
+    },
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "env_var": {
+      "type": "string",
+      "optional": false
+    },
+    "file_support": {
+      "type": "bool",
+      "optional": false
+    },
+    "is_secret": {
+      "type": "bool",
+      "optional": false
+    },
+    "required": {
+      "type": "bool",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/core/resolvers/providers.Provider": {
+    "auth_alternatives": {
+      "type": "[]Alternative",
+      "optional": false
+    },
+    "display_name": {
+      "type": "string",
+      "optional": false
+    },
+    "doc_url": {
+      "type": "string",
+      "optional": false
+    },
+    "file_support_all": {
+      "type": "bool",
+      "optional": false
+    },
+    "form_supported": {
+      "type": "bool",
+      "optional": false
+    },
+    "global_options": {
+      "type": "[]Field",
+      "optional": false
+    },
+    "provider_code": {
+      "type": "string",
+      "optional": false
+    },
+    "source_audit_notes": {
+      "type": "string",
+      "optional": false
+    },
+    "verification_status": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.Alert": {
+    "as": {
+      "type": "string",
+      "optional": false
+    },
+    "as_number": {
+      "type": "string",
+      "optional": true
+    },
+    "country": {
+      "type": "string",
+      "optional": false
+    },
+    "created_at": {
+      "type": "string",
+      "optional": false
+    },
+    "decisions": {
+      "type": "[]Decision",
+      "optional": true
+    },
+    "events_count": {
+      "type": "int32",
+      "optional": false
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "kind": {
+      "type": "string",
+      "optional": true
+    },
+    "origin": {
+      "type": "string",
+      "optional": true
+    },
+    "reason": {
+      "type": "string",
+      "optional": false
+    },
+    "scope": {
+      "type": "string",
+      "optional": false
+    },
+    "value": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.Allowlist": {
+    "allowlist_id": {
+      "type": "string",
+      "optional": true
+    },
+    "console_managed": {
+      "type": "bool",
+      "optional": false
+    },
+    "created_at": {
+      "type": "string",
+      "optional": true
+    },
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "items": {
+      "type": "[]AllowlistEntry",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/docker.AllowlistEntry": {
+    "created_at": {
+      "type": "string",
+      "optional": true
+    },
+    "description": {
+      "type": "string",
+      "optional": true
+    },
+    "expiration": {
+      "type": "string",
+      "optional": true
+    },
+    "value": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.Bouncer": {
+    "ip_address": {
+      "type": "string",
+      "optional": false
+    },
+    "last_pull": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "revoked": {
+      "type": "bool",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.ContainerStatus": {
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "image": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "restart_allowed": {
+      "type": "bool",
+      "optional": false
+    },
+    "restart_count": {
+      "type": "int",
+      "optional": false
+    },
+    "running": {
+      "type": "bool",
+      "optional": false
+    },
+    "secret_file_env": {
+      "type": "map[string]string",
+      "optional": true
+    },
+    "started_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.Decision": {
+    "duration": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "origin": {
+      "type": "string",
+      "optional": false
+    },
+    "scenario": {
+      "type": "string",
+      "optional": false
+    },
+    "scope": {
+      "type": "string",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "value": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.EngineState": {
+    "configured": {
+      "type": "bool",
+      "optional": false
+    },
+    "image": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "running": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/docker.HubItem": {
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/docker.hubItemJSON": {
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.CatalogPage": {
+    "items": {
+      "type": "[]CatalogPluginRow",
+      "optional": false
+    },
+    "last_synced_at": {
+      "type": "string",
+      "optional": false
+    },
+    "limit": {
+      "type": "int",
+      "optional": false
+    },
+    "offset": {
+      "type": "int",
+      "optional": false
+    },
+    "total": {
+      "type": "int",
+      "optional": false
+    }
+  },
+  "internal/models.CatalogPageView": {
+    "inventory_known": {
+      "type": "bool",
+      "optional": false
+    },
+    "items": {
+      "type": "[]CatalogPluginView",
+      "optional": false
+    },
+    "last_synced_at": {
+      "type": "string",
+      "optional": false
+    },
+    "limit": {
+      "type": "int",
+      "optional": false
+    },
+    "offset": {
+      "type": "int",
+      "optional": false
+    },
+    "refresh": {
+      "type": "CatalogRefresh",
+      "optional": false
+    },
+    "total": {
+      "type": "int",
+      "optional": false
+    }
+  },
+  "internal/models.CatalogPluginRow": {
+    "display_name": {
+      "type": "string",
+      "optional": false
+    },
+    "fetched_at": {
+      "type": "string",
+      "optional": false
+    },
+    "latest_version": {
+      "type": "string",
+      "optional": false
+    },
+    "module_name": {
+      "type": "string",
+      "optional": false
+    },
+    "plugin_type": {
+      "type": "string",
+      "optional": false
+    },
+    "snippet_yaml": {
+      "type": "string",
+      "optional": false
+    },
+    "summary": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.CatalogPluginView": {
+    "can_update": {
+      "type": "bool",
+      "optional": false
+    },
+    "install_state": {
+      "type": "string",
+      "optional": false
+    },
+    "installed_alias": {
+      "type": "string",
+      "optional": true
+    },
+    "installed_origin": {
+      "type": "string",
+      "optional": true
+    },
+    "installed_status": {
+      "type": "ItemStatus",
+      "optional": true
+    },
+    "installed_version": {
+      "type": "string",
+      "optional": true
+    },
+    "versions": {
+      "type": "[]string",
+      "optional": false
+    }
+  },
+  "internal/models.CatalogRefresh": {
+    "last_attempt_at": {
+      "type": "string",
+      "optional": false
+    },
+    "last_attempt_failed": {
+      "type": "bool",
+      "optional": false
+    },
+    "last_success_at": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.CertificateConfig": {
+    "algorithm": {
+      "type": "string",
+      "optional": false
+    },
+    "cert_file": {
+      "type": "string",
+      "optional": false
+    },
+    "domains": {
+      "type": "[]string",
+      "optional": false
+    },
+    "fingerprint": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": false
+    },
+    "key_file": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "not_after": {
+      "type": "string",
+      "optional": false
+    },
+    "not_before": {
+      "type": "string",
+      "optional": false
+    },
+    "purpose": {
+      "type": "string",
+      "optional": false
+    },
+    "source": {
+      "type": "string",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    },
+    "used_by": {
+      "type": "*CertificateUsage",
+      "optional": true
+    }
+  },
+  "internal/models.CertificateRef": {
+    "covers": {
+      "type": "bool",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "names": {
+      "type": "[]string",
+      "optional": false
+    },
+    "not_after": {
+      "type": "string",
+      "optional": true
+    },
+    "source": {
+      "type": "string",
+      "optional": false
+    },
+    "validity": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.CertificateUsage": {
+    "domains": {
+      "type": "[]DomainRef",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]RouterRef",
+      "optional": false
+    }
+  },
+  "internal/models.ChainConfig": {
+    "middlewares": {
+      "type": "[]string",
+      "optional": false
+    },
+    "used_by": {
+      "type": "*MiddlewareUsage",
+      "optional": true
+    }
+  },
+  "internal/models.ChainRef": {
+    "members": {
+      "type": "[]string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "read_only": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/models.ConfigItemRow": {
+    "created_at": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "kind": {
+      "type": "ItemKind",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "payload": {
+      "type": "json.RawMessage",
+      "optional": true
+    },
+    "scope": {
+      "type": "ItemScope",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "int64",
+      "optional": false
+    }
+  },
+  "internal/models.ConfigState": {
+    "archived_drafts": {
+      "type": "int",
+      "optional": false
+    },
+    "archived_secret_drafts": {
+      "type": "int",
+      "optional": false
+    },
+    "domains_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "drifted": {
+      "type": "bool",
+      "optional": false
+    },
+    "drifted_files": {
+      "type": "[]string",
+      "optional": true
+    },
+    "dynamic_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "legacy_snapshots_imported": {
+      "type": "int",
+      "optional": false
+    },
+    "plugin_updates": {
+      "type": "int",
+      "optional": false
+    },
+    "published_domains_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "published_dynamic_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "published_static_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "recovery_operation": {
+      "type": "*OperationRow",
+      "optional": true
+    },
+    "restart_required": {
+      "type": "bool",
+      "optional": false
+    },
+    "running_operation": {
+      "type": "bool",
+      "optional": false
+    },
+    "static_hash": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.DomainConfig": {
+    "certificate": {
+      "type": "string",
+      "optional": true
+    },
+    "certificate_state": {
+      "type": "string",
+      "optional": true
+    },
+    "entry_point": {
+      "type": "string",
+      "optional": true
+    },
+    "main": {
+      "type": "string",
+      "optional": false
+    },
+    "method": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "options": {
+      "type": "string",
+      "optional": true
+    },
+    "resolver": {
+      "type": "string",
+      "optional": true
+    },
+    "sans": {
+      "type": "[]string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "usage": {
+      "type": "*DomainUsage",
+      "optional": true
+    },
+    "used_by": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.DomainProbeResult": {
+    "address": {
+      "type": "string",
+      "optional": false
+    },
+    "algorithm": {
+      "type": "string",
+      "optional": true
+    },
+    "error": {
+      "type": "string",
+      "optional": true
+    },
+    "expected": {
+      "type": "string",
+      "optional": true
+    },
+    "fingerprint": {
+      "type": "string",
+      "optional": true
+    },
+    "hostname": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": true
+    },
+    "names": {
+      "type": "string",
+      "optional": true
+    },
+    "not_after": {
+      "type": "string",
+      "optional": true
+    },
+    "not_before": {
+      "type": "string",
+      "optional": true
+    },
+    "observed_at": {
+      "type": "string",
+      "optional": false
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "trust": {
+      "type": "string",
+      "optional": false
+    },
+    "validity": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.DomainRef": {
+    "main": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "read_only": {
+      "type": "bool",
+      "optional": false
+    },
+    "sans": {
+      "type": "[]string",
+      "optional": true
+    },
+    "source": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.DomainUsage": {
+    "certificates": {
+      "type": "[]CertificateRef",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]RouterRef",
+      "optional": false
+    }
+  },
+  "internal/models.EntryPointConfig": {
+    "address": {
+      "type": "string",
+      "optional": true
+    },
+    "adopt_blocker": {
+      "type": "string",
+      "optional": true
+    },
+    "adoptable": {
+      "type": "bool",
+      "optional": true
+    },
+    "adopted": {
+      "type": "bool",
+      "optional": true
+    },
+    "allow_acme_bypass": {
+      "type": "bool",
+      "optional": true
+    },
+    "as_default": {
+      "type": "bool",
+      "optional": true
+    },
+    "forwarded_headers": {
+      "type": "*EntryPointForwardedHeaders",
+      "optional": true
+    },
+    "host": {
+      "type": "string",
+      "optional": true
+    },
+    "http": {
+      "type": "*EntryPointHTTP",
+      "optional": true
+    },
+    "http2": {
+      "type": "*EntryPointHTTP2",
+      "optional": true
+    },
+    "http3": {
+      "type": "*EntryPointHTTP3",
+      "optional": true
+    },
+    "kind": {
+      "type": "string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "observability": {
+      "type": "*EntryPointObservability",
+      "optional": true
+    },
+    "original": {
+      "type": "map[string]any",
+      "optional": true
+    },
+    "port": {
+      "type": "int",
+      "optional": false
+    },
+    "protocol": {
+      "type": "string",
+      "optional": false
+    },
+    "proxy_protocol": {
+      "type": "*EntryPointProxyProtocol",
+      "optional": true
+    },
+    "rendered_node": {
+      "type": "map[string]any",
+      "optional": true
+    },
+    "reuse_port": {
+      "type": "bool",
+      "optional": true
+    },
+    "transport": {
+      "type": "*EntryPointTransport",
+      "optional": true
+    },
+    "udp": {
+      "type": "*EntryPointUDP",
+      "optional": true
+    },
+    "usage": {
+      "type": "*EntryPointUsage",
+      "optional": true
+    },
+    "warnings": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointForwardedHeaders": {
+    "connection": {
+      "type": "[]string",
+      "optional": true
+    },
+    "insecure": {
+      "type": "bool",
+      "optional": true
+    },
+    "not_append_x_forwarded_for": {
+      "type": "bool",
+      "optional": true
+    },
+    "trusted_ips": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointHTTP": {
+    "alias_headers_strategy": {
+      "type": "string",
+      "optional": true
+    },
+    "denied_encoded_characters": {
+      "type": "[]string",
+      "optional": true
+    },
+    "disable_sanitize_path": {
+      "type": "bool",
+      "optional": true
+    },
+    "encode_query_semicolons": {
+      "type": "bool",
+      "optional": true
+    },
+    "max_header_bytes": {
+      "type": "int",
+      "optional": true
+    },
+    "middlewares": {
+      "type": "[]string",
+      "optional": true
+    },
+    "redirect": {
+      "type": "*EntryPointRedirect",
+      "optional": true
+    },
+    "tls": {
+      "type": "*EntryPointTLS",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointHTTP2": {
+    "max_concurrent_streams": {
+      "type": "int",
+      "optional": true
+    },
+    "max_decoder_header_table_size": {
+      "type": "int",
+      "optional": true
+    },
+    "max_encoder_header_table_size": {
+      "type": "int",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointHTTP3": {
+    "advertised_port": {
+      "type": "int",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointObservability": {
+    "disable_access_logs": {
+      "type": "bool",
+      "optional": true
+    },
+    "disable_metrics": {
+      "type": "bool",
+      "optional": true
+    },
+    "disable_tracing": {
+      "type": "bool",
+      "optional": true
+    },
+    "trace_verbosity": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointProxyProtocol": {
+    "insecure": {
+      "type": "bool",
+      "optional": true
+    },
+    "trusted_ips": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointRedirect": {
+    "priority": {
+      "type": "int",
+      "optional": true
+    },
+    "scheme": {
+      "type": "string",
+      "optional": true
+    },
+    "temporary": {
+      "type": "bool",
+      "optional": true
+    },
+    "to": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.EntryPointTLS": {
+    "cert_resolver": {
+      "type": "string",
+      "optional": true
+    },
+    "domains": {
+      "type": "[]EntryPointTLSDomain",
+      "optional": true
+    },
+    "options": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointTLSDomain": {
+    "main": {
+      "type": "string",
+      "optional": false
+    },
+    "sans": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointTransport": {
+    "grace_timeout": {
+      "type": "string",
+      "optional": true
+    },
+    "idle_timeout": {
+      "type": "string",
+      "optional": true
+    },
+    "keep_alive_max_requests": {
+      "type": "int",
+      "optional": true
+    },
+    "keep_alive_max_time": {
+      "type": "string",
+      "optional": true
+    },
+    "read_timeout": {
+      "type": "string",
+      "optional": true
+    },
+    "request_accept_grace_timeout": {
+      "type": "string",
+      "optional": true
+    },
+    "write_timeout": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointUDP": {
+    "timeout": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.EntryPointUsage": {
+    "entry_points": {
+      "type": "[]string",
+      "optional": true
+    },
+    "resolvers": {
+      "type": "[]string",
+      "optional": true
+    },
+    "routers": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.EnvMountInstruction": {
+    "already_set": {
+      "type": "bool",
+      "optional": false
+    },
+    "env_var_name": {
+      "type": "string",
+      "optional": false
+    },
+    "file_path": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.ItemChange": {
+    "action": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "kind": {
+      "type": "ItemKind",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "scope": {
+      "type": "ItemScope",
+      "optional": false
+    }
+  },
+  "internal/models.MiddlewareConfig": {
+    "plugin_name": {
+      "type": "string",
+      "optional": true
+    },
+    "protocol": {
+      "type": "string",
+      "optional": true
+    },
+    "secret_refs": {
+      "type": "map[string]string",
+      "optional": true
+    },
+    "spec": {
+      "type": "map[string]any",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "used_by": {
+      "type": "*MiddlewareUsage",
+      "optional": true
+    }
+  },
+  "internal/models.MiddlewareUsage": {
+    "chains": {
+      "type": "[]ChainRef",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]RouterRef",
+      "optional": false
+    }
+  },
+  "internal/models.OperationPreview": {
+    "added": {
+      "type": "[]SnapshotResource",
+      "optional": true
+    },
+    "changed": {
+      "type": "[]SnapshotResource",
+      "optional": true
+    },
+    "changes": {
+      "type": "[]ItemChange",
+      "optional": false
+    },
+    "domain_diff": {
+      "type": "string",
+      "optional": true
+    },
+    "dynamic_diff": {
+      "type": "string",
+      "optional": false
+    },
+    "env_vars_to_mount": {
+      "type": "[]EnvMountInstruction",
+      "optional": true
+    },
+    "removed": {
+      "type": "[]SnapshotResource",
+      "optional": true
+    },
+    "requires_restart": {
+      "type": "bool",
+      "optional": false
+    },
+    "restart_reasons": {
+      "type": "[]string",
+      "optional": true
+    },
+    "restore_token": {
+      "type": "string",
+      "optional": true
+    },
+    "static_diff": {
+      "type": "string",
+      "optional": false
+    },
+    "validation_errors": {
+      "type": "[]ValidationError",
+      "optional": true
+    },
+    "validation_warnings": {
+      "type": "[]ValidationError",
+      "optional": true
+    }
+  },
+  "internal/models.OperationResult": {
+    "no_change": {
+      "type": "bool",
+      "optional": true
+    },
+    "operation": {
+      "type": "*OperationRow",
+      "optional": false
+    },
+    "warnings": {
+      "type": "[]ValidationError",
+      "optional": true
+    }
+  },
+  "internal/models.OperationRow": {
+    "created_at": {
+      "type": "string",
+      "optional": false
+    },
+    "error_log": {
+      "type": "string",
+      "optional": true
+    },
+    "finished_at": {
+      "type": "*string",
+      "optional": true
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "kind": {
+      "type": "OperationKind",
+      "optional": false
+    },
+    "reason_code": {
+      "type": "string",
+      "optional": true
+    },
+    "request_key": {
+      "type": "string",
+      "optional": true
+    },
+    "requires_restart": {
+      "type": "bool",
+      "optional": false
+    },
+    "stage": {
+      "type": "string",
+      "optional": true
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    },
+    "summary": {
+      "type": "string",
+      "optional": false
+    },
+    "target": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.PluginCatalogSnapshot": {
+    "items": {
+      "type": "[]CatalogPluginRow",
+      "optional": false
+    },
+    "refresh": {
+      "type": "CatalogRefresh",
+      "optional": false
+    }
+  },
+  "internal/models.PluginUpdate": {
+    "alias": {
+      "type": "string",
+      "optional": false
+    },
+    "can_update": {
+      "type": "bool",
+      "optional": false
+    },
+    "current_version": {
+      "type": "string",
+      "optional": false
+    },
+    "latest_version": {
+      "type": "string",
+      "optional": false
+    },
+    "module_name": {
+      "type": "string",
+      "optional": false
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "versions": {
+      "type": "[]string",
+      "optional": false
+    }
+  },
+  "internal/models.PluginUpdateInfo": {
+    "can_update": {
+      "type": "bool",
+      "optional": false
+    },
+    "checked_at": {
+      "type": "string",
+      "optional": true
+    },
+    "last_attempt_failed": {
+      "type": "bool",
+      "optional": false
+    },
+    "latest_version": {
+      "type": "string",
+      "optional": true
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    },
+    "versions": {
+      "type": "[]string",
+      "optional": false
+    }
+  },
+  "internal/models.PluginUpdates": {
+    "items": {
+      "type": "[]PluginUpdate",
+      "optional": false
+    },
+    "refresh": {
+      "type": "CatalogRefresh",
+      "optional": false
+    }
+  },
+  "internal/models.PluginView": {
+    "update": {
+      "type": "PluginUpdateInfo",
+      "optional": false
+    }
+  },
+  "internal/models.PropagationConfig": {
+    "delayBeforeChecks": {
+      "type": "string",
+      "optional": true
+    },
+    "disableANSChecks": {
+      "type": "bool",
+      "optional": true
+    },
+    "disableChecks": {
+      "type": "bool",
+      "optional": true
+    },
+    "requireAllRNS": {
+      "type": "bool",
+      "optional": true
+    }
+  },
+  "internal/models.ResolverInput": {
+    "alternative": {
+      "type": "int",
+      "optional": false
+    },
+    "ca_url": {
+      "type": "string",
+      "optional": true
+    },
+    "challenge": {
+      "type": "string",
+      "optional": true
+    },
+    "custom_yaml": {
+      "type": "string",
+      "optional": true
+    },
+    "delay": {
+      "type": "string",
+      "optional": true
+    },
+    "email": {
+      "type": "string",
+      "optional": true
+    },
+    "entry_point": {
+      "type": "string",
+      "optional": true
+    },
+    "environment": {
+      "type": "string",
+      "optional": true
+    },
+    "external_credentials": {
+      "type": "bool",
+      "optional": true
+    },
+    "key_type": {
+      "type": "string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "nameservers": {
+      "type": "[]string",
+      "optional": true
+    },
+    "propagation": {
+      "type": "*PropagationConfig",
+      "optional": true
+    },
+    "provider": {
+      "type": "string",
+      "optional": true
+    },
+    "rendered_node": {
+      "type": "map[string]any",
+      "optional": false
+    },
+    "storage": {
+      "type": "string",
+      "optional": true
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "values": {
+      "type": "map[string]string",
+      "optional": true
+    },
+    "warnings": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.RestoreRequest": {
+    "idempotency_key": {
+      "type": "string",
+      "optional": false
+    },
+    "restore_token": {
+      "type": "string",
+      "optional": false
+    },
+    "skip_backup": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/models.RestoreResult": {
+    "backup_snapshot_id": {
+      "type": "*int64",
+      "optional": true
+    },
+    "operation": {
+      "type": "*OperationRow",
+      "optional": false
+    },
+    "warnings": {
+      "type": "[]ValidationError",
+      "optional": true
+    }
+  },
+  "internal/models.RouterConfig": {
+    "custom_rule": {
+      "type": "string",
+      "optional": true
+    },
+    "domain_name": {
+      "type": "string",
+      "optional": true
+    },
+    "domains": {
+      "type": "[]string",
+      "optional": false
+    },
+    "entry_points": {
+      "type": "[]string",
+      "optional": false
+    },
+    "middlewares": {
+      "type": "[]string",
+      "optional": true
+    },
+    "path_prefix": {
+      "type": "string",
+      "optional": true
+    },
+    "priority": {
+      "type": "int",
+      "optional": true
+    },
+    "protocol": {
+      "type": "string",
+      "optional": true
+    },
+    "rule": {
+      "type": "string",
+      "optional": false
+    },
+    "service": {
+      "type": "string",
+      "optional": false
+    },
+    "subdomain": {
+      "type": "string",
+      "optional": true
+    },
+    "tls": {
+      "type": "*RouterTLS",
+      "optional": true
+    }
+  },
+  "internal/models.RouterRef": {
+    "entry_points": {
+      "type": "[]string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "read_only": {
+      "type": "bool",
+      "optional": false
+    },
+    "rule": {
+      "type": "string",
+      "optional": true
+    },
+    "service": {
+      "type": "string",
+      "optional": true
+    },
+    "tls": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/models.RouterTLS": {
+    "cert_resolver": {
+      "type": "string",
+      "optional": true
+    },
+    "domains": {
+      "type": "[]TLSDomain",
+      "optional": true
+    },
+    "enabled": {
+      "type": "bool",
+      "optional": false
+    },
+    "options": {
+      "type": "string",
+      "optional": true
+    },
+    "passthrough": {
+      "type": "bool",
+      "optional": true
+    }
+  },
+  "internal/models.SecretRow": {
+    "env_var_name": {
+      "type": "string",
+      "optional": true
+    },
+    "file_path": {
+      "type": "string",
+      "optional": false
+    },
+    "masked_preview": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "purpose": {
+      "type": "string",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.ServerEndpoint": {
+    "address": {
+      "type": "string",
+      "optional": true
+    },
+    "url": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.ServiceConfig": {
+    "health_check": {
+      "type": "*ServiceHealth",
+      "optional": true
+    },
+    "insecure_skip_verify": {
+      "type": "bool",
+      "optional": true
+    },
+    "pass_host_header": {
+      "type": "*bool",
+      "optional": true
+    },
+    "protocol": {
+      "type": "string",
+      "optional": true
+    },
+    "servers": {
+      "type": "[]ServerEndpoint",
+      "optional": false
+    },
+    "tcp": {
+      "type": "*TCPServiceOptions",
+      "optional": true
+    },
+    "used_by": {
+      "type": "*ServiceUsage",
+      "optional": true
+    }
+  },
+  "internal/models.ServiceHealth": {
+    "interval": {
+      "type": "string",
+      "optional": true
+    },
+    "path": {
+      "type": "string",
+      "optional": false
+    },
+    "timeout": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.ServiceUsage": {
+    "routers": {
+      "type": "[]RouterRef",
+      "optional": false
+    }
+  },
+  "internal/models.SettingRow": {
+    "key": {
+      "type": "string",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "string",
+      "optional": false
+    },
+    "value": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.SnapshotConfig": {
+    "domains_yaml": {
+      "type": "string",
+      "optional": false
+    },
+    "dynamic_yaml": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "static_yaml": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.SnapshotCreateRequest": {
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.SnapshotPatch": {
+    "description": {
+      "type": "*string",
+      "optional": true
+    },
+    "name": {
+      "type": "*string",
+      "optional": true
+    },
+    "pinned": {
+      "type": "*bool",
+      "optional": true
+    }
+  },
+  "internal/models.SnapshotResource": {
+    "kind": {
+      "type": "ItemKind",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.SnapshotRow": {
+    "created_at": {
+      "type": "string",
+      "optional": false
+    },
+    "description": {
+      "type": "string",
+      "optional": false
+    },
+    "domains_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "dynamic_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "id": {
+      "type": "int64",
+      "optional": false
+    },
+    "item_count": {
+      "type": "int",
+      "optional": false
+    },
+    "known_good": {
+      "type": "bool",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "origin": {
+      "type": "string",
+      "optional": false
+    },
+    "pinned": {
+      "type": "bool",
+      "optional": false
+    },
+    "size_bytes": {
+      "type": "int64",
+      "optional": false
+    },
+    "source_operation_id": {
+      "type": "*int64",
+      "optional": true
+    },
+    "state_hash": {
+      "type": "string",
+      "optional": false
+    },
+    "static_hash": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.StaticPluginConfig": {
+    "module_name": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.TCPHealthCheck": {
+    "expect": {
+      "type": "string",
+      "optional": true
+    },
+    "interval": {
+      "type": "string",
+      "optional": true
+    },
+    "port": {
+      "type": "int",
+      "optional": true
+    },
+    "send": {
+      "type": "string",
+      "optional": true
+    },
+    "timeout": {
+      "type": "string",
+      "optional": true
+    }
+  },
+  "internal/models.TCPServiceOptions": {
+    "dial_timeout": {
+      "type": "string",
+      "optional": true
+    },
+    "health_check": {
+      "type": "*TCPHealthCheck",
+      "optional": true
+    },
+    "proxy_protocol": {
+      "type": "int",
+      "optional": true
+    },
+    "server_name": {
+      "type": "string",
+      "optional": true
+    },
+    "termination_delay": {
+      "type": "string",
+      "optional": true
+    },
+    "tls": {
+      "type": "bool",
+      "optional": true
+    }
+  },
+  "internal/models.TLSDomain": {
+    "main": {
+      "type": "string",
+      "optional": false
+    },
+    "sans": {
+      "type": "[]string",
+      "optional": true
+    }
+  },
+  "internal/models.UIResource": {
+    "config": {
+      "type": "T",
+      "optional": false
+    },
+    "id": {
+      "type": "string",
+      "optional": false
+    },
+    "live_error_msg": {
+      "type": "string",
+      "optional": true
+    },
+    "live_health": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "origin": {
+      "type": "string",
+      "optional": false
+    },
+    "provider": {
+      "type": "string",
+      "optional": false
+    },
+    "read_only": {
+      "type": "bool",
+      "optional": false
+    },
+    "status": {
+      "type": "ItemStatus",
+      "optional": false
+    },
+    "updated_at": {
+      "type": "*time.Time",
+      "optional": true
+    },
+    "version": {
+      "type": "int64",
+      "optional": true
+    }
+  },
+  "internal/models.ValidationError": {
+    "field": {
+      "type": "string",
+      "optional": false
+    },
+    "item_id": {
+      "type": "string",
+      "optional": false
+    },
+    "message": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.WriteResult": {
+    "operation": {
+      "type": "*OperationRow",
+      "optional": true
+    },
+    "preview": {
+      "type": "*OperationPreview",
+      "optional": true
+    },
+    "resource": {
+      "type": "*UIResource[T]",
+      "optional": true
+    },
+    "restart_required": {
+      "type": "bool",
+      "optional": true
+    },
+    "warnings": {
+      "type": "[]ValidationError",
+      "optional": true
+    }
+  },
+  "internal/traefik/plugins.catalogEntry": {
+    "displayName": {
+      "type": "string",
+      "optional": false
+    },
+    "import": {
+      "type": "string",
+      "optional": false
+    },
+    "latestVersion": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "snippet": {
+      "type": "map[string]any",
+      "optional": false
+    },
+    "summary": {
+      "type": "string",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    },
+    "versions": {
+      "type": "[]string",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.ACMEInventory": {
+    "certificates": {
+      "type": "[]CertificateInfo",
+      "optional": false
+    },
+    "observations": {
+      "type": "[]ACMEStorageObservation",
+      "optional": false
+    },
+    "partial": {
+      "type": "bool",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.ACMEStorageObservation": {
+    "in_use": {
+      "type": "bool",
+      "optional": false
+    },
+    "invalid_entries": {
+      "type": "int",
+      "optional": false
+    },
+    "resolver": {
+      "type": "string",
+      "optional": false
+    },
+    "state": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.CertificateInfo": {
+    "days_left": {
+      "type": "int",
+      "optional": false
+    },
+    "expires_at": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "fingerprint": {
+      "type": "string",
+      "optional": false
+    },
+    "issuer": {
+      "type": "string",
+      "optional": false
+    },
+    "main_domain": {
+      "type": "string",
+      "optional": false
+    },
+    "not_before": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "resolver_name": {
+      "type": "string",
+      "optional": false
+    },
+    "sans": {
+      "type": "[]string",
+      "optional": true
+    },
+    "serial_number": {
+      "type": "string",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    },
+    "used_by": {
+      "type": "*models.CertificateUsage",
+      "optional": true
+    }
+  },
+  "internal/traefik/status.ExternalItem": {
+    "error_msg": {
+      "type": "string",
+      "optional": true
+    },
+    "full_name": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "provider": {
+      "type": "string",
+      "optional": false
+    },
+    "raw": {
+      "type": "map[string]any",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.OverviewObservation": {
+    "certificatesPartial": {
+      "type": "bool",
+      "optional": false
+    },
+    "certsExpiring30d": {
+      "type": "int",
+      "optional": false
+    },
+    "connected": {
+      "type": "bool",
+      "optional": false
+    },
+    "crowdSecDecisions": {
+      "type": "int",
+      "optional": false
+    },
+    "crowdSecStatus": {
+      "type": "string",
+      "optional": false
+    },
+    "isStale": {
+      "type": "bool",
+      "optional": false
+    },
+    "observedAt": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "routesLoaded": {
+      "type": "int",
+      "optional": false
+    },
+    "routesTotal": {
+      "type": "int",
+      "optional": false
+    },
+    "traefikStatus": {
+      "type": "string",
+      "optional": false
+    },
+    "traefikVersion": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.ServiceDiagnostic": {
+    "healthStatus": {
+      "type": "string",
+      "optional": false
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "observed": {
+      "type": "bool",
+      "optional": false
+    },
+    "observedAt": {
+      "type": "time.Time",
+      "optional": false
+    },
+    "protocol": {
+      "type": "string",
+      "optional": false
+    },
+    "routers": {
+      "type": "[]ServiceRouterObservation",
+      "optional": false
+    },
+    "routersTruncated": {
+      "type": "bool",
+      "optional": true
+    },
+    "runtimeStatus": {
+      "type": "string",
+      "optional": false
+    },
+    "serverStatus": {
+      "type": "map[string]int",
+      "optional": true
+    }
+  },
+  "internal/traefik/status.ServiceRouterObservation": {
+    "entryPoints": {
+      "type": "[]string",
+      "optional": true
+    },
+    "name": {
+      "type": "string",
+      "optional": false
+    },
+    "status": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/traefik/status.acmeResolverBlock": {
+    "Certificates": {
+      "type": "[]struct {\n\tDomain\tstruct {\n\t\tMain\tstring\t\t`json:\"main\"`\n\t\tSANs\t[]string\t`json:\"sans\"`\n\t}\t`json:\"domain\"`\n\tCertificate\tstring\t`json:\"certificate\"`\n}",
+      "optional": false
+    }
+  },
+  "internal/traefik/validation.Issue": {
+    "message": {
+      "type": "string",
+      "optional": false
+    },
+    "path": {
+      "type": "string",
+      "optional": false
+    },
+    "rule_code": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/traefik/validation.Result": {
+    "errors": {
+      "type": "[]Issue",
+      "optional": false
+    },
+    "valid": {
+      "type": "bool",
+      "optional": false
+    },
+    "warnings": {
+      "type": "[]Issue",
+      "optional": false
+    }
+  },
+  "internal/traefik/validation.nativeField": {
+    "fields": {
+      "type": "map[string]nativeField",
+      "optional": false
+    },
+    "type": {
+      "type": "string",
+      "optional": false
+    }
+  }
+}

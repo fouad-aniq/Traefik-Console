@@ -1,0 +1,22 @@
+# Real Traefik for the demo (used by `./dev/run-demo.sh --docker`).
+# The whole demo/traefik folder is mounted (not single files) because core-v2 replaces
+# traefik.yml atomically, which would break a single-file bind mount.
+name: tcdemo
+services:
+  traefik:
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.14}
+    restart: unless-stopped
+    # Run as the host user so acme.json and friends are readable by core-v2 (root-owned 0600
+    # files in the bind mount would show "The Console is not allowed to read the ACME storage").
+    user: "${DEMO_UID:-1000}:${DEMO_GID:-1000}"
+    # Credential files written by core-v2; add one line per *_FILE shown in the review.
+    env_file: ./traefik.env
+    volumes:
+      - ${DEMO_DIR}/traefik:/etc/traefik        # traefik.yml, dynamic/, secrets/
+      - ${DEMO_DIR}/traefik/acme:/etc/traefik/acme
+      # Actual default store used by this pinned image; persisted and writable by DEMO_UID.
+      - ${DEMO_DIR}/traefik/plugins-storage:/plugins-storage
+    ports:
+      - 127.0.0.1:${TRAEFIK_API_PORT:-18080}:8080   # API used by core-v2 for observation
+      # websecure, so the domain "Check Traefik" probe (TRAEFIK_PROBE_TARGETS) can reach it.
+      - 127.0.0.1:${TRAEFIK_HTTPS_PORT:-18443}:443

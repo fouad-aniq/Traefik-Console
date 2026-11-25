@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules/
+frontend/dist/
+backend/cmd/server/dist/
+dist/
+
+# Local work, caches and state
+.scratch/
+.cache/
+*.db
+*.db-shm
+*.db-wal
+.env
+deploy/*.env
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+__pycache__/
+
+# Runtime files of the deploy folders (created by the first-time setup and by Console)
+deploy/*/data/
+deploy/*/config/traefik/secrets/
+deploy/*/config/traefik/acme/
