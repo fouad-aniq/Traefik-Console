@@ -297,9 +297,9 @@ func (g *generator) Validate(ctx context.Context, in ValidationInput) (*Validati
 }
 
 // checkContainerSecretEnvVars lists the credential variables the candidate resolvers need and whether
-// Traefik has each one. A variable in the live container (Docker inspect) is set. Otherwise, when
-// Traefik's start command loads the DNS env file (or Docker access is off and the file is
-// configured), it is set ViaEnvFile: Apply adds it to the file and the restart loads it.
+// Traefik has each one. With Docker access the live container is checked, so a Traefik that does
+// not load the DNS env file (env_file) is reported exactly. Without Docker access the env file is
+// read instead: the shipped Compose files load it into Traefik.
 func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemRow, allSecrets []models.SecretRow, d docker.TraefikContainerInspector, dnsEnv *config.DNSEnvFile) []models.EnvMountInstruction {
 	if len(allSecrets) == 0 {
 		return nil
@@ -317,25 +317,25 @@ func checkContainerSecretEnvVars(ctx context.Context, items []models.ConfigItemR
 			used[env+"_FILE"] = true
 		}
 	}
-	var containerEnv map[string]string
-	loadsFile := dnsEnv != nil
+	var traefikEnv map[string]string
+	inspected := false
 	if d != nil {
 		if containerStatus, err := d.InspectTraefikContainer(ctx); err == nil && containerStatus != nil {
-			containerEnv = containerStatus.SecretFileEnv
-			loadsFile = loadsFile && containerStatus.LoadsDNSEnvFile
+			traefikEnv, inspected = containerStatus.SecretFileEnv, true
 		}
+	}
+	if !inspected {
+		traefikEnv = dnsEnv.Load()
 	}
 	var instructions []models.EnvMountInstruction
 	for _, sec := range allSecrets {
 		if sec.EnvVarName == "" || !used[sec.EnvVarName] {
 			continue
 		}
-		inContainer := containerEnv != nil && containerEnv[sec.EnvVarName] == sec.FilePath
 		instructions = append(instructions, models.EnvMountInstruction{
 			EnvVarName: sec.EnvVarName,
 			FilePath:   sec.FilePath,
-			AlreadySet: inContainer || loadsFile,
-			ViaEnvFile: !inContainer && loadsFile,
+			AlreadySet: traefikEnv != nil && traefikEnv[sec.EnvVarName] == sec.FilePath,
 		})
 	}
 	return instructions

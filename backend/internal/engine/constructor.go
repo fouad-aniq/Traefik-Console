@@ -23,12 +23,12 @@ type generator struct {
 	inspector runtimeObserver
 	validator *validation.ConfigValidator
 	runtime   docker.TraefikContainerInspector
-	// dnsEnv is Traefik's DNS provider env file, which the Console keeps (nil: not configured).
+	// dnsEnv is Traefik's DNS provider env file (nil: not configured). Without Docker access it
+	// answers the credential check, since the shipped Compose files load it into Traefik.
 	dnsEnv *config.DNSEnvFile
 }
 
-// NewGenerator builds the renderer. dnsEnv (optional) is Traefik's DNS provider env file: the
-// credential variables resolvers need are added there instead of asking for a container change.
+// NewGenerator builds the renderer. dnsEnv (optional) is Traefik's DNS provider env file.
 func NewGenerator(
 	inspector runtimeObserver,
 	validator *validation.ConfigValidator,
@@ -40,23 +40,6 @@ func NewGenerator(
 		g.dnsEnv = dnsEnv[0]
 	}
 	return g
-}
-
-// dnsEnvWriter is implemented by the real generator; fakes in tests may leave it out.
-type dnsEnvWriter interface {
-	EnsureDNSEnv(envs []models.EnvMountInstruction) (bool, error)
-}
-
-// EnsureDNSEnv adds the variables marked ViaEnvFile to the DNS env file and reports whether the
-// file changed (Traefik then needs a restart to load them).
-func (g *generator) EnsureDNSEnv(envs []models.EnvMountInstruction) (bool, error) {
-	want := map[string]string{}
-	for _, env := range envs {
-		if env.ViaEnvFile {
-			want[env.EnvVarName] = env.FilePath
-		}
-	}
-	return g.dnsEnv.Ensure(want)
 }
 
 type runtimeObserver interface {

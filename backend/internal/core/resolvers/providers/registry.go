@@ -64,6 +64,32 @@ func LoadRegistry() (*Registry, error) {
 	}, nil
 }
 
+// EnvVars lists every variable the supported providers read (all alternatives and options),
+// sorted and without duplicates.
+func (r *Registry) EnvVars() []string {
+	seen := map[string]bool{}
+	add := func(fields []Field) {
+		for _, f := range fields {
+			if f.Env != "" {
+				seen[f.Env] = true
+			}
+		}
+	}
+	for _, p := range r.providers {
+		for _, alt := range p.Alternatives {
+			add(alt.Required)
+			add(alt.Optional)
+		}
+		add(p.Options)
+	}
+	out := make([]string, 0, len(seen))
+	for env := range seen {
+		out = append(out, env)
+	}
+	sort.Strings(out)
+	return out
+}
+
 func (r *Registry) Providers() []Provider {
 	list := make([]Provider, 0, len(r.providers))
 	for _, p := range r.providers {

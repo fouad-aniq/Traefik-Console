@@ -19357,9 +19357,6 @@
           },
           "file_path": {
             "type": "string"
-          },
-          "via_env_file": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false,
@@ -20794,9 +20791,6 @@
           "image": {
             "type": "string"
           },
-          "loads_dns_env_file": {
-            "type": "boolean"
-          },
           "name": {
             "type": "string"
           },
@@ -20827,7 +20821,6 @@
         "required": [
           "id",
           "image",
-          "loads_dns_env_file",
           "name",
           "restart_allowed",
           "restart_count",

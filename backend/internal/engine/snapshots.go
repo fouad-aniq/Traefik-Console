@@ -393,9 +393,6 @@ func (c *operations) RestoreSnapshot(ctx context.Context, id int64, req models.R
 			return nil, ErrRecreateRequired
 		}
 	}
-	if e = c.ensureDNSEnv(p); e != nil {
-		return nil, e
-	}
 	result := &models.RestoreResult{}
 	if !req.SkipBackup {
 		// The backup must describe the current state exactly, which drifted files cannot.

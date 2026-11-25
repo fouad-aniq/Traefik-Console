@@ -2199,12 +2199,11 @@
     "serverErrors": "The change has validation errors",
     "mounts": {
       "title": "Credential mounts",
-      "help": "Traefik reads these credentials from files in its secrets folder. On Apply, Console adds the missing variables to config/traefik/dns-providers.env and restarts Traefik.",
+      "help": "Traefik reads these credentials from files in its secrets folder, which Console writes on Apply. Traefik gets the variables from config/traefik/dns-providers.env, loaded with env_file in its Compose service.",
       "set": "Set",
-      "managed": "Added on Apply",
       "missing": "Missing",
       "blockedTitle": "Traefik needs these variables first",
-      "blocked": "Apply is disabled: this Traefik doesn't load config/traefik/dns-providers.env when it starts, so Console can't give it these variables. Use the start command (entrypoint) from the shipped Compose file, as the deploy guide explains, or add these lines; recreate the container, then reopen this review.",
+      "blocked": "Apply is disabled: the Traefik container doesn't have these variables, so it doesn't load config/traefik/dns-providers.env yet. Add the line below to the traefik service in your docker-compose.yml (the path to that file in your Traefik config folder), run docker compose up -d, then reopen this review. This is needed only once.",
       "snippet": "Compose snippet for the Traefik service"
     },
     "diff": {
@@ -2800,7 +2799,7 @@
     "loadingPreview": "Preparing the comparison…",
     "errorsTitle": "This snapshot cannot be restored as is",
     "envTitle": "Traefik needs updated container settings",
-    "envHelp": "This Traefik doesn't load config/traefik/dns-providers.env when it starts. Use the start command (entrypoint) from the shipped Compose file or add these variables, recreate the container, then reload this page. Restore stays disabled until they are set.",
+    "envHelp": "The Traefik container doesn't load config/traefik/dns-providers.env yet. Add env_file: ./config/traefik/dns-providers.env to its Compose service, run docker compose up -d, then reload this page. Restore stays disabled until then.",
     "warningsTitle": "Worth a look",
     "restartTitle": "Traefik will restart",
     "restartHelp": "This needs a restart, so Traefik is briefly unavailable while it applies.",

@@ -17,14 +17,7 @@ type ContainerStatus struct {
 	RestartCount   int               `json:"restart_count"`
 	StartedAt      time.Time         `json:"started_at"`
 	SecretFileEnv  map[string]string `json:"secret_file_env,omitempty"`
-	// LoadsDNSEnvFile is true when the container's start command reads DNSEnvFileName, so variables
-	// the Console adds there reach Traefik at its next start.
-	LoadsDNSEnvFile bool `json:"loads_dns_env_file"`
 }
-
-// DNSEnvFileName is the DNS provider env file the shipped Traefik start command exports
-// (config.DNSProvidersEnvFile).
-const DNSEnvFileName = "dns-providers.env"
 
 type Decision struct {
 	ID       int64  `json:"id"`

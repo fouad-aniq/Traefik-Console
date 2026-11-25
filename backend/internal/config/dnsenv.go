@@ -11,19 +11,20 @@ import (
 	"strings"
 )
 
-// DNSProvidersEnvFile is Traefik's DNS provider env file, kept by the Console next to Traefik's
-// dynamic folder. Traefik reads DNS provider credentials only from its environment; the start
-// command in the shipped Compose files exports this file's NAME_FILE lines on every start, so the
-// Console adds the variables a resolver needs here and the restart it already does loads them.
+// DNSProvidersEnvFile is Traefik's DNS provider env file, next to Traefik's dynamic folder. Traefik
+// reads DNS provider credentials only from its environment, fixed when its container is created, so
+// Traefik loads this file (Compose env_file) and it declares every supported provider variable as
+// NAME_FILE pointing into the secrets folder. The Console keeps it complete at startup and only
+// writes the secret files those variables name.
 const DNSProvidersEnvFile = "dns-providers.env"
 
 const maxDNSEnvBytes = 64 * 1024
 
 var dnsEnvName = regexp.MustCompile(`^[A-Z][A-Z0-9_]*_FILE$`)
 
-const dnsEnvHeader = `# Managed by Traefik Console: DNS provider credentials for certificate resolvers.
-# Traefik exports these lines when it starts; each points to a file in the secrets folder.
-# Console adds lines when a resolver needs them. No need to edit this file.
+const dnsEnvHeader = `# DNS provider credentials for Traefik's certificate resolvers, kept by Traefik Console.
+# Traefik loads this file (env_file in its Compose service); each line points to a file in the
+# secrets folder that Console writes when you create or update a resolver. No need to edit it.
 `
 
 // DNSEnvFile is the env file as the Console sees it (Path) and the secrets folder as Traefik sees

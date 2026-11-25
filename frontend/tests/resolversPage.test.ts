@@ -168,7 +168,23 @@ describe('create flow', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(screen.getByText('Traefik needs these variables first')).toBeTruthy());
 		expect((screen.getByRole('button', { name: 'Apply changes' }) as HTMLButtonElement).disabled).toBe(true);
+		// The fix is the one env_file line, not a list of variables and mounts.
+		expect(document.body.textContent).toContain('env_file: ./config/traefik/dns-providers.env');
+		expect(document.body.textContent).not.toContain('<SECRETS_DIR>');
 		expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
+	});
+	it('enables Apply without a warning once Traefik has the variables', async () => {
+		handlers = {
+			...base([]),
+			'PUT /api/v1/resolvers/le?dry_run=true': () => json({ preview: preview({ env_vars_to_mount: [{ env_var_name: 'CLOUDFLARE_DNS_API_TOKEN_FILE', file_path: '/etc/traefik/secrets/t.secret', already_set: true }] }), restart_required: false })
+		};
+		render(ResolversPage, { navigate: () => {}, mode: 'create' });
+		await fillCreate();
+		await fireEvent.click(await screen.findByRole('button', { name: 'Review change' }));
+		const apply = await screen.findByRole('button', { name: 'Apply changes' }) as HTMLButtonElement;
+		await waitFor(() => expect(screen.getByText('Set')).toBeTruthy());
+		expect(apply.disabled).toBe(false);
+		expect(screen.queryByText('Traefik needs these variables first')).toBeNull();
 	});
 	it('retries an uncertain apply with the same Idempotency-Key', async () => {
 		let n = 0;

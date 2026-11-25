@@ -48,6 +48,7 @@ func runServer() error {
 	if err != nil {
 		return fmt.Errorf("configuration files: %w", err)
 	}
+	ensureDNSEnvFile(opts)
 
 	secretsMgr, err := secrets.New(opts.SecretsDir, opts.RuntimeSecretsDir, state.key, store)
 	if err != nil {

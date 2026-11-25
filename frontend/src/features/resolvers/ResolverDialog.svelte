@@ -113,9 +113,8 @@
 	// *_FILE variable, so block the button instead of letting it fail.
 	const mounts = $derived(review?.env_vars_to_mount ?? []);
 	const mountsMissing = $derived(mounts.some((m) => !m.already_set));
-	const composeSnippet = $derived(
-		['environment:', ...mounts.map((m) => `  ${m.env_var_name}: ${m.file_path}`), 'volumes:', `  - <SECRETS_DIR>:${mounts[0]?.file_path.replace(/\/[^/]*$/, '') ?? '/etc/traefik/secrets'}:ro`].join('\n')
-	);
+	// The one line Traefik's Compose service needs: the file declares every DNS provider variable.
+	const composeSnippet = 'env_file: ./config/traefik/dns-providers.env';
 
 	$effect(() => {
 		navigationGuard.setDirty(dirty);
@@ -633,7 +632,7 @@
 								{#each review.env_vars_to_mount as m}
 									<li>
 										<div class="mount-text"><code>{m.env_var_name}</code><span class="mount-path">{m.file_path}</span></div>
-										<StatusBadge size="sm" tone={m.already_set ? 'success' : 'warning'} text={v2(m.via_env_file ? 'mounts.managed' : m.already_set ? 'mounts.set' : 'mounts.missing')} />
+										<StatusBadge size="sm" tone={m.already_set ? 'success' : 'warning'} text={v2(m.already_set ? 'mounts.set' : 'mounts.missing')} />
 									</li>
 								{/each}
 							</ul>

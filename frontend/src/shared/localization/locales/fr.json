@@ -2199,12 +2199,11 @@
     "serverErrors": "Le changement contient des erreurs de validation",
     "mounts": {
       "title": "Montages d’identifiants",
-      "help": "Traefik lit ces identifiants dans des fichiers de son dossier secrets. À l’application, Console ajoute les variables manquantes à config/traefik/dns-providers.env et redémarre Traefik.",
+      "help": "Traefik lit ces identifiants dans des fichiers de son dossier secrets, que Console écrit à l’application. Traefik reçoit les variables de config/traefik/dns-providers.env, chargé avec env_file dans son service Compose.",
       "set": "Défini",
-      "managed": "Ajoutée à l’application",
       "missing": "Manquant",
       "blockedTitle": "Traefik a d’abord besoin de ces variables",
-      "blocked": "Appliquer est désactivé : ce Traefik ne charge pas config/traefik/dns-providers.env au démarrage, Console ne peut donc pas lui transmettre ces variables. Utilisez la commande de démarrage (entrypoint) du fichier Compose fourni, comme l’explique le guide de déploiement, ou ajoutez ces lignes ; recréez le conteneur, puis rouvrez cette revue.",
+      "blocked": "Appliquer est désactivé : le conteneur Traefik n’a pas ces variables, il ne charge donc pas encore config/traefik/dns-providers.env. Ajoutez la ligne ci-dessous au service traefik de votre docker-compose.yml (le chemin de ce fichier dans votre dossier de configuration Traefik), lancez docker compose up -d, puis rouvrez cette revue. Ce n’est nécessaire qu’une fois.",
       "snippet": "Extrait Compose pour le service Traefik"
     },
     "diff": {
@@ -2800,7 +2799,7 @@
     "loadingPreview": "Préparation de la comparaison…",
     "errorsTitle": "Cet instantané ne peut pas être restauré tel quel",
     "envTitle": "Traefik a besoin de paramètres de conteneur à jour",
-    "envHelp": "Ce Traefik ne charge pas config/traefik/dns-providers.env au démarrage. Utilisez la commande de démarrage (entrypoint) du fichier Compose fourni ou ajoutez ces variables, recréez le conteneur, puis rechargez cette page. La restauration reste désactivée tant qu’elles ne sont pas définies.",
+    "envHelp": "Le conteneur Traefik ne charge pas encore config/traefik/dns-providers.env. Ajoutez env_file: ./config/traefik/dns-providers.env à son service Compose, lancez docker compose up -d, puis rechargez cette page. La restauration reste désactivée jusque-là.",
     "warningsTitle": "À surveiller",
     "restartTitle": "Traefik va redémarrer",
     "restartHelp": "Un redémarrage est nécessaire : Traefik est brièvement indisponible pendant l’application.",
