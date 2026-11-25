@@ -124,6 +124,20 @@ export function formFrom(name: string, c: RouterConfig): RouteForm {
 	};
 }
 
+/**
+ * A managed copy of a router Traefik already has (another provider or file): same match, entry points,
+ * service, middlewares and TLS, with a priority one above the original so the copy takes over while
+ * the original stays as a fallback. References are qualified with the source provider when needed.
+ */
+export function customizeForm(source: RouterResource): RouteForm {
+	const c = source.config;
+	const qualify = (ref: string) => (ref.includes('@') || source.provider === 'file' || !source.provider ? ref : `${ref}@${source.provider}`);
+	const form = formFrom(source.name.split('@')[0] + '-custom', { ...c, service: c.service ? qualify(c.service) : c.service, middlewares: (c.middlewares ?? []).map(qualify) });
+	const rule = c.custom_rule || c.rule || '';
+	form.priority = String((c.priority || rule.length) + 1);
+	return form;
+}
+
 /** Strict payload: only the fields of the chosen match mode are sent; unset optional values are omitted. */
 export function toInput(form: RouteForm): RouterInput {
 	const out: RouterInput = { entry_points: form.entryPoints.map((e) => e.trim()), service: form.service.trim() };

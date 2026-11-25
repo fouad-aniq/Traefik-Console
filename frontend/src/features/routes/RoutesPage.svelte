@@ -126,6 +126,8 @@
 	const healthTone = (h: string) => (({ loaded: 'success', enabled: 'success', error: 'danger', pending_deploy: 'info', disabled: 'neutral', warning: 'warning', unknown: 'neutral' }) as Record<string, 'success' | 'danger' | 'info' | 'neutral' | 'warning'>)[h] ?? 'neutral';
 	const KNOWN_HEALTH = ['loaded', 'enabled', 'error', 'pending_deploy', 'disabled', 'warning'];
 	const canChange = (x: RouterResource) => !x.read_only;
+	/** A router Traefik already has (not one of its built-in ones) can be copied into a managed one that takes over. */
+	const canCustomize = (x: RouterResource) => x.origin === 'external' && x.provider !== 'internal';
 	/** Each router opens under the base path of its own protocol, so the dialog knows which editor to show. */
 	const open = (x: RouterResource, suffix = '') => navigate(ROUTER_BASE[routerProtocolOf(x.config)] + '/' + encodeURIComponent(x.name) + suffix);
 	const create = (p: RouterProtocol) => navigate(ROUTER_BASE[p] + '/new');
@@ -212,6 +214,7 @@
 			<RowActions label={row.name} actions={[
 				{ label: rr('view'), onclick: () => open(row) },
 				canChange(row) && { label: rr('editAction'), onclick: () => open(row, '/edit') },
+				canCustomize(row) && { label: rr('customizeAction'), onclick: () => open(row, '/customize') },
 				canChange(row) && { label: rv2('delete.action'), variant: 'danger', onclick: () => (pendingDelete = { name: row.name }) }
 			]} />
 		</td>

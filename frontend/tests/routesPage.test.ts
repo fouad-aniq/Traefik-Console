@@ -8,7 +8,7 @@ vi.hoisted(() => {
 import RoutesPage from '../src/features/routes/RoutesPage.svelte';
 import RouteDialog from '../src/features/routes/RouteDialog.svelte';
 import ServiceDialog from '../src/features/services/ServiceDialog.svelte';
-import { formFrom, isExternalRef, newForm, previewRule, routerDefinition, toInput } from '../src/features/routes/models';
+import { customizeForm, formFrom, isExternalRef, newForm, previewRule, routerDefinition, toInput } from '../src/features/routes/models';
 import { routeErrors, subdomainError } from '../src/features/routes/validation';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
@@ -202,6 +202,35 @@ describe('create flow', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await waitFor(() => expect(screen.getAllByText(/already exists/).length).toBeGreaterThan(0));
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
+	});
+});
+
+describe('customize an external router', () => {
+	const bootstrap = router('console-bootstrap', { domains: undefined, rule: 'Host(`console.example.com`)', service: 'console-bootstrap', tls: {} }, 1, { origin: 'external', provider: 'file', read_only: true });
+	it('saves a managed copy that takes over, leaving the original as a fallback', async () => {
+		handlers = {
+			...base([bootstrap]),
+			'PUT /api/v1/routers/console-bootstrap-custom?dry_run=true': () => json({ preview: preview(), restart_required: false })
+		};
+		render(RoutesPage, { navigate: () => {}, mode: 'customize', name: 'console-bootstrap' });
+		await waitFor(() => expect((document.getElementById('route-name') as HTMLInputElement)?.value).toBe('console-bootstrap-custom'));
+		expect(screen.getByText(/takes over from console-bootstrap/)).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
+		await screen.findByRole('button', { name: 'Apply changes' });
+		const dry = calls.find((c) => c.method === 'PUT')!;
+		expect(dry.headers['if-none-match']).toBe('*');
+		expect(dry.headers['if-match']).toBeUndefined();
+		expect(dry.body).toMatchObject({ entry_points: ['websecure'], custom_rule: 'Host(`console.example.com`)', service: 'console-bootstrap', priority: 28 });
+	});
+	it('qualifies references of another provider and outranks an explicit priority', () => {
+		const docker = router('whoami@docker', { domains: undefined, rule: 'Host(`w.example.com`)', service: 'whoami', middlewares: ['auth', 'gzip@file'], priority: 50 }, 1, { origin: 'external', provider: 'docker', read_only: true });
+		const form = customizeForm(docker as any);
+		expect(form.name).toBe('whoami-custom');
+		expect(form.service).toBe('whoami@docker');
+		expect(form.middlewares).toEqual(['auth@docker', 'gzip@file']);
+		expect(form.priority).toBe('51');
 	});
 });
 

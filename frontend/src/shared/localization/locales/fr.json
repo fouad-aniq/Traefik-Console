@@ -2511,6 +2511,9 @@
     "serviceTab": "Service"
   },
   "routeV2": {
+    "customizeAction": "Personnaliser",
+    "dialogCustomize": "Personnaliser {name}",
+    "customizeNotice": "Cela enregistre une nouvelle route gérée par Console, avec les mêmes réglages et la priorité {priority}, pour qu’elle remplace {name}. Modifiez ce dont vous avez besoin (middlewares, résolveur de certificats...). {name} reste en secours : supprimez cette route pour y revenir.",
     "noBackend": "Aucun backend (un middleware répond)",
     "noBackendDescription": "Pour un routeur qui redirige ou répond seul",
     "noBackendValue": "Aucun backend (un middleware répond)",

@@ -2511,6 +2511,9 @@
     "serviceTab": "Service"
   },
   "routeV2": {
+    "customizeAction": "Customize",
+    "dialogCustomize": "Customize {name}",
+    "customizeNotice": "This saves a new route that Console manages, with the same settings and priority {priority}, so it takes over from {name}. Change what you need (middlewares, certificate resolver...). {name} stays as a fallback: delete this route to go back to it.",
     "noBackend": "No backend (a middleware answers)",
     "noBackendDescription": "For a router that only redirects or answers by itself",
     "noBackendValue": "No backend (middleware answers)",

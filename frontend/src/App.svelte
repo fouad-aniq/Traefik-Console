@@ -109,12 +109,12 @@
 		}
 		// `/routes` is the old address of this page; it keeps working.
 		// One list for every protocol: TCP and UDP routers open their own dialog under their own base.
-		const routeMatch = r.match(/^\/(routers|routes|tcp-routers|udp-routers)(?:\/(new)|\/([^/]+)(\/edit)?)?$/);
+		const routeMatch = r.match(/^\/(routers|routes|tcp-routers|udp-routers)(?:\/(new)|\/([^/]+)(\/edit|\/customize)?)?$/);
 		if (routeMatch) {
 			const [, base, isNew, seg, edit] = routeMatch;
 			const tab = base === 'tcp-routers' ? 'tcp' : base === 'udp-routers' ? 'udp' : 'http';
 			if (isNew) return { page: 'routes', tab, mode: 'create', name: '' };
-			if (seg) return { page: 'routes', tab, mode: edit ? 'edit' : 'view', name: decodeURIComponent(seg) };
+			if (seg) return { page: 'routes', tab, mode: edit === '/customize' ? 'customize' : edit ? 'edit' : 'view', name: decodeURIComponent(seg) };
 			return { page: 'routes', tab, mode: 'list', name: '' };
 		}
 		const plugin = r.match(/^\/plugins(?:\/(catalog)(?:\/([^/]+)\/(install))?|\/(new)|\/([^/]+)(\/edit|\/update)?)?$/);

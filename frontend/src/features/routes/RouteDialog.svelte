@@ -27,7 +27,7 @@
 	import { operationTone } from '../changes/models';
 	import type { Operation, OperationPreview } from '../../core/types';
 	import { listChains, listDomains, listEntryPointInfo, listMiddlewares, listResolvers, listRouters, listServices, putRouter, type EntryPointInfo, type NamedRef } from './api';
-	import { MAX_MIDDLEWARES, NOOP_SERVICE, ROUTER_BASE, formFrom, isExternalRef, isNoBackend, newForm, previewHosts, previewRule, referenceBase, routerDefinition, routerProtocolOf, toInput, type MatchMode, type RouteForm, type RouterProtocol, type RouterResource } from './models';
+	import { MAX_MIDDLEWARES, NOOP_SERVICE, ROUTER_BASE, customizeForm, formFrom, isExternalRef, isNoBackend, newForm, previewHosts, previewRule, referenceBase, routerDefinition, routerProtocolOf, toInput, type MatchMode, type RouteForm, type RouterProtocol, type RouterResource } from './models';
 	import { FIELD_TAB, routeErrors, type RouteField } from './validation';
 	import { ApiError, NetworkError } from '../../shared/api/client';
 	import { errorMessage } from '../../shared/api/errorMessage';
@@ -46,7 +46,9 @@
 	const rr = (key: string, args?: Record<string, string | number>) => t('routeV2.' + key, args);
 	const rv2 = (key: string, args?: Record<string, string | number>) => t('resolverV2.' + key, args);
 
-	const creating = $derived(mode === 'create');
+	/** Customize: a new managed router, pre-filled from the external router `name`. */
+	const customizing = $derived(mode === 'customize');
+	const creating = $derived(mode === 'create' || customizing);
 	const viewing = $derived(mode === 'view');
 	const TABS = { route: 'route-route', traffic: 'route-traffic', tls: 'route-tls', review: 'route-review' } as const;
 
@@ -99,7 +101,7 @@
 	/** Managed names are unique whatever the protocol; Traefik's own routers may share a name across protocols, so the URL's protocol breaks the tie. */
 	const findRouter = (all: RouterResource[]) => all.find((d) => d.name === name && routerProtocolOf(d.config) === protocol) ?? all.find((d) => d.name === name);
 	const current = $derived(findRouter(existing));
-	const version = () => current?.version ?? 0;
+	const version = () => (creating ? 0 : current?.version ?? 0);
 	const editable = $derived(!viewing && (creating || (!!current && !current.read_only)));
 	const locked = $derived(busy || !!result);
 	const serverErrors = $derived(review?.validation_errors ?? []);
@@ -226,7 +228,12 @@
 	function init(all: RouterResource[]) {
 		try {
 			existing = all;
-			if (!creating) {
+			if (customizing) {
+				const source = findRouter(all);
+				if (!source || source.origin !== 'external') throw new Error(r('requestFailed'));
+				form = customizeForm(source);
+				if (!viewing && form.protocol !== protocol) void loadPickers(form.protocol);
+			} else if (!creating) {
 				const item = findRouter(all);
 				if (!item) throw new Error(r('requestFailed'));
 				form = formFrom(item.name, item.config);
@@ -399,7 +406,7 @@
 	});
 </script>
 
-<ResourceDialog title={viewing ? name : rr((creating ? 'dialogCreate.' : 'dialogEdit.') + form.protocol)} description={viewing ? (http ? t('topology.kind.route') : rr('kind.' + form.protocol)) : ''} closeLabel={t('common.close')} onclose={close} {suspended}>
+<ResourceDialog title={viewing ? name : customizing ? rr('dialogCustomize', { name }) : rr((creating ? 'dialogCreate.' : 'dialogEdit.') + form.protocol)} description={viewing ? (http ? t('topology.kind.route') : rr('kind.' + form.protocol)) : ''} closeLabel={t('common.close')} onclose={close} {suspended}>
 	{#snippet icon()}<RouteIcon size={32} aria-hidden="true" />{/snippet}
 	{#snippet navigation()}
 		{#if !loading && !loadError && !viewing}<Tabs {tabs} selected={step} onselect={selectStep} label={r('editorTabs')} />{/if}
@@ -445,6 +452,7 @@
 	{:else}
 		<div class="stack">
 			{#if !editable}<Notice tone="warning" message={rr('notEditable')} />{/if}
+			{#if customizing && listReady}<Notice message={rr('customizeNotice', { name, priority: form.priority })} />{/if}
 			{#if pickersFailed.length}
 				<Notice tone="warning" message={rr('pickersFailed', { list: pickersFailed.map((k) => rr('picker.' + k)).join(', ') })}>
 					<Button size="sm" onclick={() => loadPickers()}>{t('common.retry')}</Button>
