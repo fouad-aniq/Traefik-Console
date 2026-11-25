@@ -49,6 +49,22 @@ describe('config state polling', () => {
 		expect(screen.getAllByText('2 plugin updates available').length).toBeGreaterThan(0);
 		expect(container.querySelector('.update-notice')).toBeNull();
 	});
+	it('shows a newer Console release next to the version, linking to its notes', async () => {
+		viewport(true);
+		configState = state();
+		const { container } = mount();
+		await waitFor(() => expect(paths).toContain('/api/v1/config/state'));
+		expect(container.querySelector('.update-link')).toBeNull();
+		configState = state({ console_update: { version: '0.1.0-rc.4', url: 'https://github.com/fouad-aniq/Traefik-Console/releases/tag/v0.1.0-rc.4' } });
+		// Coming back to the tab re-reads the state at once instead of waiting for the next poll.
+		Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+		document.dispatchEvent(new Event('visibilitychange'));
+		await waitFor(() => expect(container.querySelector('.update-link')).not.toBeNull());
+		const link = container.querySelector<HTMLAnchorElement>('.update-link')!;
+		expect(link.textContent).toContain('v0.1.0-rc.4 available');
+		expect(link.href).toBe('https://github.com/fouad-aniq/Traefik-Console/releases/tag/v0.1.0-rc.4');
+		expect(link.target).toBe('_blank');
+	});
 });
 
 describe('sidebar', () => {

@@ -18,7 +18,8 @@ COPY backend/cmd ./cmd
 COPY backend/internal ./internal
 COPY --from=frontend /src/dist ./cmd/server/dist
 ARG TARGETARCH
-RUN GOOS=linux GOARCH=$TARGETARCH go build -mod=readonly -trimpath -buildvcs=false -tags embedded_ui -ldflags="-s -w" -o /out/server ./cmd/server
+ARG VERSION=dev
+RUN GOOS=linux GOARCH=$TARGETARCH go build -mod=readonly -trimpath -buildvcs=false -tags embedded_ui -ldflags="-s -w -X github.com/traefik-console/internal/version.Version=${VERSION}" -o /out/server ./cmd/server
 RUN mkdir -p -m 0700 /seed/state/keys /seed/state/data && chmod 0700 /seed/state
 
 FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf

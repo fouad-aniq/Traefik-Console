@@ -19150,6 +19150,9 @@
           "archived_secret_drafts": {
             "type": "integer"
           },
+          "console_update": {
+            "$ref": "#/components/schemas/ConsoleUpdate"
+          },
           "domains_hash": {
             "type": "string"
           },
@@ -19226,6 +19229,23 @@
             "archived_secret_drafts": 0,
             "legacy_snapshots_imported": 0
           }
+        ]
+      },
+      "ConsoleUpdate": {
+        "type": "object",
+        "x-go-type": "internal/models.ConsoleUpdate",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "version"
         ]
       },
       "SnapshotCreateRequest": {

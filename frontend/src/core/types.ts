@@ -135,6 +135,8 @@ export interface ConfigState {
 	legacy_snapshots_imported: number;
 	/** Installed plugins with a newer version in the synced catalog (advisory, 0 when unknown). */
 	plugin_updates: number;
+	/** A newer Traefik Console release, when the server found one on GitHub (UPDATE_CHECK). */
+	console_update?: { version: string; url: string } | null;
 }
 
 /** Body of every resource write. A dry run carries `preview` and no `operation`. */

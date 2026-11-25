@@ -34,7 +34,8 @@
 		Workflow,
 		LogIn,
 		Lock,
-		CircleUserRound
+		CircleUserRound,
+		CircleArrowUp
 	} from '@lucide/svelte';
 	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import TrafficMark from '../shared/ui/TrafficMark.svelte';
@@ -175,16 +176,26 @@
 
 	// The first read comes from the route effect below, which also runs on mount;
 	// reading here too would abort that request on every page load.
+	// Coming back to the tab re-reads at once, so a release published meanwhile shows without waiting.
+	function refreshWhenVisible() {
+		if (document.visibilityState === 'visible') void refreshState();
+	}
 	onMount(() => {
 		stateTimer = setInterval(() => { void refreshState(); }, 20_000);
+		document.addEventListener('visibilitychange', refreshWhenVisible);
 	});
-	onDestroy(() => { stateDisposed = true; stateController.abort(); if (stateTimer) clearInterval(stateTimer); });
+	onDestroy(() => {
+		stateDisposed = true; stateController.abort(); if (stateTimer) clearInterval(stateTimer);
+		document.removeEventListener('visibilitychange', refreshWhenVisible);
+	});
 	// Re-read after every navigation: a write on the page just left may have changed the state.
 	$effect(() => { void currentRoute; void refreshState(); });
 
 	// Available plugin updates come with the polled config state: the server
 	// compares the installed plugins with the synced catalog, nothing is guessed.
 	const pluginUpdates = $derived(configState?.plugin_updates ?? 0);
+	// The server checks GitHub's releases and only reports one newer than this build.
+	const consoleUpdate = $derived(configState?.console_update ?? null);
 	const pluginUpdatesLabel = $derived(
 		pluginUpdates === 1 ? t('shell.pluginUpdateOne') : t('shell.pluginUpdatesMany', { count: pluginUpdates })
 	);
@@ -365,6 +376,19 @@
 				<ExternalLink size={12} aria-hidden="true" />
 			</a>
 		</div>
+		{#if consoleUpdate}
+			<a
+				class="update-link"
+				href={consoleUpdate.url}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
+				aria-label={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
+			>
+				<CircleArrowUp size={16} aria-hidden="true" />
+				<span class="update-text">{t('shell.updateAvailable', { version: consoleUpdate.version })}</span>
+			</a>
+		{/if}
 	</div>
 {/snippet}
 
@@ -883,6 +907,23 @@
 	.release-link:hover {
 		color: var(--text);
 	}
+	.update-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		align-self: flex-start;
+		padding: 4px 8px;
+		border-radius: 999px;
+		font-size: 12px;
+		line-height: 18px;
+		font-weight: 500;
+		color: var(--accent);
+		background: var(--accent-soft);
+		text-decoration: none;
+	}
+	.update-link:hover {
+		color: var(--accent-strong);
+	}
 
 	.content-area {
 		flex: 1;
@@ -1049,8 +1090,13 @@
 		width: 64px;
 	}
 	.sidebar.rail .brand-title,
-	.sidebar.rail .release {
+	.sidebar.rail .release,
+	.sidebar.rail .update-text {
 		display: none;
+	}
+	.sidebar.rail .update-link {
+		align-self: center;
+		padding: 6px;
 	}
 	.sidebar.rail .shell-footer {
 		padding: 12px 8px;

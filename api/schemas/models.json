@@ -1938,6 +1938,10 @@
       "type": "int",
       "optional": false
     },
+    "console_update": {
+      "type": "*ConsoleUpdate",
+      "optional": true
+    },
     "domains_hash": {
       "type": "string",
       "optional": false
@@ -1987,6 +1991,16 @@
       "optional": false
     },
     "static_hash": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/models.ConsoleUpdate": {
+    "url": {
+      "type": "string",
+      "optional": false
+    },
+    "version": {
       "type": "string",
       "optional": false
     }
@@ -3555,6 +3569,20 @@
       "optional": false
     },
     "type": {
+      "type": "string",
+      "optional": false
+    }
+  },
+  "internal/updates.githubRelease": {
+    "draft": {
+      "type": "bool",
+      "optional": false
+    },
+    "prerelease": {
+      "type": "bool",
+      "optional": false
+    },
+    "tag_name": {
       "type": "string",
       "optional": false
     }

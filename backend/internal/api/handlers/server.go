@@ -18,6 +18,7 @@ import (
 	"github.com/traefik-console/internal/docker"
 	"github.com/traefik-console/internal/engine"
 	"github.com/traefik-console/internal/traefik/status"
+	"github.com/traefik-console/internal/updates"
 )
 
 // Dependencies names the API's collaborators without exposing file writes or a service locator.
@@ -40,6 +41,8 @@ type Dependencies struct {
 	CrowdSec         crowdsec.CrowdSecManager
 	// Nil deliberately reports unmapped ACME observation; it never enables an arbitrary file reader.
 	ACMEObserver *status.ACMEObserver
+	// Updates reports a newer Console release; nil when the check is off or the build is local.
+	Updates *updates.Checker
 }
 
 type Server struct{ deps Dependencies }

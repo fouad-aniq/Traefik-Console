@@ -61,6 +61,8 @@
     "pluginUpdateOne": "1 mise à jour de plugin disponible",
     "pluginUpdatesMany": "{count} mises à jour de plugins disponibles",
     "releaseNotes": "Notes de version {version}",
+    "updateAvailable": "v{version} disponible",
+    "updateAvailableHint": "Traefik Console v{version} est disponible : ouvrir les notes de version",
     "signedInAs": "Connecté en tant que {name}"
   },
   "demo": {

@@ -23,6 +23,8 @@ type Options struct {
 	OperationHistoryDays int
 	// AutoSnapshotBeforeStatic takes a pre_static snapshot before static changes (AUTO_SNAPSHOT_BEFORE_STATIC, default false).
 	AutoSnapshotBeforeStatic bool
+	// UpdateCheck lets Console ask GitHub whether a newer release exists (UPDATE_CHECK, default true).
+	UpdateCheck bool
 
 	// File System Paths
 	TraefikStaticPath  string

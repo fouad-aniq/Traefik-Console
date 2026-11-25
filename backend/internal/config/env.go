@@ -130,6 +130,18 @@ func Load() (*Options, error) {
 			return nil, fmt.Errorf("AUTO_SNAPSHOT_BEFORE_STATIC must be true or false")
 		}
 	}
+	// UPDATE_CHECK (default true) lets Console ask GitHub whether a newer release exists.
+	updateCheck := true
+	if raw := strings.ToLower(strings.TrimSpace(os.Getenv("UPDATE_CHECK"))); raw != "" {
+		switch raw {
+		case "true", "1", "yes":
+			updateCheck = true
+		case "false", "0", "no":
+			updateCheck = false
+		default:
+			return nil, fmt.Errorf("UPDATE_CHECK must be true or false")
+		}
+	}
 	for raw := range strings.SplitSeq(getString("CROWDSEC_PROTECTED_CIDRS", "127.0.0.0/8,::1/128"), ",") {
 		if _, _, e := net.ParseCIDR(raw); e != nil {
 			return nil, fmt.Errorf("invalid CROWDSEC_PROTECTED_CIDRS")
@@ -159,6 +171,7 @@ func Load() (*Options, error) {
 		SnapshotRetentionAuto:    retention,
 		OperationHistoryDays:     historyDays,
 		AutoSnapshotBeforeStatic: autoSnapshot,
+		UpdateCheck:              updateCheck,
 		Port:                     port,
 		DBPath:                   dbPath,
 		TraefikStaticPath:        staticPath,

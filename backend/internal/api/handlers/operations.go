@@ -80,6 +80,9 @@ func (s *Server) handleConfigState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state.PluginUpdates = s.pluginUpdateCount(r.Context())
+	if latest := s.deps.Updates.Latest(); latest != nil {
+		state.ConsoleUpdate = &models.ConsoleUpdate{Version: latest.Version, URL: latest.URL}
+	}
 	response.WriteJSON(w, http.StatusOK, state)
 }
 

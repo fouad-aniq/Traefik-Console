@@ -240,6 +240,14 @@ type ConfigState struct {
 	// PluginUpdates counts installed plugins the synced catalog has a newer version of.
 	// Advisory: 0 when the catalog or the plugin inventory cannot be read.
 	PluginUpdates int `json:"plugin_updates"`
+	// ConsoleUpdate is a newer Traefik Console release, when one is published (UPDATE_CHECK).
+	ConsoleUpdate *ConsoleUpdate `json:"console_update,omitempty"`
+}
+
+// ConsoleUpdate is a newer published Traefik Console release and its release notes page.
+type ConsoleUpdate struct {
+	Version string `json:"version"`
+	URL     string `json:"url"`
 }
 
 // WriteOptions are the per-request switches of a resource write.

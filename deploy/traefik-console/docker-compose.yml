@@ -111,6 +111,7 @@ services:
       # --- History and storage ---
       # SNAPSHOT_RETENTION_AUTO: "20"                       # automatic snapshots kept (0-1000)
       # AUTO_SNAPSHOT_BEFORE_STATIC: "false"                # also take a snapshot before every static change
+      # UPDATE_CHECK: "true"                                # show when a newer Console release is out (asks GitHub)
       # OPERATION_HISTORY_DAYS: "90"                        # days the operations log is kept (1-3650)
       # MAX_JOURNAL_BYTES: "536870912"                      # space for the change journal (512 MiB)
       # MAX_SNAPSHOT_BYTES: "1073741824"                    # space for snapshots (1 GiB)

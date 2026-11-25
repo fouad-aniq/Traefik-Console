@@ -22,6 +22,8 @@ import (
 	"github.com/traefik-console/internal/engine"
 	catalog "github.com/traefik-console/internal/traefik/plugins"
 	"github.com/traefik-console/internal/traefik/status"
+	"github.com/traefik-console/internal/updates"
+	"github.com/traefik-console/internal/version"
 )
 
 // Startup constructs resource use cases directly into the existing API dependency value.
@@ -54,6 +56,7 @@ func newAPIDependencies(opts *config.Options, store db.Store, filesMgr *files.Re
 		Routers:          routers.NewRouterManager(store, filesMgr, inspector, operations),
 		Plugins:          plugins.NewManager(store, filesMgr, catalogClient, operations),
 		CrowdSec:         crowdsecManager, ACMEObserver: observer,
+		Updates: updates.New(version.Version, opts.UpdateCheck),
 	}, nil
 }
 
