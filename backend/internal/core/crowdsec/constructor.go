@@ -53,6 +53,9 @@ type Settings struct {
 	Environment []EnvVariable
 	// Runtime describes the registered container (Docker host and CrowdSec container); startup-only.
 	Runtime RuntimeRegistration
+	// RuntimeSecretsDir is the secrets folder as Traefik sees it (TRAEFIK_SECRETS_DIR): the bouncer
+	// key the Console stores is written there, for a bouncer configured outside the Console.
+	RuntimeSecretsDir string
 }
 
 func NewCrowdSecManager(store resourceStore, secretsMgr secretPreparer, decisions docker.DecisionManager, defaultLAPIURL string, applier engine.Applier, protected []string) (CrowdSecManager, error) {

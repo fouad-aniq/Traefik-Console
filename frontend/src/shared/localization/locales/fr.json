@@ -3592,6 +3592,10 @@
       "externalKeySnippet": "Pour votre middleware bouncer",
       "externalKeyRotate": "Si vous régénérez la clé, le fichier est mis à jour : redémarrez Traefik (ou enregistrez votre fichier de middleware) pour que le plugin lise la nouvelle clé.",
       "externalKeyMissing": "Aucune clé de bouncer n’est encore enregistrée. À l’étape Connexion, laissez Console en générer une (ou saisissez la vôtre) : le chemin de son fichier apparaît alors ici, pour votre propre middleware.",
+      "externalReviewTitle": "À ajouter à votre middleware bouncer",
+      "externalReviewPointer": "Console fournit uniquement les identifiants. L’étape Revue montre les lignes à ajouter à votre propre middleware bouncer.",
+      "externalMachineNote": "Les identifiants machine servent uniquement à Console (alertes, décisions, supervision). Votre middleware bouncer n’en a pas besoin : il lit seulement la clé du bouncer.",
+      "externalKeyFromEnv": "La clé du bouncer vient de CROWDSEC_API_KEY et n’est pas écrite dans un fichier : utilisez la même clé dans votre middleware bouncer (crowdsecLapiKey ou votre propre fichier de clé).",
       "protectionMode": {
         "off": "Désactivée",
         "managed": "Gérée par la Console",

@@ -75,7 +75,8 @@ func integrationSettings(opts *config.Options) crowdsec.Settings {
 		ReadTimeout: opts.CrowdSec.ReadTimeout, AlertLimit: opts.CrowdSec.AlertLimit,
 		ReadTimeoutSet: opts.CrowdSec.ReadTimeoutSet, AlertLimitSet: opts.CrowdSec.AlertLimitSet,
 		ProtectedCIDRsSet: opts.CrowdSec.ProtectedCIDRsSet, Environment: crowdsecEnvironment(opts),
-		Runtime: crowdsec.RuntimeRegistration{DockerConfigured: opts.Docker.Host != "", ContainerID: opts.Docker.CrowdSecContainer},
+		Runtime:           crowdsec.RuntimeRegistration{DockerConfigured: opts.Docker.Host != "", ContainerID: opts.Docker.CrowdSecContainer},
+		RuntimeSecretsDir: opts.RuntimeSecretsDir,
 	}
 }
 

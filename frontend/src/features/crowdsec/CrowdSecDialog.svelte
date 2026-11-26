@@ -508,13 +508,8 @@
 			{#if form.protection === 'external'}
 				<!-- Your own middleware: Console provides the credentials, you reference the key file. -->
 				<div class="nested stack">
-					{#if status.key?.file}
-						<p class="muted">{c('externalKeyHelp')}</p>
-						<CodePreview label={c('externalKeySnippet')} code={externalKeySnippet(status.key.file, form.appSec)} language="yaml" />
-						<p class="muted">{c('externalKeyRotate')}</p>
-					{:else}
-						<Notice message={c('externalKeyMissing')} />
-					{/if}
+					<p class="muted">{c('externalReviewPointer')}</p>
+					<p class="muted">{c('externalMachineNote')}</p>
 				</div>
 			{/if}
 			{#if form.protection === 'managed'}
@@ -585,6 +580,7 @@
 			{#if result}
 				<Notice tone={operationTone(result.status)} title={t('operationV2.status.' + result.status)} message={result.summary} />
 				{#if manualRestart}<Notice tone="warning" message={t('writeV2.manualRestart')} />{/if}
+				{#if form.protection === 'external'}{@render outsideBouncer()}{/if}
 			{:else if review}
 				<SummaryList>
 					<div><dt>{c('lapiURL')}</dt><dd>{form.lapiURL || '—'}</dd></div>
@@ -596,6 +592,7 @@
 				{#if serverErrors.length}
 					<Notice tone="error" title={rv2('serverErrors')}><ul class="reasons">{#each serverErrors as ve}<li>{ve.item_id}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}</ul></Notice>
 				{/if}
+				{#if form.protection === 'external'}{@render outsideBouncer()}{/if}
 				{#if review.requires_restart}<Notice tone="warning" message={c('restartHelp')} />{/if}
 				{#if review.static_diff}<CodePreview label={rv2('diff.static')} code={review.static_diff} language="diff" />{/if}
 				{#if review.dynamic_diff}<CodePreview label={rv2('diff.dynamic')} code={review.dynamic_diff} language="diff" />{/if}
@@ -624,6 +621,22 @@
 		{/if}
 	{/snippet}
 </ResourceDialog>
+
+<!-- What a bouncer middleware managed outside the Console needs: the key file, never machine credentials. -->
+{#snippet outsideBouncer()}
+	<section class="stack" aria-label={c('externalKeySnippet')}>
+		{#if env('lapi_key')}
+			<Notice tone="info" title={c('externalReviewTitle')} message={c('externalKeyFromEnv')} />
+		{:else if status.key_file && (status.key.present || form.generateKey || form.lapiKey.trim())}
+			<Notice tone="info" title={c('externalReviewTitle')} message={c('externalKeyHelp')} />
+			<CodePreview label={c('externalKeySnippet')} code={externalKeySnippet(status.key_file, form.appSec)} language="yaml" />
+			<p class="muted">{c('externalMachineNote')}</p>
+			<p class="muted">{c('externalKeyRotate')}</p>
+		{:else}
+			<Notice tone="warning" title={c('externalReviewTitle')} message={c('externalKeyMissing')} />
+		{/if}
+	</section>
+{/snippet}
 
 <style>
 	.stack { display: flex; flex-direction: column; gap: 20px; }

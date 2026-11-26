@@ -3591,7 +3591,11 @@
       "externalKeyHelp": "Console keeps the bouncer key and writes it to this file, which Traefik can read. Put these lines in your CrowdSec bouncer middleware:",
       "externalKeySnippet": "For your bouncer middleware",
       "externalKeyRotate": "If you regenerate the key, the file is updated: restart Traefik (or save your middleware file) so the plugin reads the new key.",
-      "externalKeyMissing": "No bouncer key is stored yet. On the Connection step, let Console generate one (or enter yours): its file path then appears here, to use in your own middleware.",
+      "externalKeyMissing": "No bouncer key is stored yet. On the Connection step, let Console generate one (or enter yours); its file is then given here for your own middleware.",
+      "externalReviewTitle": "Add this to your bouncer middleware",
+      "externalReviewPointer": "Console only provides the credentials. The Review step shows the lines to add to your own bouncer middleware.",
+      "externalMachineNote": "The machine credentials are used by Console only (alerts, decisions, monitoring). Your bouncer middleware does not need them: it only reads the bouncer key.",
+      "externalKeyFromEnv": "The bouncer key comes from CROWDSEC_API_KEY and is not written to a file: use the same key in your bouncer middleware (crowdsecLapiKey or your own key file).",
       "protectionMode": {
         "off": "Off",
         "managed": "Managed by the Console",

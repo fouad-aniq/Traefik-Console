@@ -958,6 +958,10 @@
       "type": "KeyStatus",
       "optional": false
     },
+    "key_file": {
+      "type": "string",
+      "optional": true
+    },
     "lapi": {
       "type": "LAPIStatus",
       "optional": false
@@ -1032,10 +1036,6 @@
     }
   },
   "internal/core/crowdsec.KeyStatus": {
-    "file": {
-      "type": "string",
-      "optional": true
-    },
     "present": {
       "type": "bool",
       "optional": false

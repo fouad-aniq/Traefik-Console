@@ -3,6 +3,7 @@ package crowdsec
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,9 +39,6 @@ type MiddlewareStatus struct {
 
 type KeyStatus struct {
 	Present bool `json:"present"`
-	// File is the bouncer key file as Traefik sees it, when the Console stores the key: a bouncer
-	// configured outside the Console reads it with crowdsecLapiKeyFile.
-	File string `json:"file,omitempty"`
 }
 
 type MachineStatus struct {
@@ -102,10 +100,13 @@ type CrowdSecSources struct {
 }
 
 type CrowdSecStatus struct {
-	Engine       EngineStatus         `json:"engine"`
-	Plugin       PluginStatus         `json:"plugin"`
-	Middleware   MiddlewareStatus     `json:"middleware"`
-	Key          KeyStatus            `json:"key"`
+	Engine     EngineStatus     `json:"engine"`
+	Plugin     PluginStatus     `json:"plugin"`
+	Middleware MiddlewareStatus `json:"middleware"`
+	Key        KeyStatus        `json:"key"`
+	// KeyFile is the bouncer key file as Traefik sees it, for a bouncer configured outside the
+	// Console (crowdsecLapiKeyFile). A path, not a secret: kept out of "key" so it is not masked.
+	KeyFile      string               `json:"key_file,omitempty"`
 	LAPI         LAPIStatus           `json:"lapi"`
 	Machine      MachineStatus        `json:"machine"`
 	Ingestion    ObservationStatus    `json:"ingestion"`
@@ -240,11 +241,10 @@ func (m *crowdsecManager) Status(ctx context.Context, inv Inventory) (*CrowdSecS
 
 	key := m.bouncerCredential(ctx)
 	out.Key.Present = key != ""
-	// The key file exists only for a key the Console stores (not one given by CROWDSEC_API_KEY).
-	if key != "" && strings.TrimSpace(m.settings.APIKey) == "" {
-		if row, e := m.store.GetSecret(ctx, crowdsecSecretName); e == nil && row != nil {
-			out.Key.File = row.FilePath
-		}
+	// Where the bouncer key the Console stores is written, as Traefik sees it (known before the first
+	// save). A key given by CROWDSEC_API_KEY is not written to a file.
+	if strings.TrimSpace(m.settings.APIKey) == "" && m.settings.RuntimeSecretsDir != "" {
+		out.KeyFile = filepath.Join(m.settings.RuntimeSecretsDir, crowdsecSecretName+".secret")
 	}
 	bouncerCertificate, err := m.hasClientCertificate(ctx, false)
 	if err != nil {
