@@ -102,3 +102,41 @@ func TestSchemaSecretFlagIsKeptButItsNonBooleanValuesAreNot(t *testing.T) {
 		t.Fatalf("boolean under a credential key leaked: %#v", out["secret"])
 	}
 }
+
+// A plugin's settings stay readable in previews; only the ones that look like credentials are masked.
+func TestPluginSettingsShowEverythingButCredentials(t *testing.T) {
+	safe := YAML([]byte(`http:
+  middlewares:
+    crowdsec:
+      plugin:
+        crowdsec-bouncer-traefik-plugin:
+          enabled: true
+          crowdsecMode: stream
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret
+          crowdsecLapiKey: synthetic-secret
+          redisCachePassword: synthetic-secret
+          clientTrustedIPs: [10.0.0.0/8]
+    sso:
+      plugin:
+        traefik-oidc-auth:
+          provider: https://auth.example.com
+          clientSecret: synthetic-secret
+          license: synthetic-secret
+    odd:
+      plugin:
+        crowdsecLapiKey: synthetic-secret
+`))
+	if strings.Contains(safe, "synthetic-secret") {
+		t.Fatalf("credential leaked:\n%s", safe)
+	}
+	for _, shown := range []string{"crowdsecMode: stream", "crowdsecLapiHost: crowdsec:8080", "crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret", "10.0.0.0/8", "traefik-oidc-auth:", "provider: https://auth.example.com"} {
+		if !strings.Contains(safe, shown) {
+			t.Fatalf("%q is not a credential and must be shown:\n%s", shown, safe)
+		}
+	}
+	raw, _ := JSON(map[string]any{"config": map[string]any{"type": "plugin", "spec": map[string]any{"crowdsecMode": "live", "license": "synthetic-secret"}}})
+	if strings.Contains(string(raw), "synthetic-secret") || !strings.Contains(string(raw), `"crowdsecMode":"live"`) {
+		t.Fatalf("plugin spec: %s", raw)
+	}
+}

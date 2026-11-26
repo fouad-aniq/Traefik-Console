@@ -56,6 +56,76 @@ func crowdSecPluginMetadataOnly(value any) bool {
 
 func Value(v any) any { return clean(v, false, 0) }
 
+// pluginSensitive decides which settings of a plugin's configuration are masked. Plugins name their
+// settings freely, so any name that looks like a credential is masked (crowdsecLapiKey, license,
+// redisPassword...), except settings that only point to a file or say how a credential is passed
+// (crowdsecLapiKeyFile, apiKeyHeader).
+func pluginSensitive(k string) bool {
+	n := strings.ToLower(strings.NewReplacer("_", "", "-", "", ".", "").Replace(k))
+	for _, suffix := range []string{"file", "path", "dir", "enabled", "header", "headername"} {
+		if strings.HasSuffix(n, suffix) {
+			return false
+		}
+	}
+	if sensitive(k) {
+		return true
+	}
+	for _, word := range []string{"key", "pass", "secret", "token", "cred", "auth", "license", "private", "cookie", "session", "hmac", "salt", "sign"} {
+		if strings.Contains(n, word) {
+			return true
+		}
+	}
+	return false
+}
+
+// cleanPluginSettings shows a plugin's settings, masking only those that look like credentials, so
+// a preview of (for example) the CrowdSec bouncer stays readable.
+func cleanPluginSettings(v any, depth int) any {
+	if depth > 32 {
+		return "[redacted]"
+	}
+	switch x := v.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		for k, child := range x {
+			if _, isBool := child.(bool); isBool {
+				out[k] = child
+			} else if pluginSensitive(k) {
+				out[k] = clean(child, true, depth+1)
+			} else {
+				out[k] = cleanPluginSettings(child, depth+1)
+			}
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, child := range x {
+			out[i] = cleanPluginSettings(child, depth+1)
+		}
+		return out
+	default:
+		return clean(v, false, depth+1)
+	}
+}
+
+// cleanPluginBlock handles `plugin: {<plugin name>: {settings}}`: names are kept and each plugin's
+// settings are cleaned; anything that is not a settings map stays fully masked.
+func cleanPluginBlock(v any, depth int) any {
+	block, ok := v.(map[string]any)
+	if !ok {
+		return clean(v, true, depth)
+	}
+	out := map[string]any{}
+	for name, settings := range block {
+		if _, isMap := settings.(map[string]any); isMap {
+			out[name] = cleanPluginSettings(settings, depth+1)
+		} else {
+			out[name] = clean(settings, true, depth+1)
+		}
+	}
+	return out
+}
+
 func clean(v any, opaque bool, depth int) any {
 	if depth > 32 {
 		return "[redacted]"
@@ -86,8 +156,12 @@ func clean(v any, opaque bool, depth int) any {
 				out[k] = clean(v, false, depth+1)
 			} else if sensitive(k) {
 				out[k] = clean(v, true, depth+1)
+			} else if !opaque && k == "spec" && x["type"] == "plugin" {
+				out[k] = cleanPluginSettings(v, depth+1) // a plugin middleware's settings (API)
+			} else if !opaque && strings.EqualFold(k, "plugin") && !crowdSecPluginMetadataOnly(v) {
+				out[k] = cleanPluginBlock(v, depth+1) // plugin: {<plugin name>: {settings}} (YAML)
 			} else {
-				out[k] = clean(v, opaque || (k == "spec" && x["type"] == "plugin") || (strings.EqualFold(k, "plugin") && !crowdSecPluginMetadataOnly(v)) || strings.EqualFold(k, "customRequestHeaders") || strings.EqualFold(k, "customResponseHeaders"), depth+1)
+				out[k] = clean(v, opaque || strings.EqualFold(k, "customRequestHeaders") || strings.EqualFold(k, "customResponseHeaders"), depth+1)
 			}
 		}
 		return out
