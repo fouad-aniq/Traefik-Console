@@ -112,7 +112,16 @@ func checkLayout(opts *config.Options) error {
 	}
 	f := cfg.Providers.File
 	if f.Directory != expected || f.Filename != "" || (f.Watch != nil && !*f.Watch) {
-		return errors.New("Traefik must watch the registered file-provider directory")
+		found := "no providers.file section"
+		switch {
+		case f.Filename != "":
+			found = "providers.file.filename: " + f.Filename + " (a single file; Console needs a folder)"
+		case f.Directory != "" && f.Directory != expected:
+			found = "providers.file.directory: " + f.Directory
+		case f.Watch != nil && !*f.Watch:
+			found = "providers.file.watch: false"
+		}
+		return fmt.Errorf("Traefik must watch the registered file-provider directory. %s has %s; it needs providers.file.directory: %s with watch on (or set DYNAMIC_DIR and TRAEFIK_DYNAMIC_DIR to your folder)", opts.TraefikStaticPath, found, expected)
 	}
 	_, err = os.Lstat(opts.DBPath)
 	fresh := os.IsNotExist(err)
