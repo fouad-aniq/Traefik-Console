@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -174,8 +175,13 @@ func (g *generator) Render(items, previous []models.ConfigItemRow, rawStatic, ra
 	if err != nil {
 		return nil, err
 	}
+	if requiresRestart && sameYAML(renderedStatic, rawStatic) {
+		// The resources changed in the database but not what Traefik reads (an entrypoint taken
+		// over as it is, for example): keep traefik.yml untouched and do not restart Traefik.
+		requiresRestart, restartReasons = false, nil
+	}
 	if !requiresRestart {
-		// traefik.yml is only rewritten when a console-owned static resource changed.
+		// traefik.yml is only rewritten when what Traefik reads from it changes.
 		renderedStatic = rawStatic
 	}
 	renderedDynamic, err := yaml.RenderYAML(afterDynDoc)
@@ -216,6 +222,16 @@ func releaseEntryPoint(staticDoc *yamlv3.Node, item models.ConfigItemRow) error 
 		original = map[string]any{}
 	}
 	return yaml.SetNestedValue(staticDoc, original, "entryPoints", item.Name)
+}
+
+// sameYAML reports whether two YAML documents hold the same data, whatever their formatting,
+// comments or key order.
+func sameYAML(a, b []byte) bool {
+	var left, right any
+	if yamlv3.Unmarshal(a, &left) != nil || yamlv3.Unmarshal(b, &right) != nil {
+		return false
+	}
+	return reflect.DeepEqual(left, right)
 }
 
 // staticChanges compares the static-scope resources (resolvers, plugins, entrypoints) of two
