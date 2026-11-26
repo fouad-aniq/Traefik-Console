@@ -3742,6 +3742,8 @@
     }
   },
   "writeV2": {
+    "reconnectingTitle": "Traefik redémarre",
+    "reconnecting": "La modification est en cours d’application. Cette page se reconnecte d’elle-même dans quelques secondes. Si votre navigateur signale alors le certificat, acceptez-le (certificat temporaire de Traefik) ou choisissez un résolveur de certificats pour la route de Console.",
     "manualRestart": "Le changement est enregistré, mais la Console n’a pas pu redémarrer Traefik. Redémarrez Traefik vous-même pour l’appliquer.",
     "noChange": "Rien n’a changé : la configuration correspondait déjà."
   },

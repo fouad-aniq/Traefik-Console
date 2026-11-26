@@ -5,6 +5,7 @@
 // Mutations are never retried automatically; an uncertain save is retried by the
 // caller with the SAME Idempotency-Key so it cannot apply twice.
 import { api } from '../shared/api/api';
+import { ApiError, NetworkError } from '../shared/api/client';
 import type { Operation, WriteResult } from './types';
 import { t } from '../shared/localization/i18n';
 import { flash } from '../shared/ui/flash.svelte';
@@ -39,17 +40,53 @@ function writeInit(version: number | null | undefined, opts: WriteOptions | unde
 
 const withDryRun = (path: string, opts?: WriteOptions) => (opts?.dryRun ? path + (path.includes('?') ? '&' : '?') + 'dry_run=true' : path);
 
+/**
+ * The browser usually reaches the Console through the Traefik a change restarts: for a few
+ * seconds the request finds no server, or Traefik's own error page. A write that carries an
+ * Idempotency-Key is then sent again with the SAME key until an answer arrives; the server
+ * replays the stored result, so it is never applied twice.
+ */
+export const reconnect = { windowMs: 90_000, delayMs: 2_000 };
+
+/** No answer from the Console: no connection, or Traefik's own (non-JSON) error page. */
+export const isReconnectable = (e: unknown) =>
+	e instanceof NetworkError || (e instanceof ApiError && e.code === 'INTERNAL_ERROR' && !e.operationId && [404, 502, 503, 504].includes(e.status));
+
+const pause = (ms: number, signal?: AbortSignal) =>
+	new Promise<void>((resolve) => {
+		const timer = setTimeout(resolve, ms);
+		signal?.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+	});
+
+async function withReconnect<T>(opts: WriteOptions | undefined, send: () => Promise<T>): Promise<T> {
+	if (opts?.dryRun || !opts?.idempotencyKey) return send();
+	const deadline = Date.now() + reconnect.windowMs;
+	let announced = false;
+	for (;;) {
+		try {
+			return await send();
+		} catch (e) {
+			if (!isReconnectable(e) || Date.now() >= deadline || opts.signal?.aborted) throw e;
+			if (!announced) {
+				announced = true;
+				flash({ tone: 'info', title: t('writeV2.reconnectingTitle'), message: t('writeV2.reconnecting') });
+			}
+			await pause(reconnect.delayMs, opts.signal);
+		}
+	}
+}
+
 /** PUT a full *Input payload. */
 export const saveResource = <T>(path: string, body: unknown, version: number | null | undefined, opts?: WriteOptions) =>
-	api.put<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, true));
+	withReconnect(opts, () => api.put<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, true)));
 
 /** DELETE with the current version. Deletion is a render without the resource. */
 export const removeResource = <T = unknown>(path: string, version: number, opts?: WriteOptions) =>
-	api.delete<WriteResult<T>>(withDryRun(path, opts), writeInit(version, opts, true));
+	withReconnect(opts, () => api.delete<WriteResult<T>>(withDryRun(path, opts), writeInit(version, opts, true)));
 
 /** POST writes without a path-level version (plugin YAML / catalog install). */
 export const postWrite = <T>(path: string, body: unknown, opts?: WriteOptions, version?: number | null) =>
-	api.post<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, version !== undefined));
+	withReconnect(opts, () => api.post<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, version !== undefined)));
 
 /** True when the change is saved but Traefik could not be restarted (HTTP 202). */
 export const needsManualRestart = (r: { error?: { code: string } | null; restart_required?: boolean } | null | undefined) =>

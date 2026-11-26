@@ -7,6 +7,7 @@ vi.hoisted(() => {
 });
 import ServicesPage from '../src/features/services/ServicesPage.svelte';
 import { flashes } from '../src/shared/ui/flash.svelte';
+import { reconnect } from '../src/core/mutations';
 
 /* Create, edit and delete for every protocol, with the successes and the failures a person can hit. */
 
@@ -33,6 +34,8 @@ const used = (...names: string[]) => ({ routers: names.map((name) => ({ name, ru
 const list = (rows: unknown) => ({ 'GET /api/v1/services': () => json(rows) });
 
 beforeEach(() => {
+	// These tests cover the manual retry offered once the automatic reconnect gave up.
+	reconnect.windowMs = 0;
 	flashes.splice(0);
 	calls = [];
 	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };

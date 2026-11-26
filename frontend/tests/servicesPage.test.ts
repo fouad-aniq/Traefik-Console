@@ -450,8 +450,9 @@ describe('backend server row', () => {
 		expect(await sent()).toEqual([{ url: 'http://app/api' }]);
 
 		calls = [];
+		await screen.findByRole('button', { name: 'Apply changes' }); // the review has loaded
 		await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove the path of backend 1' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Remove the path of backend 1' }));
 		expect(document.getElementById('service-url-0-path')).toBeNull();
 		expect(await sent()).toEqual([{ url: 'http://app' }]);
 	});

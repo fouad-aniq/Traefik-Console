@@ -7,6 +7,7 @@ vi.hoisted(() => {
 });
 import ResolversPage from '../src/features/resolvers/ResolversPage.svelte';
 import { flashes } from '../src/shared/ui/flash.svelte';
+import { reconnect } from '../src/core/mutations';
 
 const providers = {
 	custom_provider_codes: ['cloudflare'],
@@ -28,6 +29,8 @@ let handlers: Record<string, () => Response | Promise<Response>> = {};
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
+	// These tests cover the manual retry offered once the automatic reconnect gave up.
+	reconnect.windowMs = 0;
 	flashes.splice(0);
 	calls = [];
 	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };

@@ -3742,6 +3742,8 @@
     }
   },
   "writeV2": {
+    "reconnectingTitle": "Traefik is restarting",
+    "reconnecting": "The change is being applied. This page reconnects by itself in a few seconds. If your browser then warns about the certificate, accept it (Traefik's temporary certificate) or set a certificate resolver on Console's route.",
     "manualRestart": "The change is saved, but the Console could not restart Traefik. Restart Traefik yourself to apply it.",
     "noChange": "Nothing changed: the configuration already matched."
   },
