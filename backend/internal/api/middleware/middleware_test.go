@@ -112,6 +112,9 @@ func TestAdmissionUsesOperationBudgetOnlyForRealMutations(t *testing.T) {
 }
 
 func TestAdmissionIsBoundedAndPreservesCancellation(t *testing.T) {
+	oldWait := admissionWait
+	admissionWait = 50 * time.Millisecond
+	defer func() { admissionWait = oldWait }()
 	entered := make(chan struct{}, requestCapacity)
 	release := make(chan struct{})
 	var once sync.Once
@@ -145,10 +148,12 @@ func TestAdmissionIsBoundedAndPreservesCancellation(t *testing.T) {
 			t.Fatal("admission did not fill")
 		}
 	}
+	// Every slot stays busy: a request waits its turn, then is refused when none frees in time.
 	w := httptest.NewRecorder()
+	start := time.Now()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "http://localhost/api", nil))
-	if w.Code != 503 {
-		t.Fatal("capacity unbounded", w.Code)
+	if w.Code != 503 || time.Since(start) < admissionWait {
+		t.Fatal("capacity unbounded or not waited for", w.Code, time.Since(start))
 	}
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "http://localhost/api/v1/health", nil))
@@ -160,4 +165,46 @@ func TestAdmissionIsBoundedAndPreservesCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "http://localhost/cancelled", nil).WithContext(ctx))
+}
+
+// The map page loads eight lists while the shell polls its state: a ninth request must wait for a
+// slot, not fail.
+func TestAdmissionQueuesARequestUntilASlotFrees(t *testing.T) {
+	entered := make(chan struct{}, requestCapacity)
+	release := make(chan struct{})
+	h := admissionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/busy" {
+			entered <- struct{}{}
+			<-release
+		}
+		w.WriteHeader(204)
+	}), 0)
+	var wg sync.WaitGroup
+	for range requestCapacity {
+		wg.Go(func() { h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "http://localhost/busy", nil)) })
+	}
+	for range requestCapacity {
+		<-entered
+	}
+	done := make(chan int, 1)
+	go func() {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", "http://localhost/ninth", nil))
+		done <- w.Code
+	}()
+	select {
+	case code := <-done:
+		t.Fatal("the ninth request did not wait for a slot", code)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case code := <-done:
+		if code != 204 {
+			t.Fatal("the ninth request was refused", code)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("the ninth request never ran")
+	}
+	wg.Wait()
 }
