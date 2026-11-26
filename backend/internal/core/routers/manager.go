@@ -224,6 +224,9 @@ func parseExternalRouter(raw map[string]any) models.RouterConfig {
 	if svc, ok := raw["service"].(string); ok {
 		cfg.Service = svc
 	}
+	if p, ok := raw["priority"].(float64); ok && p > 0 && p < 1<<31 {
+		cfg.Priority = int(p)
+	}
 	if eps, ok := raw["entryPoints"].([]any); ok {
 		for _, ep := range eps {
 			if s, ok := ep.(string); ok {

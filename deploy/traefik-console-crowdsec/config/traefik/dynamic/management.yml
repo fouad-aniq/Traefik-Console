@@ -4,10 +4,13 @@ http:
       entryPoints: [management]
       rule: PathPrefix(`/api`)
       service: api@internal
+    # Reaches Console on its first start. Console then creates its own managed "console" service
+    # and route (edit them in the app); this one stays as a fallback at the lowest priority.
     console-bootstrap:
       entryPoints: [websecure]
       rule: 'Host(`{{ env "CONSOLE_HOST" }}`)'
       service: console-bootstrap
+      priority: 1
       tls: {}
   services:
     console-bootstrap:

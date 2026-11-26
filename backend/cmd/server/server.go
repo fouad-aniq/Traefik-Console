@@ -15,6 +15,7 @@ import (
 	"github.com/traefik-console/internal/api/middleware"
 	"github.com/traefik-console/internal/config/files"
 	"github.com/traefik-console/internal/config/secrets"
+	"github.com/traefik-console/internal/consoleroute"
 	"github.com/traefik-console/internal/engine"
 	catalog "github.com/traefik-console/internal/traefik/plugins"
 	"github.com/traefik-console/internal/traefik/status"
@@ -78,7 +79,14 @@ func runServer() error {
 	checksCtx, stopChecks := context.WithCancel(context.Background())
 	checksDone := make(chan struct{})
 	go func() { defer close(checksDone); dependencies.Plugins.RunCatalogChecks(checksCtx) }()
-	defer func() { stopChecks(); <-checksDone }()
+	// The Console's own service and route become managed resources once Traefik reports the
+	// bootstrap route (shipped bundles only); retried for 10 minutes while Traefik starts.
+	seedDone := make(chan struct{})
+	go func() {
+		defer close(seedDone)
+		consoleroute.Run(checksCtx, store, dependencies.Services, dependencies.Routers, 20*time.Second, 30, diagLog.Warnf)
+	}()
+	defer func() { stopChecks(); <-checksDone; <-seedDone }()
 	deployCoord.SetBouncerVerifier(dependencies.CrowdSec)
 	dependencies.Web = webHandler
 	handler, err := api.NewServer(dependencies, middleware.Policy{

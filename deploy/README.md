@@ -60,6 +60,12 @@ More:
 - Traefik's config lives in `config/traefik/` (static file in `static/`, routes in
   `dynamic/`); Let's Encrypt files are kept in `config/traefik/acme/`. Console
   edits these files too; you can edit them directly or from Console.
+- **Console's own route is yours to edit.** On its first start Console is reached
+  through a bootstrap route in `config/traefik/dynamic/management.yml`. Console then
+  creates a managed `console` service and route from it, listed on the Services and
+  Routes pages, where you can add middlewares, change the domain or subdomain, or pick
+  a certificate resolver. The bootstrap route stays as a fallback: delete the
+  `console` route and Console is still reachable through it.
 - **DNS certificate resolvers need no setup.** Traefik reads DNS provider
   credentials (Cloudflare tokens and the like) only from its environment, which is
   fixed when its container is created. So Traefik loads
