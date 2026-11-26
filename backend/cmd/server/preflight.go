@@ -48,7 +48,15 @@ func checkLayout(opts *config.Options) error {
 	if opts.TraefikStaticPath == filepath.Join(staticDir, files.ConsoleDomainsFilename) {
 		return errors.New("static filename collides with Console domain metadata")
 	}
+	// Console creates a missing watched folder or secrets folder at start (when its parent exists).
+	willCreate := func(dir string) bool {
+		return (dir == opts.TraefikDynamicDir || dir == opts.SecretsDir) && config.Creatable(dir)
+	}
 	for _, dir := range []string{staticDir, opts.TraefikDynamicDir, opts.SecretsDir, filepath.Dir(opts.DBPath), filepath.Dir(opts.Auth.DBPath), filepath.Dir(opts.MasterKeyFile)} {
+		if willCreate(dir) {
+			cliOut.Infof("%s does not exist yet; Console creates it when it starts", dir)
+			continue
+		}
 		resolved, err := filepath.EvalSymlinks(dir)
 		if err != nil || resolved != dir {
 			return fmt.Errorf("directory missing or symlinked: %s", dir)
@@ -59,6 +67,9 @@ func checkLayout(opts *config.Options) error {
 		}
 	}
 	for _, dir := range []string{opts.TraefikDynamicDir, opts.SecretsDir, filepath.Dir(opts.MasterKeyFile)} {
+		if willCreate(dir) {
+			continue
+		}
 		parent := filepath.Dir(dir)
 		if !sameMount(dir, parent) || syscall.Access(parent, 3) != nil {
 			return fmt.Errorf("mount the writable common parent for atomic staging: %s", dir)

@@ -57,7 +57,7 @@ func runAdmin(args []string) error {
 			return err
 		}
 		if name == "" {
-			cliOut.Infof("no administrator yet: open the console and run server admin setup-token, or run: server admin create")
+			cliOut.Infof("no administrator yet: open the console and enter the setup token from its logs, or run: server admin create")
 			return nil
 		}
 		cliOut.Infof("administrator: %s", name)

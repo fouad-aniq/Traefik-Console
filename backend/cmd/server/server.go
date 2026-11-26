@@ -13,6 +13,7 @@ import (
 
 	api "github.com/traefik-console/internal/api/handlers"
 	"github.com/traefik-console/internal/api/middleware"
+	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/config/files"
 	"github.com/traefik-console/internal/config/secrets"
 	"github.com/traefik-console/internal/consoleroute"
@@ -29,6 +30,14 @@ func runServer() error {
 		return fmt.Errorf("configuration: %w", err)
 	}
 	defer runtimeClient.Close()
+	// Traefik's watched folder and the secrets folder are created on a first start.
+	created, err := config.EnsureWorkingFolders(opts.TraefikDynamicDir, opts.SecretsDir)
+	for _, dir := range created {
+		diagLog.Infof("created %s", dir)
+	}
+	if err != nil {
+		return fmt.Errorf("configuration folders: %w", err)
+	}
 
 	state, err := openState(opts)
 	if err != nil {
