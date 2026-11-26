@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -46,5 +47,34 @@ func TestWorkingFoldersLeaveOddLayoutsToTheCheck(t *testing.T) {
 	}
 	if created, err := EnsureWorkingFolders(noParent, file); err != nil || len(created) != 0 {
 		t.Fatalf("nothing must be created: %v %v", created, err)
+	}
+}
+
+func TestStateFoldersAndAReadOnlyParent(t *testing.T) {
+	root := t.TempDir()
+	opts := &Options{TraefikDynamicDir: filepath.Join(root, "config", "dynamic"), SecretsDir: filepath.Join(root, "config", "secrets"),
+		DBPath: filepath.Join(root, "state", "data", "console.db"), MasterKeyFile: filepath.Join(root, "state", "keys", "master.key")}
+	opts.Auth.DBPath = filepath.Join(root, "state", "data", "auth.db")
+	for _, d := range []string{"config", "state"} {
+		if err := os.Mkdir(filepath.Join(root, d), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	created, err := EnsureFolders(StartFolders(opts)...)
+	if err != nil || len(created) != 4 { // data/ appears twice: the database and the auth database
+		t.Fatalf("created=%v err=%v", created, err)
+	}
+	if st, _ := os.Stat(filepath.Join(root, "state", "keys")); st == nil || st.Mode().Perm() != 0o700 {
+		t.Fatal("state folders must be private")
+	}
+	if os.Getuid() == 0 {
+		t.Skip("root writes everywhere")
+	}
+	locked := filepath.Join(root, "locked")
+	if err := os.Mkdir(locked, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	if hint := MissingHint(filepath.Join(locked, "data")); hint == "" || !strings.Contains(hint, "chown") {
+		t.Fatalf("a read-only parent must explain the fix: %q", hint)
 	}
 }

@@ -48,14 +48,19 @@ func checkLayout(opts *config.Options) error {
 	if opts.TraefikStaticPath == filepath.Join(staticDir, files.ConsoleDomainsFilename) {
 		return errors.New("static filename collides with Console domain metadata")
 	}
-	// Console creates a missing watched folder or secrets folder at start (when its parent exists).
-	willCreate := func(dir string) bool {
-		return (dir == opts.TraefikDynamicDir || dir == opts.SecretsDir) && config.Creatable(dir)
+	// Console creates its missing folders at start (when their parent exists and is writable).
+	startFolders := map[string]bool{}
+	for _, f := range config.StartFolders(opts) {
+		startFolders[f.Path] = true
 	}
+	willCreate := func(dir string) bool { return startFolders[dir] && config.Creatable(dir) }
 	for _, dir := range []string{staticDir, opts.TraefikDynamicDir, opts.SecretsDir, filepath.Dir(opts.DBPath), filepath.Dir(opts.Auth.DBPath), filepath.Dir(opts.MasterKeyFile)} {
 		if willCreate(dir) {
 			cliOut.Infof("%s does not exist yet; Console creates it when it starts", dir)
 			continue
+		}
+		if hint := config.MissingHint(dir); hint != "" {
+			return errors.New(hint)
 		}
 		resolved, err := filepath.EvalSymlinks(dir)
 		if err != nil || resolved != dir {

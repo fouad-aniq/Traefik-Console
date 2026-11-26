@@ -30,13 +30,19 @@ func runServer() error {
 		return fmt.Errorf("configuration: %w", err)
 	}
 	defer runtimeClient.Close()
-	// Traefik's watched folder and the secrets folder are created on a first start.
-	created, err := config.EnsureWorkingFolders(opts.TraefikDynamicDir, opts.SecretsDir)
+	// Traefik's watched folder, the secrets folder and the state folders are created on a first start.
+	folders := config.StartFolders(opts)
+	created, err := config.EnsureFolders(folders...)
 	for _, dir := range created {
 		diagLog.Infof("created %s", dir)
 	}
 	if err != nil {
 		return fmt.Errorf("configuration folders: %w", err)
+	}
+	for _, f := range folders {
+		if hint := config.MissingHint(f.Path); hint != "" {
+			return errors.New(hint)
+		}
 	}
 
 	state, err := openState(opts)
