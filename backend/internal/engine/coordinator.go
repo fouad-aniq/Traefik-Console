@@ -226,6 +226,10 @@ func (c *operations) publish(ctx context.Context, pub publication) (*models.Oper
 	stage := "journal_recheck"
 	fail := func(cause error) (*models.OperationResult, error) {
 		code, reason := safeFailureReason(cause)
+		var rejected *runtimeRejection
+		if errors.As(cause, &rejected) && rejected.detail != "" {
+			reason += ": " + rejected.detail // Traefik's own verdict, e.g. an unknown plugin type
+		}
 		failure := &DeployFailure{OperationID: op.ID, Stage: stage, ReasonCode: code, Reason: reason, cause: cause}
 		// Record the original cause before compensation can fail or the process exits.
 		op.ErrorLog = fmt.Sprintf("Operation failed at %s: %s [%s].", stage, reason, code)
@@ -324,7 +328,7 @@ func (c *operations) publish(ctx context.Context, pub publication) (*models.Oper
 			return fail(e)
 		}
 		if outcome.AttributableErr {
-			return fail(errRuntimeRejected)
+			return fail(newRuntimeRejection(outcome.ErrorMessage))
 		}
 		if !outcome.Loaded {
 			return fail(errConvergenceTimeout)

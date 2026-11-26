@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 
 	"github.com/traefik-console/internal/config/files"
@@ -44,6 +45,22 @@ var (
 	errConvergenceTimeout = errors.New("candidate did not converge before the deadline")
 	errRuntimeRejected    = errors.New("runtime rejected a candidate resource")
 )
+
+// runtimeRejection is a candidate Traefik loaded but rejected or disabled, with Traefik's own
+// message (one line, bounded) so the operator sees the actual cause.
+type runtimeRejection struct{ detail string }
+
+func (r *runtimeRejection) Error() string        { return errRuntimeRejected.Error() }
+func (r *runtimeRejection) Is(target error) bool { return target == errRuntimeRejected }
+
+// newRuntimeRejection keeps Traefik's message on one line and at most 300 characters.
+func newRuntimeRejection(detail string) *runtimeRejection {
+	detail = strings.Join(strings.Fields(detail), " ")
+	if len(detail) > 300 {
+		detail = detail[:300] + "…"
+	}
+	return &runtimeRejection{detail: detail}
+}
 
 func safeFailureReason(err error) (string, string) {
 	for _, entry := range []struct {
