@@ -28,16 +28,16 @@ func TestObsoleteACMEPathHasExplicitMigration(t *testing.T) {
 	t.Setenv("PORT", "8081")
 	t.Setenv("BIND_ADDRESS", "127.0.0.1")
 	t.Setenv("TRAEFIK_ACME_PATH", "/operator/old-acme.json")
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "acme folder") || strings.Contains(err.Error(), "/operator/") {
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "ACME_DIR") || strings.Contains(err.Error(), "/operator/") {
 		t.Fatal("obsolete setting silently accepted or path leaked", err)
 	}
 }
 func TestRenamedFolderSettingsPointToNewNames(t *testing.T) {
-	for _, pair := range [][2]string{{"TRAEFIK_STATIC_PATH", "STATIC_FILE"}, {"TRAEFIK_RUNTIME_DYNAMIC_DIR", "TRAEFIK_DYNAMIC_DIR"}, {"ACME_OBSERVATION_DIR", "acme folder"}, {"ACME_DIR", "acme folder"}, {"TRAEFIK_ACME_DIR", "acme folder"}} {
+	for _, pair := range [][2]string{{"TRAEFIK_STATIC_PATH", "STATIC_FILE"}, {"TRAEFIK_RUNTIME_DYNAMIC_DIR", "TRAEFIK_DYNAMIC_DIR"}, {"ACME_OBSERVATION_DIR", "ACME_DIR"}} {
 		resetDockerEnv(t)
 		t.Setenv("PORT", "8081")
 		t.Setenv("BIND_ADDRESS", "127.0.0.1")
-		for _, name := range []string{"TRAEFIK_STATIC_PATH", "TRAEFIK_RUNTIME_DYNAMIC_DIR", "ACME_OBSERVATION_DIR", "ACME_DIR", "TRAEFIK_ACME_DIR"} {
+		for _, name := range []string{"TRAEFIK_STATIC_PATH", "TRAEFIK_RUNTIME_DYNAMIC_DIR", "ACME_OBSERVATION_DIR"} {
 			t.Setenv(name, "")
 		}
 		t.Setenv(pair[0], "/operator/old")
@@ -63,6 +63,21 @@ func TestACMEFolderIsFoundNextToTheDynamicFolder(t *testing.T) {
 	opts, err = Load()
 	if err != nil || opts.ACMEObservationDir != filepath.Join(root, "acme") {
 		t.Fatalf("acme folder next to the dynamic folder not found: %v %+v", err, opts)
+	}
+	// Both sides can be set, for an acme folder elsewhere (a data folder, for example).
+	elsewhere := filepath.Join(root, "data", "letsencrypt")
+	if err := os.MkdirAll(elsewhere, 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ACME_DIR", elsewhere)
+	t.Setenv("TRAEFIK_ACME_DIR", "/data/letsencrypt")
+	opts, err = Load()
+	if err != nil || opts.ACMEObservationDir != elsewhere || opts.RuntimeACMEDir != "/data/letsencrypt" {
+		t.Fatalf("ACME_DIR / TRAEFIK_ACME_DIR not used: %v %+v", err, opts)
+	}
+	t.Setenv("TRAEFIK_ACME_DIR", "relative/acme")
+	if _, err = Load(); err == nil {
+		t.Fatal("a relative TRAEFIK_ACME_DIR must be refused")
 	}
 }
 func TestDockerSettingsAreOperatorValues(t *testing.T) {

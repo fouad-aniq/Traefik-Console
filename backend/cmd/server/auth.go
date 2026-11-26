@@ -45,5 +45,5 @@ func announceSetup(svc *auth.Service) error {
 }
 
 func newAuthGate(opts *config.Options, svc *auth.Service) *authgate.Gate {
-	return authgate.New(svc, authgate.Options{CookieSecure: opts.Auth.CookieSecure, TrustedProxies: opts.Auth.TrustedProxies})
+	return authgate.New(svc, authgate.Options{CookieSecure: opts.Auth.CookieSecure, CookieSecureAuto: opts.Auth.CookieSecureAuto, TrustedProxies: opts.Auth.TrustedProxies})
 }

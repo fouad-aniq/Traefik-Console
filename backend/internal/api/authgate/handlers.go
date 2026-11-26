@@ -117,7 +117,7 @@ func (g *Gate) status(w http.ResponseWriter, r *http.Request) {
 				v := viewOf(sess)
 				out.Authenticated, out.Session = true, &v
 			case errors.Is(aerr, auth.ErrSessionInvalid):
-				g.clearSessionCookie(w)
+				g.clearSessionCookie(w, r)
 			default:
 				writeAuthError(w, aerr)
 				return
@@ -144,7 +144,7 @@ func (g *Gate) setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("INFO auth: administrator %q created through first-run setup", issued.Session.Username)
-	g.setSessionCookie(w, issued)
+	g.setSessionCookie(w, r, issued)
 	response.WriteJSON(w, http.StatusOK, viewOf(&issued.Session))
 }
 
@@ -171,7 +171,7 @@ func (g *Gate) login(w http.ResponseWriter, r *http.Request) {
 		writeAuthError(w, err)
 		return
 	}
-	g.setSessionCookie(w, issued)
+	g.setSessionCookie(w, r, issued)
 	response.WriteJSON(w, http.StatusOK, viewOf(&issued.Session))
 }
 
@@ -181,7 +181,7 @@ func (g *Gate) logout(w http.ResponseWriter, r *http.Request, _ *auth.Session) {
 		writeAuthError(w, err)
 		return
 	}
-	g.clearSessionCookie(w)
+	g.clearSessionCookie(w, r)
 	response.WriteJSON(w, http.StatusOK, map[string]bool{"signed_out": true})
 }
 
@@ -204,7 +204,7 @@ func (g *Gate) changePassword(w http.ResponseWriter, r *http.Request, _ *auth.Se
 		writeAuthError(w, err)
 		return
 	}
-	g.setSessionCookie(w, issued)
+	g.setSessionCookie(w, r, issued)
 	response.WriteJSON(w, http.StatusOK, viewOf(&issued.Session))
 }
 
@@ -392,7 +392,7 @@ func (g *Gate) oauthStart(w http.ResponseWriter, r *http.Request) {
 		signInRedirect(w, r, oauthCode(err))
 		return
 	}
-	g.setBrowserCookie(w, browser)
+	g.setBrowserCookie(w, r, browser)
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
@@ -402,7 +402,7 @@ func (g *Gate) oauthCallback(w http.ResponseWriter, r *http.Request) {
 	if c, err := r.Cookie(browserCookie); err == nil {
 		browser = c.Value
 	}
-	g.clearBrowserCookie(w)
+	g.clearBrowserCookie(w, r)
 	if q.Get("error") != "" {
 		signInRedirect(w, r, "provider_denied")
 		return
@@ -416,7 +416,7 @@ func (g *Gate) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		signInRedirect(w, r, oauthCode(err))
 		return
 	}
-	g.setSessionCookie(w, issued)
+	g.setSessionCookie(w, r, issued)
 	http.Redirect(w, r, "/#/", http.StatusFound)
 }
 

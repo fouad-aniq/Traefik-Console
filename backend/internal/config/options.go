@@ -59,8 +59,10 @@ type Options struct {
 type AuthOptions struct {
 	// DBPath is the private auth database (AUTH_DB_PATH, default auth.db beside DB_PATH).
 	DBPath string
-	// CookieSecure marks cookies Secure (COOKIE_SECURE; default true when CONSOLE_ORIGIN is https).
-	CookieSecure bool
+	// CookieSecure forces Secure cookies (COOKIE_SECURE=true); CookieSecureAuto (COOKIE_SECURE unset)
+	// marks them Secure when the request came over HTTPS.
+	CookieSecure     bool
+	CookieSecureAuto bool
 	// IdleTimeout ends unused sessions (SESSION_IDLE_MINUTES, default 120).
 	IdleTimeout time.Duration
 	// MaxLifetime ends every session after sign-in (SESSION_MAX_HOURS, default 24).

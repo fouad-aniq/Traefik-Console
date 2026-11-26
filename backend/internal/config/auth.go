@@ -26,7 +26,8 @@ func loadAuthOptions(dbPath string) (AuthOptions, error) {
 
 	switch raw := strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))); raw {
 	case "":
-		out.CookieSecure = strings.HasPrefix(strings.TrimSpace(os.Getenv("CONSOLE_ORIGIN")), "https://")
+		// Secure exactly when the page is served over HTTPS (through Traefik or directly).
+		out.CookieSecureAuto = true
 	case "true", "1", "yes":
 		out.CookieSecure = true
 	case "false", "0", "no":

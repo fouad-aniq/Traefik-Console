@@ -27,8 +27,11 @@ type sessionKey struct{}
 
 // Options are fixed at startup.
 type Options struct {
-	// CookieSecure marks cookies Secure; required whenever the console is served over https.
-	CookieSecure bool
+	// CookieSecure always marks cookies Secure (COOKIE_SECURE=true). Otherwise, with
+	// CookieSecureAuto, a cookie is Secure when its request came over HTTPS: directly, or through a
+	// proxy that says so (X-Forwarded-Proto). Believing the header is safe: it can only add Secure.
+	CookieSecure     bool
+	CookieSecureAuto bool
 	// TrustedProxies are reverse proxies whose X-Forwarded-For is believed for
 	// rate limiting and the audit log. Empty uses the TCP peer address only.
 	TrustedProxies []*net.IPNet
@@ -83,7 +86,7 @@ func (g *Gate) requireSession(w http.ResponseWriter, r *http.Request) (*auth.Ses
 			response.WriteError(w, response.ErrInternal("Session check failed", err))
 			return nil, false
 		}
-		g.clearSessionCookie(w)
+		g.clearSessionCookie(w, r)
 		response.WriteCustomError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Your session has ended. Sign in again.", nil, false)
 		return nil, false
 	}
@@ -114,27 +117,39 @@ func validCSRF(r *http.Request, sess *auth.Session) bool {
 // Cookies
 // ---------------------------------------------------------------------------
 
-func (g *Gate) setSessionCookie(w http.ResponseWriter, issued *auth.Issued) {
+// secure tells whether this request's cookies are marked Secure.
+func (g *Gate) secure(r *http.Request) bool {
+	if g.opts.CookieSecure {
+		return true
+	}
+	if !g.opts.CookieSecureAuto {
+		return false
+	}
+	proto, _, _ := strings.Cut(r.Header.Get("X-Forwarded-Proto"), ",")
+	return r.TLS != nil || strings.EqualFold(strings.TrimSpace(proto), "https")
+}
+
+func (g *Gate) setSessionCookie(w http.ResponseWriter, r *http.Request, issued *auth.Issued) {
 	maxAge := int(time.Until(issued.Session.ExpiresAt).Seconds())
 	http.SetCookie(w, &http.Cookie{
 		Name: SessionCookie, Value: issued.Token, Path: "/", MaxAge: max(maxAge, 1),
-		HttpOnly: true, Secure: g.opts.CookieSecure, SameSite: http.SameSiteLaxMode,
+		HttpOnly: true, Secure: g.secure(r), SameSite: http.SameSiteLaxMode,
 	})
 }
 
-func (g *Gate) clearSessionCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: g.opts.CookieSecure, SameSite: http.SameSiteLaxMode})
+func (g *Gate) clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: g.secure(r), SameSite: http.SameSiteLaxMode})
 }
 
-func (g *Gate) setBrowserCookie(w http.ResponseWriter, value string) {
+func (g *Gate) setBrowserCookie(w http.ResponseWriter, r *http.Request, value string) {
 	http.SetCookie(w, &http.Cookie{
 		Name: browserCookie, Value: value, Path: "/api/v1/auth/oauth", MaxAge: 600,
-		HttpOnly: true, Secure: g.opts.CookieSecure, SameSite: http.SameSiteLaxMode,
+		HttpOnly: true, Secure: g.secure(r), SameSite: http.SameSiteLaxMode,
 	})
 }
 
-func (g *Gate) clearBrowserCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: browserCookie, Value: "", Path: "/api/v1/auth/oauth", MaxAge: -1, HttpOnly: true, Secure: g.opts.CookieSecure, SameSite: http.SameSiteLaxMode})
+func (g *Gate) clearBrowserCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: browserCookie, Value: "", Path: "/api/v1/auth/oauth", MaxAge: -1, HttpOnly: true, Secure: g.secure(r), SameSite: http.SameSiteLaxMode})
 }
 
 // ---------------------------------------------------------------------------

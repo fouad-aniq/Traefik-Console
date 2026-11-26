@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// TraefikACMEDir is where Traefik stores ACME (Let's Encrypt) files; resolvers created
+// TraefikACMEDir is the default TRAEFIK_ACME_DIR: where Traefik stores ACME (Let's Encrypt) files; resolvers created
 // by the Console point their storage here.
 const TraefikACMEDir = "/etc/traefik/acme"
 
@@ -38,12 +38,8 @@ func Load() (*Options, error) {
 			return nil, fmt.Errorf("%s was renamed to %s", renamed[0], renamed[1])
 		}
 	}
-	// ACME storage is not configurable: Traefik keeps it in TraefikACMEDir and the
-	// Console reads the same folder as "acme" next to its dynamic folder.
-	for _, removed := range []string{"ACME_OBSERVATION_DIR", "ACME_DIR", "TRAEFIK_ACME_DIR"} {
-		if strings.TrimSpace(os.Getenv(removed)) != "" {
-			return nil, fmt.Errorf("%s is no longer used: ACME files live in the acme folder next to the dynamic folder (%s inside Traefik)", removed, TraefikACMEDir)
-		}
+	if strings.TrimSpace(os.Getenv("ACME_OBSERVATION_DIR")) != "" {
+		return nil, fmt.Errorf("ACME_OBSERVATION_DIR was renamed to ACME_DIR")
 	}
 
 	staticPath, err := filepath.Abs(getString("STATIC_FILE", "./traefik/traefik.yml"))
@@ -57,7 +53,7 @@ func Load() (*Options, error) {
 	}
 
 	if strings.TrimSpace(os.Getenv("TRAEFIK_ACME_PATH")) != "" {
-		return nil, fmt.Errorf("TRAEFIK_ACME_PATH is obsolete: ACME files live in the acme folder next to the dynamic folder (%s inside Traefik)", TraefikACMEDir)
+		return nil, fmt.Errorf("TRAEFIK_ACME_PATH is obsolete: set the acme folder with ACME_DIR (inside Console) and TRAEFIK_ACME_DIR (inside Traefik)")
 	}
 
 	secretsDir, err := filepath.Abs(getString("SECRETS_DIR", "./traefik/secrets"))
@@ -81,10 +77,19 @@ func Load() (*Options, error) {
 	if !filepath.IsAbs(runtimeSecrets) || runtimeSecrets == "/" {
 		return nil, fmt.Errorf("traefik runtime mappings require absolute directory roots")
 	}
-	// Certificates are listed only when that acme folder exists; otherwise they are reported as not mapped.
-	acmeDir := filepath.Join(filepath.Dir(dynamicDir), "acme")
+	// The ACME (Let's Encrypt) folder: ACME_DIR inside Console (default: "acme" next to the dynamic
+	// folder) and TRAEFIK_ACME_DIR inside Traefik, where resolvers store their files. Certificates
+	// are listed only when that folder exists; otherwise they are reported as not mapped.
+	acmeDir, err := filepath.Abs(getString("ACME_DIR", filepath.Join(filepath.Dir(dynamicDir), "acme")))
+	if err != nil {
+		return nil, fmt.Errorf("%w: ACME_DIR: %v", ErrInvalidConfigPath, err)
+	}
 	if st, e := os.Stat(acmeDir); e != nil || !st.IsDir() {
 		acmeDir = ""
+	}
+	runtimeACME := filepath.Clean(getString("TRAEFIK_ACME_DIR", TraefikACMEDir))
+	if !filepath.IsAbs(runtimeACME) || runtimeACME == "/" {
+		return nil, fmt.Errorf("TRAEFIK_ACME_DIR must be an absolute folder")
 	}
 	// Traefik's DNS provider env file, kept by the Console next to the dynamic folder.
 	dnsEnv := &DNSEnvFile{Path: filepath.Join(filepath.Dir(dynamicDir), DNSProvidersEnvFile), SecretsRoot: filepath.Clean(runtimeSecrets)}
@@ -178,7 +183,7 @@ func Load() (*Options, error) {
 		TraefikDynamicDir:        dynamicDir,
 		ACMEObservationDir:       acmeDir,
 		DNSEnv:                   dnsEnv,
-		RuntimeACMEDir:           TraefikACMEDir,
+		RuntimeACMEDir:           runtimeACME,
 
 		RuntimeSecretsDir:   filepath.Clean(runtimeSecrets),
 		SecretsDir:          secretsDir,

@@ -28,8 +28,7 @@ services:
     environment:
       # --- Address and sign-in ---
       CONSOLE_HOST: console.example.com                     # your domain for Console (add its route in Console after the first login)
-      # CONSOLE_ORIGIN: https://console.example.com         # browser origin; with https, sign-in cookies are marked Secure
-      # COOKIE_SECURE: "true"                               # force Secure cookies on or off (default: on when CONSOLE_ORIGIN is https)
+      # COOKIE_SECURE: "true"                               # force Secure sign-in cookies on or off (default: on when the page is served over HTTPS)
       # TRUSTED_PROXIES: 172.16.0.0/12                      # proxies trusted for the client IP in sign-in limits and the activity log (default: none)
       # SESSION_IDLE_MINUTES: "120"                         # sign out after this much inactivity (5-10080)
       # SESSION_MAX_HOURS: "24"                             # sign out after this long in any case (1-720)
@@ -43,6 +42,8 @@ services:
       # TRAEFIK_DYNAMIC_DIR: /etc/traefik/dynamic           # ... and inside Traefik (must equal providers.file.directory)
       # SECRETS_DIR: /config/secrets                        # the secrets folder inside Console ...
       # TRAEFIK_SECRETS_DIR: /etc/traefik/secrets           # ... and inside Traefik
+      # ACME_DIR: /config/acme                              # the Let's Encrypt (acme) folder inside Console ...
+      # TRAEFIK_ACME_DIR: /etc/traefik/acme                 # ... and inside Traefik (where resolvers store their files)
 
       # --- Docker: lets Console restart Traefik and create CrowdSec keys ---
       DOCKER_HOST: unix:///var/run/docker.sock              # the Docker socket mounted below (remove both to disable)
