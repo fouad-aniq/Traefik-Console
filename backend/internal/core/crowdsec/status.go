@@ -3,6 +3,7 @@ package crowdsec
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/traefik-console/internal/docker"
@@ -37,6 +38,9 @@ type MiddlewareStatus struct {
 
 type KeyStatus struct {
 	Present bool `json:"present"`
+	// File is the bouncer key file as Traefik sees it, when the Console stores the key: a bouncer
+	// configured outside the Console reads it with crowdsecLapiKeyFile.
+	File string `json:"file,omitempty"`
 }
 
 type MachineStatus struct {
@@ -236,6 +240,11 @@ func (m *crowdsecManager) Status(ctx context.Context, inv Inventory) (*CrowdSecS
 
 	key := m.bouncerCredential(ctx)
 	out.Key.Present = key != ""
+	if strings.TrimSpace(m.settings.APIKey) == "" {
+		if row, e := m.store.GetSecret(ctx, crowdsecSecretName); e == nil && row != nil {
+			out.Key.File = row.FilePath
+		}
+	}
 	bouncerCertificate, err := m.hasClientCertificate(ctx, false)
 	if err != nil {
 		return nil, err

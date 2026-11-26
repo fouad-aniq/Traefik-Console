@@ -3588,6 +3588,10 @@
         "managed": "La Console installe le plugin bouncer CrowdSec et son middleware, configurés avec la clé ci-dessus.",
         "external": "Traefik est protégé par un bouncer configuré hors de la Console ; rien n’est modifié dans Traefik."
       },
+      "externalKeyHelp": "Console conserve la clé du bouncer et l’écrit dans ce fichier, lisible par Traefik. Mettez ces lignes dans votre middleware CrowdSec :",
+      "externalKeySnippet": "Pour votre middleware bouncer",
+      "externalKeyRotate": "Si vous régénérez la clé, le fichier est mis à jour : redémarrez Traefik (ou enregistrez votre fichier de middleware) pour que le plugin lise la nouvelle clé.",
+      "externalKeyMissing": "Aucune clé de bouncer n’est encore enregistrée. À l’étape Connexion, laissez Console en générer une (ou saisissez la vôtre) : le chemin de son fichier apparaît alors ici, pour votre propre middleware.",
       "protectionMode": {
         "off": "Désactivée",
         "managed": "Gérée par la Console",

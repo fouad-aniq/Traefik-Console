@@ -202,6 +202,19 @@ describe('settings dialog', () => {
 		const put = calls.find((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')!;
 		expect(put.body.protection).toMatchObject({ mode: 'managed', bouncer_mode: 'stream', plugin_version: 'v1.8.2', update_max_failure: 0 });
 	});
+	it('gives the key file to use in a bouncer middleware managed outside the Console', async () => {
+		handlers = { ...base({ ...status(), key: { present: true, file: '/etc/traefik/secrets/crowdsec_lapi_key.secret' }, config: { ...status().config, integration_mode: 'external' } as any }) };
+		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
+		await waitFor(() => expect(document.body.textContent).toContain('crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret'));
+		expect(document.body.textContent).not.toContain('crowdsecAppsecKeyFile');
+	});
+	it('says how to get a key file when none is stored yet, for a middleware managed outside the Console', async () => {
+		handlers = { ...base({ ...status(), config: { ...status().config, integration_mode: 'external' } as any }) };
+		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
+		expect(await screen.findByText(/No bouncer key is stored yet/)).toBeTruthy();
+	});
 	it('asks for the AppSec endpoint right under the AppSec option', async () => {
 		handlers = { ...base({ ...complete(), runtime: { accessible: true, docker_configured: true } }), 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });

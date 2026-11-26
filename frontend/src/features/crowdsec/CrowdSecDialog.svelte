@@ -32,6 +32,9 @@
 	let { status, navigate, onchanged }: { status: CrowdSecStatus; navigate: (p: string) => void; onchanged?: () => void } = $props();
 
 	const c = (key: string, args?: Record<string, string | number>) => t('crowdsecV2.connection.' + key, args);
+	/** The lines a bouncer middleware managed outside the Console needs to use the Console's key. */
+	const externalKeySnippet = (file: string, appSec: boolean) =>
+		[`crowdsecLapiKeyFile: ${file}`, ...(appSec ? [`crowdsecAppsecKeyFile: ${file}`] : [])].join('\n');
 	const rv2 = (key: string, args?: Record<string, string | number>) => t('resolverV2.' + key, args);
 	const MODULE = 'github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin';
 	const STABLE = /^v\d+\.\d+\.\d+$/;
@@ -502,6 +505,18 @@
 			<Field id="cs-protection" label={c('protection')} help={c('protectionHelp.' + form.protection)}>
 				{#snippet children(f)}<SelectMenu id={f.id} value={form.protection} disabled={locked} options={[{ value: 'off', label: c('protectionMode.off') }, { value: 'managed', label: c('protectionMode.managed') }, { value: 'external', label: c('protectionMode.external') }]} onchange={(v) => { form.protection = v as ProtectionMode; touch(); }} />{/snippet}
 			</Field>
+			{#if form.protection === 'external'}
+				<!-- Your own middleware: Console provides the credentials, you reference the key file. -->
+				<div class="nested stack">
+					{#if status.key?.file}
+						<p class="muted">{c('externalKeyHelp')}</p>
+						<CodePreview label={c('externalKeySnippet')} code={externalKeySnippet(status.key.file, form.appSec)} language="yaml" />
+						<p class="muted">{c('externalKeyRotate')}</p>
+					{:else}
+						<Notice message={c('externalKeyMissing')} />
+					{/if}
+				</div>
+			{/if}
 			{#if form.protection === 'managed'}
 				<div class="nested">
 					<Field id="cs-bouncer-mode" label={c('bouncerMode')} help={c('bouncerModeHelp.' + form.bouncerMode)}>

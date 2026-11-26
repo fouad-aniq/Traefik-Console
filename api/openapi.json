@@ -18254,6 +18254,9 @@
         "type": "object",
         "x-go-type": "internal/core/crowdsec.KeyStatus",
         "properties": {
+          "file": {
+            "type": "string"
+          },
           "present": {
             "type": "boolean"
           }

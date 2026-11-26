@@ -158,7 +158,8 @@ export interface CrowdSecStatus {
 	engine: { state: EngineState; name?: string; image?: string };
 	plugin: { state: PartState; alias?: string; module_name?: string; version?: string; origin?: string };
 	middleware: { state: PartState; name?: string; plugin_alias?: string; origin?: string };
-	key: { present: boolean };
+	/** file: the bouncer key file as Traefik sees it, when the Console stores the key. */
+	key: { present: boolean; file?: string };
 	lapi: { state: LapiState; url: string };
 	machine?: { state: 'not_configured' | 'ok' | 'invalid_key' | 'unreachable'; id?: string };
 	ingestion?: { state: 'unverified' | 'verified' | 'unavailable' | 'records_observed' | 'no_records_observed' };

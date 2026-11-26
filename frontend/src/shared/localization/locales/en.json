@@ -3588,6 +3588,10 @@
         "managed": "The Console installs the CrowdSec bouncer plugin and its middleware, configured with the key above.",
         "external": "Traefik is protected by a bouncer configured outside the Console; nothing is changed in Traefik."
       },
+      "externalKeyHelp": "Console keeps the bouncer key and writes it to this file, which Traefik can read. Put these lines in your CrowdSec bouncer middleware:",
+      "externalKeySnippet": "For your bouncer middleware",
+      "externalKeyRotate": "If you regenerate the key, the file is updated: restart Traefik (or save your middleware file) so the plugin reads the new key.",
+      "externalKeyMissing": "No bouncer key is stored yet. On the Connection step, let Console generate one (or enter yours): its file path then appears here, to use in your own middleware.",
       "protectionMode": {
         "off": "Off",
         "managed": "Managed by the Console",

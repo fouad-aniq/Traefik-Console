@@ -1032,6 +1032,10 @@
     }
   },
   "internal/core/crowdsec.KeyStatus": {
+    "file": {
+      "type": "string",
+      "optional": true
+    },
     "present": {
       "type": "bool",
       "optional": false
