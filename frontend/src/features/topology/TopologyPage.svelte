@@ -37,9 +37,8 @@
 	import { listCertificates } from '../certificates/api';
 	import {
 		KINDS, NODE_H, NODE_W, buildGraph, canConnect, canDisconnect, edgePath, edgePoint, layoutGraph, pathThrough, pipelineEdges,
-		type ConnectError, type ConnectResult, type Connection, type GraphEdge, type GraphNode, type Inventory, type NodeKind, type Transport
-	} from './graph';
-	import { loadMapHiddenKinds, saveMapHiddenKinds } from '../../shared/preferences/preferences';
+		type ConnectError, type ConnectResult, type Connection, type GraphEdge, type GraphNode, type Inventory, type NodeKind, type Transport, filterOwnership } from './graph';
+	import { loadMapHiddenKinds, saveMapHiddenKinds, loadMapOwnership, saveMapOwnership, type MapOwnership } from '../../shared/preferences/preferences';
 	import { KIND_ICON, KIND_PAGE, RELATION_KIND, kindColor } from './kinds';
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { flash } from '../../shared/ui/flash.svelte';
@@ -117,12 +116,16 @@
 	let hidden = $state<NodeKind[]>(loadMapHiddenKinds(KINDS));
 	let search = $state('');
 
+	/** All objects, or only managed or only external ones (remembered in this browser). */
+	let ownership = $state<MapOwnership>(loadMapOwnership());
+
 	const graph = $derived(buildGraph(inventory));
-	const layout = $derived(layoutGraph(graph, new Set(hidden)));
-	const nodes = $derived(graph.nodes.filter((n) => layout.positions.has(n.id)));
+	const shown = $derived(ownership === 'all' ? graph : filterOwnership(graph, ownership));
+	const layout = $derived(layoutGraph(shown, new Set(hidden)));
+	const nodes = $derived(shown.nodes.filter((n) => layout.positions.has(n.id)));
 	/** Drawn as the request pipeline: route → its middlewares in order → service (see pipelineEdges). */
-	const edges = $derived(pipelineEdges(graph, (id) => layout.positions.has(id)));
-	const counts = $derived(Object.fromEntries(KINDS.map((k) => [k, graph.nodes.filter((n) => n.kind === k).length])) as Record<NodeKind, number>);
+	const edges = $derived(pipelineEdges(shown, (id) => layout.positions.has(id)));
+	const counts = $derived(Object.fromEntries(KINDS.map((k) => [k, shown.nodes.filter((n) => n.kind === k).length])) as Record<NodeKind, number>);
 	/** Nodes that need a right-hand port: every link start, plus chain members (their bracket lands on the right). */
 	const rightPorts = $derived(new Set(edges.flatMap((e) => (layout.positions.get(e.from)!.column === layout.positions.get(e.to)!.column ? [e.from, e.to] : [e.from]))));
 
@@ -134,6 +137,13 @@
 	let hovered = $state('');
 	const selectedNode = $derived(selection?.type === 'node' ? graph.byId.get(selection.id) ?? null : null);
 	const selectedEdge = $derived(selection?.type === 'edge' ? graph.edges.find((e) => e.id === selection!.id) ?? null : null);
+
+	function setOwnership(value: MapOwnership) {
+		ownership = value;
+		saveMapOwnership(value);
+		if (selectedNode && !shown.byId.has(selectedNode.id)) selection = null;
+		void tick().then(fit);
+	}
 
 	function toggleKind(kind: NodeKind) {
 		hidden = hidden.includes(kind) ? hidden.filter((k) => k !== kind) : [...hidden, kind];
@@ -480,6 +490,11 @@
 			<span class="sr-only">{tp('search')}</span>
 			<input type="search" bind:value={search} placeholder={tp('search')} autocomplete="off" spellcheck="false" />
 		</label>
+		<div class="ownership" role="group" aria-label={tp('ownership.label')}>
+			{#each ['all', 'managed', 'external'] as const as value (value)}
+				<button type="button" class="seg" aria-pressed={ownership === value} onclick={() => setOwnership(value)}>{tp('ownership.' + value)}</button>
+			{/each}
+		</div>
 		<div class="legend" role="group" aria-label={tp('legend')}>
 			{#each KINDS as kind (kind)}
 				{@const Icon = KIND_ICON[kind]}
@@ -680,6 +695,10 @@
 	.search:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 	.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 14px; }
 	.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+	.ownership { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+	.seg { padding: 4px 10px; font-size: 12px; line-height: 18px; color: var(--text-muted); background: transparent; border: 0; cursor: pointer; }
+	.seg + .seg { border-left: 1px solid var(--border); }
+	.seg[aria-pressed='true'] { color: var(--text); background: var(--surface-2, var(--accent-soft)); font-weight: 500; }
 	.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
 	.chip :global(svg) { color: var(--kind); }
 	.chip:hover { background: var(--surface-muted); }

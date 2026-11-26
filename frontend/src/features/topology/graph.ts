@@ -237,6 +237,17 @@ export interface Layout {
  * position of what they connect to (two barycenter sweeps starting from the routes), which
  * keeps related objects on the same height and removes most edge crossings.
  */
+/**
+ * Keeps only the objects the Console manages, or only external ones (Docker labels, files written
+ * by hand, Traefik's own). Entrypoints always stay: every route starts there. Links to a removed
+ * object are dropped with it.
+ */
+export function filterOwnership(graph: Graph, keep: 'managed' | 'external'): Graph {
+	const nodes = graph.nodes.filter((n) => n.kind === 'entrypoint' || n.external === (keep === 'external'));
+	const ids = new Set(nodes.map((n) => n.id));
+	return { nodes, edges: graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)), byId: new Map(nodes.map((n) => [n.id, n])) };
+}
+
 export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Set()): Layout {
 	const visible = graph.nodes.filter((n) => !hidden.has(n.kind));
 	const neighbours = new Map<string, string[]>();

@@ -3774,6 +3774,7 @@
     "add": "Add",
     "search": "Find an object",
     "legend": "Object types",
+    "ownership": {"label": "Show", "all": "All", "managed": "Managed", "external": "External"},
     "toggleKind": "Show or hide this type",
     "loading": "Loading the configuration…",
     "loadFailed": "The configuration could not be loaded.",

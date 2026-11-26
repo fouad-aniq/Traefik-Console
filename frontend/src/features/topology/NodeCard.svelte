@@ -18,7 +18,7 @@
 	const health = $derived(node.missing ? '' : HEALTH[node.health] ?? '');
 </script>
 
-<span class="node-card" class:missing={node.missing} style:--kind={kindColor(node.kind)}>
+<span class="node-card" class:missing={node.missing} class:external={node.external} style:--kind={kindColor(node.kind)}>
 	<span class="glyph" aria-hidden="true"><Icon size={18} /></span>
 	<span class="text">
 		{#if showKind}<span class="kind">{t('topology.kind.' + node.kind)}</span>{/if}
@@ -45,6 +45,8 @@
 	.tag { flex: none; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; line-height: 16px; font-weight: 500; color: var(--text-muted); }
 	.sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 17px; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 	.missing .glyph { color: var(--danger-text); background: var(--danger-bg); }
+	/* External objects (not managed by the Console) get a dashed outline. */
+	.external .glyph { outline: 1.5px dashed var(--kind); outline-offset: 2px; }
 	.missing .sub { color: var(--danger-text); font-family: inherit; }
 	.health { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--outline); }
 	.health.ok { background: var(--success-text); }

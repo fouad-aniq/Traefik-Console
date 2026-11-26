@@ -3774,6 +3774,7 @@
     "add": "Ajouter",
     "search": "Rechercher un objet",
     "legend": "Types d'objets",
+    "ownership": {"label": "Afficher", "all": "Tout", "managed": "Gérés", "external": "Externes"},
     "toggleKind": "Afficher ou masquer ce type",
     "loading": "Chargement de la configuration…",
     "loadFailed": "La configuration n'a pas pu être chargée.",

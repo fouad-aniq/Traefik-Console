@@ -6,7 +6,7 @@ vi.hoisted(() => {
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import TopologyPage from '../src/features/topology/TopologyPage.svelte';
-import { buildChange, buildGraph, canConnect, canDisconnect, layoutGraph, nodeId, pathThrough, pipelineEdges, protocolOf, type Connection, type Inventory } from '../src/features/topology/graph';
+import { buildChange, buildGraph, canConnect, canDisconnect, filterOwnership, layoutGraph, nodeId, pathThrough, pipelineEdges, protocolOf, type Connection, type Inventory } from '../src/features/topology/graph';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
 const envelope = (kind: string, name: string, config: unknown, extra = {}) =>
@@ -230,6 +230,19 @@ const api = (inv = inventory()) => ({
 });
 const mapNode = (label: RegExp) => screen.findByRole('button', { name: label });
 
+describe('filterOwnership', () => {
+	it('keeps one side, entrypoints, and only the links between kept objects', () => {
+		const g = buildGraph(inventory());
+		const external = filterOwnership(g, 'external');
+		expect(external.nodes.every((n) => n.kind === 'entrypoint' || n.external)).toBe(true);
+		expect(external.nodes.some((n) => n.name === 'legacy@docker')).toBe(true);
+		expect(external.edges.every((e) => external.byId.has(e.from) && external.byId.has(e.to))).toBe(true);
+		const managed = filterOwnership(g, 'managed');
+		expect(managed.nodes.some((n) => n.external)).toBe(false);
+		expect(managed.nodes.some((n) => n.name === 'app')).toBe(true);
+	});
+});
+
 describe('TopologyPage', () => {
 	it('draws every object and flags broken references', async () => {
 		handlers = api();
@@ -253,6 +266,29 @@ describe('TopologyPage', () => {
 		expect(screen.getByRole('button', { name: /^Middlewares/ }).getAttribute('aria-pressed')).toBe('false');
 		await fireEvent.click(screen.getByRole('button', { name: /^Middlewares/ }));
 		expect(JSON.parse(localStorage.getItem('tc_prefs_map_hidden')!)).toEqual([]);
+	});
+
+	it('shows only managed or only external objects, and remembers the choice', async () => {
+		localStorage.removeItem('tc_prefs_map_ownership');
+		handlers = api();
+		const first = render(TopologyPage, { navigate: () => {} });
+		expect(await mapNode(/^Router app$/)).toBeTruthy();
+		expect(await mapNode(/^Router legacy@docker$/)).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'External' }));
+		await waitFor(() => expect(screen.queryByRole('button', { name: /^Router app$/ })).toBeNull());
+		expect(await mapNode(/^Router legacy@docker$/)).toBeTruthy();
+		expect(await mapNode(/^Entrypoint web$/)).toBeTruthy(); // entrypoints always stay
+		expect(localStorage.getItem('tc_prefs_map_ownership')).toBe('external');
+		first.unmount();
+		render(TopologyPage, { navigate: () => {} });
+		expect(await mapNode(/^Router legacy@docker$/)).toBeTruthy();
+		expect(screen.queryByRole('button', { name: /^Router app$/ })).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: 'Managed' }));
+		expect(await mapNode(/^Router app$/)).toBeTruthy();
+		await waitFor(() => expect(screen.queryByRole('button', { name: /^Router legacy@docker$/ })).toBeNull());
+		await fireEvent.click(screen.getByRole('button', { name: 'All' }));
+		expect(await mapNode(/^Router legacy@docker$/)).toBeTruthy();
+		localStorage.removeItem('tc_prefs_map_ownership');
 	});
 
 	it('still draws the map when one list fails', async () => {

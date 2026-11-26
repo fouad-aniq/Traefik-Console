@@ -11,6 +11,7 @@ const THEME_KEY = 'tc_prefs_theme';
 const LANGUAGE_KEY = 'tc_prefs_lang';
 const SIDEBAR_KEY = 'tc_prefs_sidebar';
 const MAP_HIDDEN_KEY = 'tc_prefs_map_hidden';
+const MAP_OWNERSHIP_KEY = 'tc_prefs_map_ownership';
 
 export function loadThemePreference(): ThemePreference {
 	try {
@@ -97,6 +98,26 @@ export function loadMapHiddenKinds<T extends string>(known: readonly T[]): T[] {
 export function saveMapHiddenKinds(kinds: readonly string[]): void {
 	try {
 		localStorage.setItem(MAP_HIDDEN_KEY, JSON.stringify(kinds));
+	} catch {
+		// nonfatal: the filter simply does not persist
+	}
+}
+
+export type MapOwnership = 'all' | 'managed' | 'external';
+
+/** Map page: show every object, or only the ones the Console manages, or only external ones. */
+export function loadMapOwnership(): MapOwnership {
+	try {
+		const v = localStorage.getItem(MAP_OWNERSHIP_KEY);
+		return v === 'managed' || v === 'external' ? v : 'all';
+	} catch {
+		return 'all';
+	}
+}
+
+export function saveMapOwnership(value: MapOwnership): void {
+	try {
+		localStorage.setItem(MAP_OWNERSHIP_KEY, value);
 	} catch {
 		// nonfatal: the filter simply does not persist
 	}
