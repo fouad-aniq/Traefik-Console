@@ -240,7 +240,8 @@ func (m *crowdsecManager) Status(ctx context.Context, inv Inventory) (*CrowdSecS
 
 	key := m.bouncerCredential(ctx)
 	out.Key.Present = key != ""
-	if strings.TrimSpace(m.settings.APIKey) == "" {
+	// The key file exists only for a key the Console stores (not one given by CROWDSEC_API_KEY).
+	if key != "" && strings.TrimSpace(m.settings.APIKey) == "" {
 		if row, e := m.store.GetSecret(ctx, crowdsecSecretName); e == nil && row != nil {
 			out.Key.File = row.FilePath
 		}

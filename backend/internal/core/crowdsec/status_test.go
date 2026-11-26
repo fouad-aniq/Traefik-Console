@@ -21,6 +21,10 @@ func (noIntegration) GetItem(context.Context, models.ItemKind, string) (*models.
 	return nil, nil
 }
 
+func (noIntegration) GetSecret(context.Context, string) (*models.SecretRow, error) {
+	return nil, nil
+}
+
 type noSecret struct{}
 
 func (noSecret) PrepareSecret(context.Context, string, string, string, string) (*models.SecretRow, error) {

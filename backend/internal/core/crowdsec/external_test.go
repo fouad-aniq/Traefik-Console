@@ -31,6 +31,10 @@ func (externalStore) GetItem(context.Context, models.ItemKind, string) (*models.
 	return nil, nil
 }
 
+func (externalStore) GetSecret(context.Context, string) (*models.SecretRow, error) {
+	return nil, nil
+}
+
 type externalSecrets struct {
 	values map[string]string
 }

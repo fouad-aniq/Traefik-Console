@@ -19,6 +19,10 @@ func (s pluginRows) ListItemsByKind(context.Context, models.ItemKind) ([]models.
 	return s.rows, nil
 }
 
+func (pluginRows) GetSecret(context.Context, string) (*models.SecretRow, error) {
+	return nil, nil
+}
+
 func bouncerRow(name, module string) models.ConfigItemRow {
 	raw, _ := json.Marshal(models.StaticPluginConfig{ModuleName: module, Version: "v1.3.5"})
 	return models.ConfigItemRow{Kind: models.KindPlugin, Name: name, Payload: raw}
