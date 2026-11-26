@@ -38,7 +38,9 @@ func announceSetup(svc *auth.Service) error {
 	if token == "" {
 		return nil
 	}
-	diagLog.Infof("Administrator setup is available. Run server admin setup-token locally.")
+	// Shown only while no administrator exists: the token is replaced at every start until then,
+	// deleted once the administrator is created, and refused for any other use.
+	diagLog.Infof("No administrator yet: open Traefik Console and enter this one-time setup token: %s", token)
 	return nil
 }
 

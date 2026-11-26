@@ -28,12 +28,12 @@ mkdir -p -m 700 data/console/keys data/console/data
 touch data/logs/access.log
 
 docker compose up -d
-docker compose exec console server admin setup-token
+docker compose logs console | grep TCS-   # the one-time setup token
 ```
 
 Open http://localhost:8081 on the server (or tunnel it: `ssh -L 8081:localhost:8081 server`),
-paste the token, and create the administrator. The token is printed only to your
-terminal, never to the logs, and a restart invalidates it.
+paste the token, and create the administrator. Console prints a new token in its
+logs at every start until the administrator exists; after that it prints none.
 
 Change the example values to yours:
 
@@ -100,7 +100,7 @@ cd console-only
 mkdir -p -m 700 data/console/keys data/console/data
 docker compose run --rm console preflight
 docker compose up -d
-docker compose exec console server admin setup-token
+docker compose logs console | grep TCS-   # the one-time setup token
 ```
 
 `preflight` only reads. It checks the layout below and says exactly what to fix.

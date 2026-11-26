@@ -142,12 +142,15 @@ class Browser:
 
 def setup(browser, stack, password):
     browser.api("snapshots", expected=(401,))
-    text = stack.compose("exec", "-T", "console", "server", "admin", "setup-token")
-    token = TOKEN.search(text).group()
-    result = browser.api("auth/setup", {"setup_token":token,"username":"reviewer","password":password}, "POST")
+    # First start without an administrator: Console prints a one-time setup token in its logs.
+    tokens = TOKEN.findall(stack.compose("logs","console"))
+    assert len(tokens) == 1, tokens
+    result = browser.api("auth/setup", {"setup_token":tokens[0],"username":"reviewer","password":password}, "POST")
     browser.csrf = result["csrf"]
     browser.api("snapshots")
-    assert not TOKEN.search(stack.compose("logs","console"))
+    # Once the administrator exists the token is gone: reusing it fails and no new one is printed.
+    browser.api("auth/setup", {"setup_token":tokens[0],"username":"other","password":password}, "POST", expected=(409,))
+    assert TOKEN.findall(stack.compose("logs","console")) == tokens
 
 
 def route(browser):

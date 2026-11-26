@@ -194,7 +194,7 @@ func writeAuthError(w http.ResponseWriter, err error) {
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		response.WriteCustomError(w, http.StatusUnauthorized, "AUTH_INVALID_CREDENTIALS", "Incorrect username or password.", nil, false)
 	case errors.Is(err, auth.ErrInvalidSetupToken):
-		response.WriteCustomError(w, http.StatusUnauthorized, "AUTH_INVALID_SETUP_TOKEN", "The setup token is not valid. Run server admin setup-token to obtain a new one.", map[string]string{"setup_token": "The setup token is not valid."}, false)
+		response.WriteCustomError(w, http.StatusUnauthorized, "AUTH_INVALID_SETUP_TOKEN", "The setup token is not valid. Restart Console to get a new one in its logs.", map[string]string{"setup_token": "The setup token is not valid."}, false)
 	case errors.Is(err, auth.ErrSetupComplete):
 		response.WriteCustomError(w, http.StatusConflict, "AUTH_SETUP_COMPLETE", "The administrator already exists. Sign in instead.", nil, false)
 	case errors.Is(err, auth.ErrSetupRequired):

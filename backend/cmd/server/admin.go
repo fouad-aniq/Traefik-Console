@@ -143,7 +143,7 @@ func runAdmin(args []string) error {
 		if err != nil {
 			return err
 		}
-		cliOut.Infof("Authentication reset. Run server admin setup-token locally to create an administrator.")
+		cliOut.Infof("Authentication reset. Restart Console: its logs then show a setup token to create an administrator.")
 		return nil
 
 	default:

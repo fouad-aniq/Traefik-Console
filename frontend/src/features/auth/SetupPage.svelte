@@ -82,7 +82,7 @@
 	{#if step === 1}
 		<form class="auth-form" onsubmit={continueToAccount} novalidate>
 			<p class="explain">{t('authScreens.setup.tokenWhere')}</p>
-			<pre class="command"><code>docker compose exec console server admin setup-token</code></pre>
+			<pre class="command"><code>docker compose logs console | grep TCS-</code></pre>
 			<Field id="setup-token" label={t('authScreens.setup.tokenLabel')} error={errors.setup_token} required>
 				{#snippet children({ id, describedBy, invalid })}
 					<input {id} bind:value={token} autocomplete="off" spellcheck="false" autocapitalize="characters" class="token" placeholder="TCS-XXXX-XXXX-XXXX-XXXX" aria-describedby={describedBy} aria-invalid={invalid} maxlength={128} />

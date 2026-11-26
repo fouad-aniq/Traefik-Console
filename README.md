@@ -44,7 +44,7 @@ curl -fsSL https://github.com/fouad-aniq/Traefik-Console/releases/latest/downloa
 cd traefik-console-deploy/traefik-console
 mkdir -p config/traefik/secrets config/traefik/acme data/logs data/plugins
 mkdir -p -m 700 data/console/keys data/console/data && touch data/logs/access.log
-docker compose up -d && docker compose exec console server admin setup-token
+docker compose up -d && docker compose logs console | grep TCS-
 ```
 
 Open `http://localhost:8081`, paste the setup token and create your account. Every

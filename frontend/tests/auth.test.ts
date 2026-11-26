@@ -96,7 +96,7 @@ describe('setup', () => {
 		render(App);
 		await fireEvent.input(await screen.findByLabelText(/Setup token/), { target: { value: 'TCS-ABCD' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		expect(await screen.findByText('Paste the full token from the admin command.')).toBeTruthy();
+		expect(await screen.findByText("Paste the full token from Console's logs.")).toBeTruthy();
 		await fireEvent.input(screen.getByLabelText(/Setup token/), { target: { value: 'abcd efgh ijkl mn23' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		expect(await screen.findByLabelText(/^Password/)).toBeTruthy();
@@ -111,7 +111,7 @@ describe('setup', () => {
 		await fireEvent.input(screen.getByLabelText(/^Password/), { target: { value: 'a long enough password' } });
 		await fireEvent.input(screen.getByLabelText(/Repeat password/), { target: { value: 'a long enough password' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Create administrator' }));
-		expect(await screen.findByText(/Run the admin command again/)).toBeTruthy();
+		expect(await screen.findByText(/new token from its logs/)).toBeTruthy();
 		expect(screen.getByLabelText(/Setup token/)).toBeTruthy();
 	});
 });
