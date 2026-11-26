@@ -104,12 +104,12 @@ func runServer() error {
 	checksCtx, stopChecks := context.WithCancel(context.Background())
 	checksDone := make(chan struct{})
 	go func() { defer close(checksDone); dependencies.Plugins.RunCatalogChecks(checksCtx) }()
-	// The Console's own service and route become managed resources once Traefik reports the
-	// bootstrap route (shipped bundles only); retried for 10 minutes while Traefik starts.
+	// The Console creates its own managed service and route (from the bootstrap route when Traefik
+	// has one, else from CONSOLE_HOST); retried for 10 minutes while Traefik starts.
 	seedDone := make(chan struct{})
 	go func() {
 		defer close(seedDone)
-		consoleroute.Run(checksCtx, store, dependencies.Services, dependencies.Routers, 20*time.Second, 30, diagLog.Warnf)
+		consoleroute.Run(checksCtx, consoleroute.Config{Host: opts.ConsoleHost, Upstream: opts.ConsoleUpstream}, store, dependencies.Services, dependencies.Routers, dependencies.EntryPoints, 20*time.Second, 30, diagLog.Warnf)
 	}()
 	defer func() { stopChecks(); <-checksDone; <-seedDone }()
 	deployCoord.SetBouncerVerifier(dependencies.CrowdSec)

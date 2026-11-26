@@ -28,6 +28,7 @@ services:
     environment:
       # --- Address and sign-in ---
       CONSOLE_HOST: console.example.com                     # your domain for Console (add its route in Console after the first login)
+      # CONSOLE_UPSTREAM: http://console:8081              # how Traefik reaches Console, for the route Console creates for itself
       # COOKIE_SECURE: "true"                               # force Secure sign-in cookies on or off (default: on when the page is served over HTTPS)
       # TRUSTED_PROXIES: 172.16.0.0/12                      # proxies trusted for the client IP in sign-in limits and the activity log (default: none)
       # SESSION_IDLE_MINUTES: "120"                         # sign out after this much inactivity (5-10080)

@@ -1,11 +1,15 @@
 // Package consoleroute creates the Console's own service and route as managed resources, once.
 //
-// The shipped Compose bundles route the Console address through a bootstrap router in
-// management.yml (outside the app, so the Console is reachable on its first start). Once Traefik
-// reports it, the Console copies it into a managed service and route named "console", through the
-// same managers as the Services and Routes pages: they are written to the YAML and the database
-// and can then be edited like any other (middlewares, domain, certificate resolver...). The route
-// gets a priority above the bootstrap router, which stays as a fallback.
+// The Console creates a service and a route named "console" through the same managers as the
+// Services and Routes pages: they are written to the YAML and the database and can then be edited
+// like any other (middlewares, domain, certificate resolver...).
+//
+//   - When Traefik reports the bootstrap router of the shipped bundles (management.yml), the route
+//     copies it, with a priority above it; the bootstrap router stays as a fallback.
+//   - Otherwise the route is built from the Console's settings: CONSOLE_HOST on the HTTPS entrypoint
+//     found in Traefik's static configuration, to the Console at CONSOLE_UPSTREAM.
+//
+// Nothing is created when another route already serves CONSOLE_HOST.
 package consoleroute
 
 import (
@@ -37,6 +41,16 @@ type Services interface {
 	UpsertService(ctx context.Context, name string, input models.ServiceConfig, opts models.WriteOptions) (*models.WriteResult[models.ServiceConfig], error)
 }
 
+type EntryPoints interface {
+	ListEntryPoints(ctx context.Context) ([]models.UIResource[models.EntryPointConfig], error)
+}
+
+// Config comes from the Console's settings.
+type Config struct {
+	Host     string // CONSOLE_HOST (a port, if any, is dropped)
+	Upstream string // how Traefik reaches the Console, e.g. http://console:8081
+}
+
 type Routers interface {
 	ListRouters(ctx context.Context) ([]models.UIResource[models.RouterConfig], error)
 	UpsertRouter(ctx context.Context, name string, input models.RouterConfig, opts models.WriteOptions) (*models.WriteResult[models.RouterConfig], error)
@@ -50,9 +64,9 @@ var hostRule = regexp.MustCompile("^Host\\(`([^`]+)`\\)$")
 func same(name, want string) bool { return strings.TrimSuffix(name, "@file") == want }
 
 // Seed creates the managed service and route when they are due. It returns done=true when there
-// is nothing left to do on this start: seeded now or earlier, a "console" route already exists, or
-// Traefik has no bootstrap router (the operator brings their own Traefik and route).
-func Seed(ctx context.Context, settings Settings, services Services, routers Routers) (bool, error) {
+// is nothing left to do on this start: seeded now or earlier, a "console" route or another route
+// for CONSOLE_HOST already exists, or there is nothing to build the route from.
+func Seed(ctx context.Context, cfg Config, settings Settings, services Services, routers Routers, entryPoints EntryPoints) (bool, error) {
 	if v, err := settings.GetSetting(ctx, SettingKey); err != nil {
 		return false, err
 	} else if v != "" {
@@ -62,17 +76,40 @@ func Seed(ctx context.Context, settings Settings, services Services, routers Rou
 	if err != nil {
 		return false, err
 	}
+	host := hostOnly(cfg.Host)
 	var bootstrap *models.UIResource[models.RouterConfig]
+	servedElsewhere := false
 	for i, r := range allRouters {
 		if same(r.Name, Name) {
 			return true, settings.SetSetting(ctx, SettingKey, "existing")
 		}
 		if same(r.Name, BootstrapName) && r.Origin == "external" {
 			bootstrap = &allRouters[i]
+		} else if host != "" && strings.Contains(r.Config.Rule, "`"+host+"`") {
+			servedElsewhere = true
 		}
 	}
-	if bootstrap == nil || bootstrap.Config.Rule == "" {
+	var route models.RouterConfig
+	var upstream []models.ServerEndpoint
+	switch {
+	case bootstrap != nil && bootstrap.Config.Rule != "":
+		route = routeFrom(bootstrap.Config)
+	case servedElsewhere:
+		// The operator's own route (Docker labels, a file...) already serves the Console.
+		return true, settings.SetSetting(ctx, SettingKey, "existing")
+	case host == "" || cfg.Upstream == "":
 		return true, nil
+	default:
+		eps, err := entryPoints.ListEntryPoints(ctx)
+		if err != nil {
+			return false, err
+		}
+		ep := httpsEntryPoint(eps)
+		if ep == "" {
+			return true, nil
+		}
+		route = models.RouterConfig{EntryPoints: []string{ep}, Domains: []string{host}, Service: Name, TLS: &models.RouterTLS{Enabled: true}}
+		upstream = []models.ServerEndpoint{{URL: cfg.Upstream}}
 	}
 	allServices, err := services.ListServices(ctx)
 	if err != nil {
@@ -88,26 +125,65 @@ func Seed(ctx context.Context, settings Settings, services Services, routers Rou
 		}
 	}
 	if existing == nil {
-		if target == nil || len(target.Config.Servers) == 0 {
-			return false, ErrNotReady
-		}
-		servers := make([]models.ServerEndpoint, 0, len(target.Config.Servers))
-		for _, s := range target.Config.Servers {
-			if s.URL != "" {
-				servers = append(servers, models.ServerEndpoint{URL: s.URL})
+		if upstream == nil {
+			if target == nil {
+				return false, ErrNotReady
+			}
+			for _, s := range target.Config.Servers {
+				if s.URL != "" {
+					upstream = append(upstream, models.ServerEndpoint{URL: s.URL})
+				}
+			}
+			if len(upstream) == 0 {
+				return false, ErrNotReady
 			}
 		}
-		if len(servers) == 0 {
-			return false, ErrNotReady
-		}
-		if _, err = services.UpsertService(ctx, Name, models.ServiceConfig{Servers: servers}, models.WriteOptions{}); err != nil {
+		if _, err = services.UpsertService(ctx, Name, models.ServiceConfig{Servers: upstream}, models.WriteOptions{}); err != nil {
 			return false, err
 		}
 	}
-	if _, err = routers.UpsertRouter(ctx, Name, routeFrom(bootstrap.Config), models.WriteOptions{}); err != nil {
+	if _, err = routers.UpsertRouter(ctx, Name, route, models.WriteOptions{}); err != nil {
 		return false, err
 	}
 	return true, settings.SetSetting(ctx, SettingKey, "seeded")
+}
+
+func hostOnly(h string) string {
+	h = strings.TrimSpace(h)
+	if strings.Contains(h, ":") && !strings.HasPrefix(h, "[") {
+		h, _, _ = strings.Cut(h, ":")
+	}
+	return h
+}
+
+// httpsEntryPoint picks the entrypoint web traffic with TLS arrives on: one that sets TLS for its
+// routers, else one declared as https, else one on port 443 or 8443. Entrypoints that only redirect
+// and UDP ones are skipped.
+func httpsEntryPoint(eps []models.UIResource[models.EntryPointConfig]) string {
+	best, bestScore := "", 0
+	for _, e := range eps {
+		c := e.Config
+		if c.Protocol == "udp" || (c.HTTP != nil && c.HTTP.Redirect != nil) {
+			continue
+		}
+		score := 0
+		switch {
+		case c.HTTP != nil && c.HTTP.TLS != nil:
+			score = 3
+		case c.Kind == "https":
+			score = 2
+		case c.Port == 443 || c.Port == 8443:
+			score = 1
+		}
+		name := c.Name
+		if name == "" {
+			name = e.Name
+		}
+		if score > bestScore || (score == bestScore && score > 0 && name < best) {
+			best, bestScore = name, score
+		}
+	}
+	return best
 }
 
 // routeFrom copies the bootstrap router: same match, entry points and TLS, the managed service, and
@@ -134,9 +210,9 @@ func routeFrom(b models.RouterConfig) models.RouterConfig {
 
 // Run seeds in the background, retrying while Traefik is not ready or a write fails (for example
 // while another operation runs), until done or ctx ends.
-func Run(ctx context.Context, settings Settings, services Services, routers Routers, every time.Duration, attempts int, logf func(string, ...any)) {
+func Run(ctx context.Context, cfg Config, settings Settings, services Services, routers Routers, entryPoints EntryPoints, every time.Duration, attempts int, logf func(string, ...any)) {
 	for i := 0; i < attempts; i++ {
-		done, err := Seed(ctx, settings, services, routers)
+		done, err := Seed(ctx, cfg, settings, services, routers, entryPoints)
 		if done {
 			if err != nil {
 				logf("console route: %v", err)

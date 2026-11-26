@@ -9,7 +9,9 @@ import (
 
 type Options struct {
 	// Server & Database
-	ConsoleHost       string
+	ConsoleHost string
+	// ConsoleUpstream is how Traefik reaches the Console (CONSOLE_UPSTREAM, default http://console:PORT).
+	ConsoleUpstream   string
 	ConsoleOrigin     string
 	BindAddress       string
 	Port              string

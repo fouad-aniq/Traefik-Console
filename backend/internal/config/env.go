@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -91,6 +92,12 @@ func Load() (*Options, error) {
 	if !filepath.IsAbs(runtimeACME) || runtimeACME == "/" {
 		return nil, fmt.Errorf("TRAEFIK_ACME_DIR must be an absolute folder")
 	}
+	// CONSOLE_UPSTREAM is how Traefik reaches the Console, for the route Console creates for itself:
+	// by default the container name of the shipped bundles and the Console port.
+	consoleUpstream := strings.TrimRight(getString("CONSOLE_UPSTREAM", "http://console:"+port), "/")
+	if u, e := url.Parse(consoleUpstream); e != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" {
+		return nil, fmt.Errorf("CONSOLE_UPSTREAM must be an http(s)://host:port address")
+	}
 	// Traefik's DNS provider env file, kept by the Console next to the dynamic folder.
 	dnsEnv := &DNSEnvFile{Path: filepath.Join(filepath.Dir(dynamicDir), DNSProvidersEnvFile), SecretsRoot: filepath.Clean(runtimeSecrets)}
 	timeoutSec := getInt("TRAEFIK_CONVERGENCE_TIMEOUT_SEC", 15)
@@ -170,6 +177,7 @@ func Load() (*Options, error) {
 		Auth:                     authOptions,
 		BindAddress:              bind,
 		ConsoleHost:              strings.TrimSpace(os.Getenv("CONSOLE_HOST")),
+		ConsoleUpstream:          consoleUpstream,
 		ConsoleOrigin:            strings.TrimRight(os.Getenv("CONSOLE_ORIGIN"), "/"),
 		JournalLimitBytes:        journalLimit,
 		SnapshotLimitBytes:       snapshotLimit,
