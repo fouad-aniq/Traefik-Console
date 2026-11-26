@@ -163,7 +163,24 @@ type publication struct {
 // publish writes the candidate to disk, proves it, and commits it: steps 6-10 of the
 // operation pipeline. The journal row is durable BEFORE the first side effect, and
 // every later failure reverts exactly this operation.
+// detachedContext keeps an operation running once it has started: the browser's connection often
+// goes through the Traefik the operation restarts, and its drop must not cancel the operation
+// halfway (a cancelled restart leaves it needing recovery). The request's deadline still bounds
+// it; without one, fallback does.
+func detachedContext(ctx context.Context, fallback time.Duration) (context.Context, context.CancelFunc) {
+	base := context.WithoutCancel(ctx)
+	if deadline, ok := ctx.Deadline(); ok {
+		return context.WithDeadline(base, deadline)
+	}
+	if fallback > 0 {
+		return context.WithTimeout(base, fallback)
+	}
+	return context.WithCancel(base)
+}
+
 func (c *operations) publish(ctx context.Context, pub publication) (*models.OperationResult, error) {
+	ctx, cancel := detachedContext(ctx, c.timeouts.Apply)
+	defer cancel()
 	p := pub.plan
 	b := p.bundle
 	state := &db.State{DomainFileTracked: true, DomainFileAfter: p.domainsAfter}
