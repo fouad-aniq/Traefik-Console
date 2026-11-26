@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -43,6 +44,15 @@ func runServer() error {
 		if hint := config.MissingHint(f.Path); hint != "" {
 			return errors.New(hint)
 		}
+	}
+	// Private state folders made by hand (0775) are tightened, and checked before any state file
+	// is written: a refused start must not leave a master key without its database.
+	private := []string{filepath.Dir(opts.DBPath), filepath.Dir(opts.Auth.DBPath), filepath.Dir(opts.MasterKeyFile)}
+	for _, dir := range config.TightenPrivateFolders(private...) {
+		diagLog.Infof("restricted %s to its owner", dir)
+	}
+	if problem := config.PrivateFolderProblem(private...); problem != "" {
+		return errors.New(problem)
 	}
 
 	state, err := openState(opts)

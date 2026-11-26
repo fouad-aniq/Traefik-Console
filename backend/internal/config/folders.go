@@ -71,3 +71,42 @@ func EnsureFolders(folders ...Folder) ([]string, error) {
 func EnsureWorkingFolders(dynamicDir, secretsDir string) ([]string, error) {
 	return EnsureFolders(Folder{dynamicDir, 0o755}, Folder{secretsDir, 0o750})
 }
+
+// TightenPrivateFolders removes group and other write access from Console's private state folders
+// (the database and key folders) when the Console user owns them: a folder created by hand with
+// the usual umask (0775) is then accepted instead of refused. Folders owned by someone else are
+// left alone for the state checks to report. It returns the folders it changed.
+func TightenPrivateFolders(dirs ...string) []string {
+	var changed []string
+	seen := map[string]bool{}
+	for _, dir := range dirs {
+		if seen[dir] {
+			continue
+		}
+		seen[dir] = true
+		st, err := os.Lstat(dir)
+		if err != nil || !st.IsDir() || st.Mode().Perm()&0o022 == 0 {
+			continue
+		}
+		if sys, ok := st.Sys().(*syscall.Stat_t); !ok || int(sys.Uid) != os.Getuid() {
+			continue
+		}
+		if os.Chmod(dir, st.Mode().Perm()&^0o077) == nil {
+			changed = append(changed, dir)
+		}
+	}
+	return changed
+}
+
+// PrivateFolderProblem reports a private state folder that is writable by group or others and
+// that Console cannot correct (it does not own it), or "" when all are fine. Checked before any
+// state file is written, so a refused start leaves nothing behind.
+func PrivateFolderProblem(dirs ...string) string {
+	for _, dir := range dirs {
+		st, err := os.Stat(dir)
+		if err == nil && st.Mode().Perm()&0o022 != 0 {
+			return fmt.Sprintf("%s must not be writable by group or others: run chmod 700 on that folder on the host", dir)
+		}
+	}
+	return ""
+}

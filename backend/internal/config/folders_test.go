@@ -78,3 +78,31 @@ func TestStateFoldersAndAReadOnlyParent(t *testing.T) {
 		t.Fatalf("a read-only parent must explain the fix: %q", hint)
 	}
 }
+
+func TestPrivateFoldersAreTightenedWhenOwned(t *testing.T) {
+	root := t.TempDir()
+	data, keys := filepath.Join(root, "data"), filepath.Join(root, "keys")
+	for _, d := range []string{data, keys} {
+		if err := os.Mkdir(d, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(d, 0o775); err != nil { // as made by hand with a 002 umask
+			t.Fatal(err)
+		}
+	}
+	if PrivateFolderProblem(data, keys) == "" {
+		t.Fatal("group-writable folders must be reported before tightening")
+	}
+	changed := TightenPrivateFolders(data, keys, data)
+	if len(changed) != 2 {
+		t.Fatalf("changed=%v", changed)
+	}
+	for _, d := range []string{data, keys} {
+		if st, _ := os.Stat(d); st.Mode().Perm() != 0o700 {
+			t.Fatalf("%s is %v", d, st.Mode().Perm())
+		}
+	}
+	if PrivateFolderProblem(data, keys) != "" || len(TightenPrivateFolders(data, keys)) != 0 {
+		t.Fatal("tightened folders are fine and left alone")
+	}
+}
