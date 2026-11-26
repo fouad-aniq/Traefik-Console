@@ -2,12 +2,13 @@
 #
 # 1. Set the values marked "your ..." below.
 # 2. First time only, in this folder:
-#      mkdir -p -m 700 data/console/keys data/console/data
+#      mkdir -p data/console     # as your normal user: Docker would create it as root
 # 3. docker compose run --rm console preflight   # only reads; says what to fix in your Traefik layout
 #    docker compose up -d
-#    docker compose exec console server admin setup-token
+#    docker compose logs console | grep TCS-   # the one-time setup token
 #
 # Open http://localhost:8081, paste the setup token and create the administrator.
+# Console creates its own folders (dynamic/, secrets/, its state) and its route on first start.
 # Your existing labels and YAML files keep working; Console writes only its own files.
 # Lines starting with # are optional settings shown with their default: remove the # to use one.
 name: traefik-console-only

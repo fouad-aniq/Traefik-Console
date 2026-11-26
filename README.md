@@ -42,8 +42,7 @@ pick a folder, create the data folders and start it:
 ```sh
 curl -fsSL https://github.com/fouad-aniq/Traefik-Console/releases/latest/download/traefik-console-deploy.tar.gz | tar -xz
 cd traefik-console-deploy/traefik-console
-mkdir -p config/traefik/secrets config/traefik/acme data/logs data/plugins
-mkdir -p -m 700 data/console/keys data/console/data && touch data/logs/access.log
+mkdir -p config/traefik/acme data/logs data/plugins data/console
 docker compose up -d && docker compose logs console | grep TCS-
 ```
 

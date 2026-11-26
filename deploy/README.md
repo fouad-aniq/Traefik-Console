@@ -22,10 +22,10 @@ release bundles pin it to the exact version.
 ```sh
 cd traefik-console            # or traefik-console-crowdsec
 
-# First time only: create the data folders (as your normal user, no sudo).
-mkdir -p config/traefik/secrets config/traefik/acme data/logs data/plugins
-mkdir -p -m 700 data/console/keys data/console/data
-touch data/logs/access.log
+# First time only: create the folders Docker mounts (as your normal user, no sudo,
+# so they belong to you and not to root). Console creates the rest itself.
+mkdir -p config/traefik/acme data/logs data/plugins data/console
+touch data/logs/access.log    # CrowdSec bundle only: CrowdSec reads this file from its start
 
 docker compose up -d
 docker compose logs console | grep TCS-   # the one-time setup token
@@ -100,7 +100,6 @@ More:
 cd console-only
 # Edit docker-compose.yml: the values marked "your ..." (Traefik network,
 # config folder, API address, container name) and the Docker socket group.
-mkdir -p -m 700 data/console/keys data/console/data
 docker compose run --rm console preflight
 docker compose up -d
 docker compose logs console | grep TCS-   # the one-time setup token

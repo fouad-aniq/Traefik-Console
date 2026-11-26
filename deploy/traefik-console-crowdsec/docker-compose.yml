@@ -2,14 +2,14 @@
 # Console can restart Traefik and create CrowdSec keys itself.
 #
 # First time only, in this folder:
-#   mkdir -p config/traefik/secrets config/traefik/acme data/logs data/plugins
-#   mkdir -p -m 700 data/console/keys data/console/data
+#   mkdir -p config/traefik/acme data/logs data/plugins data/console
 #   touch data/logs/access.log
 # Then:
 #   docker compose up -d
-#   docker compose exec console server admin setup-token
+#   docker compose logs console | grep TCS-   # the one-time setup token
 #
 # Open http://localhost:8081, paste the setup token and create the administrator.
+# Console creates its own folders (dynamic/, secrets/, its state) and its route on first start.
 # Change the example values to yours (console.example.com, user 1000:1000).
 # Lines starting with # are optional settings shown with their default: remove the # to use one.
 name: traefik-console
