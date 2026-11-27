@@ -223,3 +223,38 @@ func TestOperationsWaitTheirTurnInsteadOfFailing(t *testing.T) {
 	}
 	second()
 }
+
+func TestRevokeMachineDeletesTheMachineCscliLists(t *testing.T) {
+	c, _ := New(registration("http://proxy:2375"))
+	var commands [][]string
+	var pending []string
+	c.httpClient.Transport = transportFunc(func(r *http.Request) (*http.Response, error) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/json") && strings.HasPrefix(r.URL.Path, "/containers/"):
+			return response(200, `{"Id":"`+strings.Repeat("b", 64)+`","Name":"/crowdsec","State":{"Running":true}}`), nil
+		case strings.HasSuffix(r.URL.Path, "/exec"):
+			var body struct{ Cmd []string }
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			commands = append(commands, body.Cmd)
+			pending = body.Cmd
+			return response(201, `{"Id":"`+strings.Repeat("c", 64)+`"}`), nil
+		case strings.HasSuffix(r.URL.Path, "/start"):
+			if len(pending) > 2 && pending[2] == "list" {
+				// The shape cscli v1.8 prints for `cscli machines list -o json`.
+				data := []byte(`[{"machineId":"localhost"},{"machineId":"traefik-console-machine-7","ipAddress":"10.0.3.3"}]`)
+				frame := append([]byte{1, 0, 0, 0, 0, 0, 0, byte(len(data))}, data...)
+				return response(200, string(frame)), nil
+			}
+			return response(200, ""), nil
+		default:
+			return response(200, `{"Running":false,"ExitCode":0}`), nil
+		}
+	})
+	if e := c.RevokeMachine(context.Background(), 7); e != nil {
+		t.Fatal(e)
+	}
+	last := commands[len(commands)-1]
+	if strings.Join(last, " ") != "cscli machines delete traefik-console-machine-7" {
+		t.Fatal("the registered machine was not deleted", commands)
+	}
+}

@@ -39,15 +39,16 @@ func (m *Client) RevokeMachine(ctx context.Context, id int64) error {
 	if e != nil {
 		return e
 	}
+	// cscli names a machine "machineId" in its JSON (bouncers use "name").
 	var list []struct {
-		Name string `json:"name"`
+		MachineID string `json:"machineId"`
 	}
 	if json.Unmarshal(raw, &list) != nil {
 		return ErrExecFailed
 	}
 	name := machineName(id)
 	for _, entry := range list {
-		if entry.Name == name {
+		if entry.MachineID == name {
 			_, e = m.execCrowdSec(ctx, "machines", "delete", name)
 			return e
 		}
