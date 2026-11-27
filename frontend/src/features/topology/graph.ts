@@ -216,10 +216,10 @@ export function buildGraph(inv: Inventory): Graph {
 /* Layout                                                              */
 /* ------------------------------------------------------------------ */
 
-export const NODE_W = 224;
+export const NODE_W = 236;
 export const NODE_H = 58;
 export const ROW_GAP = 14;
-export const COL_GAP = 120;
+export const COL_GAP = 96;
 export const HEADER_H = 34;
 export const GROUP_GAP = 30;
 

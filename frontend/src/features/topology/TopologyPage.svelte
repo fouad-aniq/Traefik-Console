@@ -13,7 +13,6 @@
 	 */
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Plus, Minus, Maximize, RefreshCw, Search, X, Link2, Unlink, Pencil, ExternalLink } from '@lucide/svelte';
-	import PageHeader from '../../shared/ui/PageHeader.svelte';
 	import Button from '../../shared/ui/Button.svelte';
 	import Notice from '../../shared/ui/Notice.svelte';
 	import MenuPopover from '../../shared/ui/MenuPopover.svelte';
@@ -108,6 +107,8 @@
 	}
 
 	onMount(() => { measure(); void load(); });
+	// A notice above the map moves it down: keep it ending at the bottom of the window.
+	$effect(() => { void error; void failed.length; void tick().then(measure); });
 	onDestroy(() => { disposed = true; controller.abort(); stopGesture(); });
 
 	/* --------------------------------------------------------------- graph */
@@ -162,15 +163,29 @@
 	let view = $state({ x: PAD, y: PAD, k: 1 });
 	const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+	/** Height of the floating legend: the fitted map starts below it. */
+	let legendH = $state(0);
+	/** Readable before complete: fitting never shrinks text below this; a taller map scrolls instead. */
+	const READABLE_ZOOM = 0.8;
+
 	function measure() {
 		if (!viewport) return;
-		frameHeight = Math.max(440, Math.round(window.innerHeight - viewport.getBoundingClientRect().top - 28));
+		// The map takes the rest of the window (24px: the page's bottom padding).
+		frameHeight = Math.max(440, Math.round(window.innerHeight - viewport.getBoundingClientRect().top - 24 - 1));
 	}
+	/**
+	 * Fit the width, and the height as long as the text stays readable. When the map is taller
+	 * than that, it starts at the top and the rest is a scroll away.
+	 */
 	function fit() {
 		const w = vw || viewport?.clientWidth || 0, h = vh || viewport?.clientHeight || 0;
 		if (!w || !h || !layout.width) return;
-		const k = clamp(Math.min((w - PAD * 2) / layout.width, (h - PAD * 2) / Math.max(layout.height, 1)), MIN_ZOOM, 1);
-		view = { k, x: Math.round((w - layout.width * k) / 2), y: Math.round(Math.max(PAD, (h - layout.height * k) / 2)) };
+		const top = PAD + legendH;
+		const byWidth = (w - PAD * 2) / layout.width;
+		const byHeight = (h - top - PAD) / Math.max(layout.height, 1);
+		const k = clamp(Math.min(byWidth, Math.max(byHeight, Math.min(READABLE_ZOOM, byWidth))), MIN_ZOOM, 1);
+		const spare = h - top - PAD - layout.height * k;
+		view = { k, x: Math.round((w - layout.width * k) / 2), y: Math.round(top + Math.max(0, spare / 2)) };
 	}
 	function zoomAt(factor: number, cx = vw / 2, cy = vh / 2) {
 		const k = clamp(view.k * factor, MIN_ZOOM, MAX_ZOOM);
@@ -457,34 +472,23 @@
 
 <svelte:window onresize={measure} onkeydown={keydown} />
 
-<PageHeader title={tp('title')} subtitle={tp('subtitle')}>
-	{#snippet actions()}
-		<Button onclick={() => load(true)} pending={refreshing} disabled={loading || refreshing}><RefreshCw size={16} aria-hidden="true" />{t('common.refresh')}</Button>
-		<MenuPopover label={tp('add')} align="end">
-			{#snippet trigger()}<Plus size={16} aria-hidden="true" /><span>{tp('add')}</span>{/snippet}
-			{#snippet children(close)}
-				{#each EDITORS as kind (kind)}
-					{@const Icon = KIND_ICON[kind]}
-					<button type="button" role="menuitem" onclick={() => { close(); editor = { kind, mode: 'create', name: '' }; }}>
-						<span class="menu-glyph" style:color={kindColor(kind)}><Icon size={16} aria-hidden="true" /></span>{tp('kind.' + kind)}
-					</button>
-				{/each}
-			{/snippet}
-		</MenuPopover>
-	{/snippet}
-</PageHeader>
 
-<div class="notices">
+
+{#if error || failed.length}<div class="notices">
 	{#if error}<Notice tone="error" message={error}><Button size="sm" onclick={() => load()}>{t('common.retry')}</Button></Notice>{/if}
 	{#if failed.length}
 		<Notice tone="warning" message={tp('partial', { list: failed.map((k) => tp('kinds.' + k)).join(', ') })}>
 			<Button size="sm" onclick={() => load(true)}>{t('common.retry')}</Button>
 		</Notice>
 	{/if}
-</div>
+</div>{/if}
 
-<section class="map" aria-label={tp('title')}>
+<section class="map" aria-labelledby="map-title" aria-describedby="map-subtitle">
 	<div class="toolbar">
+		<div class="title-block">
+			<h1 id="map-title" class="map-title">{tp('title')}</h1>
+			<p id="map-subtitle" class="sr-only">{tp('subtitle')}</p>
+		</div>
 		<label class="search">
 			<Search size={16} aria-hidden="true" />
 			<span class="sr-only">{tp('search')}</span>
@@ -495,13 +499,19 @@
 				<button type="button" class="seg" aria-pressed={ownership === value} onclick={() => setOwnership(value)}>{tp('ownership.' + value)}</button>
 			{/each}
 		</div>
-		<div class="legend" role="group" aria-label={tp('legend')}>
-			{#each KINDS as kind (kind)}
-				{@const Icon = KIND_ICON[kind]}
-				<button type="button" class="chip" style:--kind={kindColor(kind)} aria-pressed={!hidden.includes(kind)} title={tp('toggleKind')} onclick={() => toggleKind(kind)}>
-					<Icon size={14} aria-hidden="true" /><span class="chip-label">{tp('kinds.' + kind)}</span><span class="count numeric">{counts[kind]}</span>
-				</button>
-			{/each}
+		<div class="actions">
+			<Button onclick={() => load(true)} pending={refreshing} disabled={loading || refreshing}><RefreshCw size={16} aria-hidden="true" />{t('common.refresh')}</Button>
+			<MenuPopover label={tp('add')} align="end">
+				{#snippet trigger()}<Plus size={16} aria-hidden="true" /><span>{tp('add')}</span>{/snippet}
+				{#snippet children(close)}
+					{#each EDITORS as kind (kind)}
+						{@const Icon = KIND_ICON[kind]}
+						<button type="button" role="menuitem" onclick={() => { close(); editor = { kind, mode: 'create', name: '' }; }}>
+							<span class="menu-glyph" style:color={kindColor(kind)}><Icon size={16} aria-hidden="true" /></span>{tp('kind.' + kind)}
+						</button>
+					{/each}
+				{/snippet}
+			</MenuPopover>
 		</div>
 	</div>
 
@@ -510,6 +520,15 @@
 	<div class="viewport" class:linking={!!link} bind:this={viewport} bind:clientWidth={vw} bind:clientHeight={vh}
 		style:height="{frameHeight}px" style:background-size="{dots}px {dots}px" style:background-position="{view.x}px {view.y}px"
 		onpointerdown={backgroundDown} onpointermove={(e) => { if (link?.mode === 'pick') trackPointer(e); }}>
+		<!-- Kinds double as the legend and the layer filter; they float over the map like the zoom controls. -->
+		<div class="legend overlay" role="group" aria-label={tp('legend')} bind:clientHeight={legendH}>
+			{#each KINDS as kind (kind)}
+				{@const Icon = KIND_ICON[kind]}
+				<button type="button" class="chip" style:--kind={kindColor(kind)} aria-pressed={!hidden.includes(kind)} title={tp('toggleKind')} onclick={() => toggleKind(kind)}>
+					<Icon size={14} aria-hidden="true" /><span class="chip-label">{tp('kinds.' + kind)}</span><span class="count numeric">{counts[kind]}</span>
+				</button>
+			{/each}
+		</div>
 		{#if loading}
 			<p class="state" role="status">{tp('loading')}</p>
 		{:else if !nodes.length}
@@ -690,19 +709,23 @@
 	.notices:empty { display: none; }
 
 	.map { border: 1px solid var(--border); border-top-color: var(--connection-border); border-radius: var(--radius-card); background: var(--surface); overflow: hidden; }
-	.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
-	.search { display: flex; align-items: center; gap: 8px; flex: 0 1 260px; min-width: 180px; height: var(--control-h); padding: 0 12px; border: 1px solid var(--outline); border-radius: var(--radius-control); background: var(--surface); color: var(--text-muted); }
+	.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--border); }
+	.title-block { display: flex; align-items: baseline; min-width: 0; margin-right: 6px; }
+	.map-title { margin: 0; font-size: 17px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+	.actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+	.search { display: flex; align-items: center; gap: 8px; flex: 0 1 280px; min-width: 180px; height: var(--control-h); padding: 0 12px; border: 1px solid var(--outline); border-radius: var(--radius-control); background: var(--surface); color: var(--text-muted); }
 	.search:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 	.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 14px; }
-	.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+	.legend { top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; z-index: 1; pointer-events: none; }
+	.legend .chip { pointer-events: auto; }
 	.ownership { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 	.seg { padding: 4px 10px; font-size: 12px; line-height: 18px; color: var(--text-muted); background: transparent; border: 0; cursor: pointer; }
 	.seg + .seg { border-left: 1px solid var(--border); }
 	.seg[aria-pressed='true'] { color: var(--text); background: var(--surface-2, var(--accent-soft)); font-weight: 500; }
-	.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+	.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
 	.chip :global(svg) { color: var(--kind); }
 	.chip:hover { background: var(--surface-muted); }
-	.chip[aria-pressed='false'] { color: var(--text-muted); border-style: dashed; background: transparent; }
+	.chip[aria-pressed='false'] { color: var(--text-muted); border-style: dashed; background: var(--canvas); box-shadow: none; }
 	.chip[aria-pressed='false'] :global(svg) { color: var(--text-muted); }
 	.chip[aria-pressed='false'] .chip-label { text-decoration: line-through; }
 	.count { color: var(--text-muted); font-size: 12px; font-weight: 500; }
@@ -735,6 +758,10 @@
 	.lane :global(svg) { color: var(--kind); }
 
 	.node { position: absolute; display: flex; align-items: center; width: var(--node-w); height: var(--node-h); padding: 0 12px; border: 1px solid var(--border); border-left: 3px solid var(--kind); border-radius: var(--radius-card); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; box-shadow: 0 1px 2px rgb(0 0 0 / .08); transition: opacity .12s, box-shadow .12s, border-color .12s; touch-action: none; }
+	/* Compact on the map: more of each name and address fits on a node. */
+	.node :global(.name) { font-size: 13.5px; line-height: 19px; }
+	.node :global(.sub) { font-size: 11.5px; line-height: 16px; }
+	.node :global(.glyph) { width: 30px; height: 30px; }
 	.node:hover { border-color: var(--outline); border-left-color: var(--kind); box-shadow: 0 4px 14px rgb(0 0 0 / .14); }
 	.node.match { box-shadow: 0 0 0 2px var(--accent); }
 	.node.selected { border-color: var(--kind); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kind) 28%, transparent); }
