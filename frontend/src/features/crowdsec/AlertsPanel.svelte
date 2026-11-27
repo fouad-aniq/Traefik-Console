@@ -9,6 +9,7 @@
 	import Button from '../../shared/ui/Button.svelte';
 	import ValueTooltip from '../../shared/ui/ValueTooltip.svelte';
 	import { errorMessage } from '../../shared/api/errorMessage';
+	import { ApiError } from '../../shared/api/client';
 	import { t } from '../../shared/localization/i18n';
 	import { getAlert, listAlerts } from './api';
 	import { countryName, isPrivateAddress, type CrowdSecAlert } from './models';
@@ -63,7 +64,8 @@
 			loaded = true;
 		} catch (e) {
 			if (disposed || own !== generation) return;
-			error = errorMessage(e, c('alerts.loadFailed'));
+			// Blocklist alerts each embed thousands of bans: listing them is refused, their bans are on the Decisions tab.
+			error = e instanceof ApiError && e.code === 'ERR_CROWDSEC_BLOCKLIST_TOO_LARGE' ? c('alerts.blocklistTooLarge') : errorMessage(e, c('alerts.loadFailed'));
 		} finally {
 			if (!disposed && own === generation) loading = false;
 		}

@@ -3,9 +3,11 @@ package crowdsec
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -188,5 +190,94 @@ func TestNativeObservationRejectsInvalidInputAndResponses(t *testing.T) {
 	m.machineClient = server.Client()
 	if _, err := m.ListAlerts(context.Background(), AlertQuery{Limit: 1, SinceHours: 24}); err == nil {
 		t.Fatal("invalid native JSON accepted")
+	}
+}
+
+// capiLAPI answers like a LAPI with community-blocklist pulls: without include_capi=false the alerts
+// include a CAPI "update" alert embedding more decisions than Console reads (the LAPI default).
+func capiLAPI(t *testing.T, recorded *[]string) *httptest.Server {
+	t.Helper()
+	var huge strings.Builder
+	huge.WriteString(`[{"id":90,"scenario":"update : +14995/-0 IPs","origin":"CAPI","created_at":"2026-11-27T10:00:00Z","events_count":0,"source":{"scope":"crowdsecurity/community-blocklist"},"decisions":[`)
+	for i := 0; huge.Len() <= maxLAPIResponseBytes; i++ {
+		if i > 0 {
+			huge.WriteString(",")
+		}
+		fmt.Fprintf(&huge, `{"id":%d,"origin":"CAPI","scenario":"crowdsecurity/http-probing","scope":"Ip","type":"ban","value":"198.51.%d.%d","duration":"23h"}`, 1000+i, (i/250)%250, i%250)
+	}
+	huge.WriteString(`]}]`)
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/watchers/login":
+			fmt.Fprint(w, `{"token":"jwt-secret"}`)
+		case "/v1/alerts":
+			*recorded = append(*recorded, r.URL.Query().Get("include_capi"))
+			if r.URL.Query().Get("include_capi") != "false" {
+				fmt.Fprint(w, huge.String())
+				return
+			}
+			if r.URL.Query().Get("has_active_decision") == "true" {
+				fmt.Fprint(w, `[{"decisions":[{"id":7,"origin":"crowdsec","scenario":"crowdsecurity/http-probing","scope":"Ip","type":"ban","value":"192.0.2.7","duration":"3h"}]}]`)
+				return
+			}
+			fmt.Fprint(w, `[{"id":7,"scenario":"crowdsecurity/http-probing","origin":"crowdsec","created_at":"2026-11-27T09:00:00Z","events_count":12,"source":{"scope":"Ip","value":"192.0.2.7","cn":"NL"}}]`)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
+func TestAlertsLeaveOutBlocklistAlertsUnlessFilteredOn(t *testing.T) {
+	var recorded []string
+	server := capiLAPI(t, &recorded)
+	defer server.Close()
+	m := &crowdsecManager{
+		store: noIntegration{}, secrets: noSecret{}, defaultLAPIURL: server.URL,
+		settings:   Settings{MachineID: "machine", MachinePassword: "machine-secret", AlertLimit: 500},
+		httpClient: server.Client(), machineClient: server.Client(),
+	}
+	page, err := m.ListAlerts(context.Background(), AlertQuery{Limit: 25, SinceHours: 24})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != 7 || page.Items[0].Country != "NL" {
+		t.Fatalf("local alerts not listed: %+v %v", page, err)
+	}
+	// An explicit blocklist origin asks for those alerts; too large to list, it says so instead of
+	// reporting CrowdSec as unreachable.
+	if _, err := m.ListAlerts(context.Background(), AlertQuery{Limit: 25, SinceHours: 24, Origin: "CAPI"}); !errors.Is(err, ErrCrowdSecBlocklistTooLarge) || errors.Is(err, ErrCrowdSecUnreachable) {
+		t.Fatalf("CAPI filter: %v, want ErrCrowdSecBlocklistTooLarge", err)
+	}
+	if _, err := m.ListAlerts(context.Background(), AlertQuery{Limit: 25, SinceHours: 24, Origin: "Lists"}); !errors.Is(err, ErrCrowdSecBlocklistTooLarge) {
+		t.Fatalf("lists filter: %v", err)
+	}
+	if want := []string{"false", "true", "true"}; strings.Join(recorded, ",") != strings.Join(want, ",") {
+		t.Fatalf("include_capi sent %v, want %v", recorded, want)
+	}
+	// Statistics read the same alerts: the blocklist pull must not empty them.
+	recorded = nil
+	stats, err := m.Stats(context.Background(), 24)
+	if err != nil || stats.Alerts != 1 || slices.Contains(stats.Partial, "alerts") {
+		t.Fatalf("stats: %+v %v", stats, err)
+	}
+	for _, v := range recorded {
+		if v != "false" {
+			t.Fatalf("stats asked for blocklist alerts: %v", recorded)
+		}
+	}
+}
+
+func TestMachineDecisionsLeaveOutBlocklistAlerts(t *testing.T) {
+	var recorded []string
+	server := capiLAPI(t, &recorded)
+	defer server.Close()
+	m := &crowdsecManager{
+		store: noIntegration{}, secrets: noSecret{}, defaultLAPIURL: server.URL,
+		settings:   Settings{MachineID: "machine", MachinePassword: "machine-secret", AlertLimit: 500},
+		httpClient: server.Client(), machineClient: server.Client(),
+	}
+	decisions, err := m.listDecisionsMachine(context.Background())
+	if err != nil || len(decisions) != 1 || decisions[0].ID != 7 {
+		t.Fatalf("machine decisions: %+v %v", decisions, err)
+	}
+	if strings.Join(recorded, ",") != "false" {
+		t.Fatalf("include_capi sent %v, want [false]", recorded)
 	}
 }

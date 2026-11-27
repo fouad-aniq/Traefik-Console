@@ -58,6 +58,7 @@ func TestResourceErrorMappingsRetainStatusAndWrapping(t *testing.T) {
 		{"ErrCrowdSecUnreachable", crowdsec.ErrCrowdSecUnreachable, 502},
 		{"ErrCrowdSecInvalidKey", crowdsec.ErrCrowdSecInvalidKey, 422},
 		{"ErrCrowdSecInvalidIP", crowdsec.ErrCrowdSecInvalidIP, 422},
+		{"ErrCrowdSecBlocklistTooLarge", crowdsec.ErrCrowdSecBlocklistTooLarge, 422},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, err := range []error{tc.err, fmt.Errorf("resource operation: %w", tc.err)} {

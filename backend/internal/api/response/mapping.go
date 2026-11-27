@@ -180,6 +180,11 @@ func MapDomainError(err error) *Error {
 		errors.Is(err, plugins.ErrPluginInvalidYAML):
 		return ErrValidation("Invalid configuration or resource binding", nil)
 
+	// Listing blocklist alerts is refused by size, not because CrowdSec failed: not retryable, and the UI
+	// points to the decisions view.
+	case errors.Is(err, crowdsec.ErrCrowdSecBlocklistTooLarge):
+		return &Error{Status: http.StatusUnprocessableEntity, Code: "ERR_CROWDSEC_BLOCKLIST_TOO_LARGE", Message: "Blocklist alerts are too large to list; their bans are in the decisions view", Retryable: false}
+
 	// Disabled optional capabilities are unavailable, not an executor failure.
 	case errors.Is(err, docker.ErrCapabilityDisabled), errors.Is(err, crowdsec.ErrCrowdSecUnavailableCapability):
 		return &Error{Status: 503, Code: "ERR_CAPABILITY_DISABLED", Message: "Optional integration is not configured", Retryable: false}

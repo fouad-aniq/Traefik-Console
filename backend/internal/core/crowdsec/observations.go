@@ -126,7 +126,10 @@ func (m *crowdsecManager) listDecisionsMachine(ctx context.Context) ([]CrowdSecD
 	var alerts []struct {
 		Decisions []CrowdSecDecision `json:"decisions"`
 	}
-	filters := url.Values{"limit": {strconv.Itoa(alertLimit)}, "has_active_decision": {"true"}, "simulated": {"false"}}
+	// Only this host's decisions: blocklist alerts embed thousands of decisions each and would exceed what
+	// Console reads. Blocklist bans are listed completely by the bouncer's /v1/decisions, which is used
+	// whenever a bouncer identity exists; this machine-only fallback leaves them out.
+	filters := url.Values{"limit": {strconv.Itoa(alertLimit)}, "has_active_decision": {"true"}, "simulated": {"false"}, "include_capi": {"false"}}
 	if err := m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", filters, nil, authHeader, authValue, &alerts, http.StatusOK); err != nil {
 		return nil, err
 	}

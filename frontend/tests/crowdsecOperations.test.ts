@@ -47,6 +47,16 @@ describe('alert operations', () => {
 	});
 });
 
+describe('blocklist alerts', () => {
+	it('explains that blocklist alerts are too large to list instead of a generic failure', async () => {
+		handlers = {
+			'GET /api/v1/crowdsec/alerts?page=0&limit=25&since_hours=24': () => json({ code: 'ERR_CROWDSEC_BLOCKLIST_TOO_LARGE', message: 'Blocklist alerts are too large to list; their bans are in the decisions view', retryable: false }, 422)
+		};
+		render(AlertsPanel);
+		expect(await screen.findByText(/Their bans are on the Decisions tab/)).toBeTruthy();
+	});
+});
+
 describe('allowlist operations', () => {
 	it('creates a list and removes an exact entry', async () => {
 		const allowlist = { name: 'traefik-console-safe', description: 'Trusted networks', items: [{ value: '198.51.100.0/24', description: 'lab' }], console_managed: false };

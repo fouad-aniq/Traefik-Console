@@ -116,8 +116,11 @@ func (m *crowdsecManager) doLAPI(ctx context.Context, machine bool, method, path
 		return nil
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxLAPIResponseBytes+1))
-	if err != nil || len(data) > maxLAPIResponseBytes {
+	if err != nil {
 		return ErrCrowdSecUnreachable
+	}
+	if len(data) > maxLAPIResponseBytes {
+		return errLAPIResponseTooLarge
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(out); err != nil {
@@ -220,7 +223,15 @@ func (m *crowdsecManager) listAlertsLAPI(ctx context.Context, query AlertQuery) 
 		return nil, err
 	}
 	end := (query.Page + 1) * query.Limit
-	filters := url.Values{"limit": {strconv.Itoa(end + 1)}, "since": {strconv.Itoa(query.SinceHours) + "h"}}
+	// The LAPI includes community-blocklist (CAPI) alerts unless told otherwise, and each of those embeds
+	// every decision it pulled (about 15,000): a page of them is megabytes. cscli leaves them out by
+	// default too (include_capi=false unless -a); they are only asked for when filtering on their origin.
+	blocklist := isBlocklistOrigin(query.Origin)
+	filters := url.Values{
+		"limit":        {strconv.Itoa(end + 1)},
+		"since":        {strconv.Itoa(query.SinceHours) + "h"},
+		"include_capi": {strconv.FormatBool(blocklist)},
+	}
 	if query.Scenario != "" {
 		filters.Set("scenario", query.Scenario)
 	}
@@ -236,6 +247,9 @@ func (m *crowdsecManager) listAlertsLAPI(ctx context.Context, query AlertQuery) 
 	}
 	var native []lapiAlert
 	if err := m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", filters, nil, authHeader, authValue, &native, http.StatusOK); err != nil {
+		if blocklist && errors.Is(err, errLAPIResponseTooLarge) {
+			return nil, ErrCrowdSecBlocklistTooLarge
+		}
 		return nil, err
 	}
 	page := &AlertPage{Items: []docker.Alert{}, Page: query.Page, Limit: query.Limit, ObservedAt: time.Now().UTC().Format(time.RFC3339)}
@@ -265,6 +279,12 @@ func (m *crowdsecManager) listAlertsLAPI(ctx context.Context, query AlertQuery) 
 		page.Items = append(page.Items, item)
 	}
 	return page, nil
+}
+
+// isBlocklistOrigin reports an origin whose alerts come from a blocklist pull (the community blocklist,
+// or subscribed lists) rather than from detections on this host.
+func isBlocklistOrigin(origin string) bool {
+	return strings.EqualFold(origin, "CAPI") || strings.EqualFold(origin, "lists")
 }
 
 func (m *crowdsecManager) getAlertLAPI(ctx context.Context, id int64) (*docker.Alert, error) {
