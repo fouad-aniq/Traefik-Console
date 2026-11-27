@@ -17,6 +17,13 @@ import (
 
 const maxLAPIResponseBytes = 1 << 20
 
+// The decision list is the one LAPI answer that is large by design: with the community blocklist it
+// holds about 15,000 decisions (~3 MB), and subscribed lists add more. It gets its own ceiling.
+const (
+	maxLAPIDecisionBytes = 32 << 20
+	maxLAPIDecisions     = 150000
+)
+
 type AlertQuery struct {
 	Page       int
 	Limit      int
@@ -56,6 +63,11 @@ type lapiAlert struct {
 }
 
 func (m *crowdsecManager) doLAPI(ctx context.Context, machine bool, method, path string, query url.Values, body any, authHeader, authValue string, out any, expected ...int) error {
+	return m.doLAPIWithin(ctx, maxLAPIResponseBytes, machine, method, path, query, body, authHeader, authValue, out, expected...)
+}
+
+// doLAPIWithin is doLAPI with a response ceiling other than maxLAPIResponseBytes.
+func (m *crowdsecManager) doLAPIWithin(ctx context.Context, maxBytes int, machine bool, method, path string, query url.Values, body any, authHeader, authValue string, out any, expected ...int) error {
 	var payload []byte
 	var err error
 	if body != nil {
@@ -115,11 +127,11 @@ func (m *crowdsecManager) doLAPI(ctx context.Context, machine bool, method, path
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 8192))
 		return nil
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxLAPIResponseBytes+1))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, int64(maxBytes)+1))
 	if err != nil {
 		return ErrCrowdSecUnreachable
 	}
-	if len(data) > maxLAPIResponseBytes {
+	if len(data) > maxBytes {
 		return errLAPIResponseTooLarge
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -202,15 +214,18 @@ func (m *crowdsecManager) verifyMachineCredentials(ctx context.Context, machineI
 	if err != nil {
 		return err
 	}
+	// One local alert proves the machine can read alerts. Without include_capi=false the newest alert can
+	// be a community-blocklist pull embedding every decision it brought (megabytes), refused by size.
+	probe := url.Values{"limit": {"1"}, "include_capi": {"false"}}
 	var alerts []lapiAlert
 	if certificate {
-		return m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", url.Values{"limit": {"1"}}, nil, "", "", &alerts, http.StatusOK)
+		return m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", probe, nil, "", "", &alerts, http.StatusOK)
 	}
 	token, err := m.machineToken(ctx, machineID, password)
 	if err != nil {
 		return err
 	}
-	return m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", url.Values{"limit": {"1"}}, nil, "Authorization", "Bearer "+token, &alerts, http.StatusOK)
+	return m.doLAPI(ctx, true, http.MethodGet, "/v1/alerts", probe, nil, "Authorization", "Bearer "+token, &alerts, http.StatusOK)
 }
 
 func validObservationText(value string, max int) bool {

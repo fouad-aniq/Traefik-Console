@@ -281,3 +281,57 @@ func TestMachineDecisionsLeaveOutBlocklistAlerts(t *testing.T) {
 		t.Fatalf("include_capi sent %v, want [false]", recorded)
 	}
 }
+
+// A community blocklist holds ~15,000 decisions (~3 MB): more than the 1 MB ceiling of other LAPI
+// answers and more than the alert limit, and still a complete, valid decision list.
+func TestBouncerDecisionsReadTheWholeBlocklist(t *testing.T) {
+	var body strings.Builder
+	body.WriteString("[")
+	const n = 15000
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			body.WriteString(",")
+		}
+		fmt.Fprintf(&body, `{"id":%d,"origin":"CAPI","scenario":"crowdsecurity/http-probing","scope":"Ip","type":"ban","value":"198.51.%d.%d","duration":"23h59m58.123456789s","until":"2026-11-28T17:00:00Z","uuid":"0b5a1c2e-7f00-4a00-9a00-%012d"}`, i+1, (i/250)%250, i%250, i)
+	}
+	body.WriteString("]")
+	if body.Len() <= maxLAPIResponseBytes {
+		t.Fatalf("fixture too small: %d bytes", body.Len())
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/decisions" || r.Header.Get("X-Api-Key") != "bouncer-key" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		fmt.Fprint(w, body.String())
+	}))
+	defer server.Close()
+	m := &crowdsecManager{
+		store: noIntegration{}, secrets: noSecret{}, defaultLAPIURL: server.URL,
+		settings:   Settings{APIKey: "bouncer-key", AlertLimit: 500, AlertLimitSet: true},
+		httpClient: server.Client(), machineClient: server.Client(),
+	}
+	decisions, err := m.listDecisionsNative(context.Background())
+	if err != nil || len(decisions) != n {
+		t.Fatalf("decisions: %d %v, want %d", len(decisions), err, n)
+	}
+}
+
+// The machine check reads one local alert: a blocklist pull would be refused by size and report valid
+// credentials as failing.
+func TestMachineCredentialCheckLeavesOutBlocklistAlerts(t *testing.T) {
+	var recorded []string
+	server := capiLAPI(t, &recorded)
+	defer server.Close()
+	m := &crowdsecManager{
+		store: noIntegration{}, secrets: noSecret{}, defaultLAPIURL: server.URL,
+		settings:   Settings{AlertLimit: 500},
+		httpClient: server.Client(), machineClient: server.Client(),
+	}
+	if err := m.verifyMachineCredentials(context.Background(), "machine", "machine-secret"); err != nil {
+		t.Fatalf("valid machine credentials rejected: %v", err)
+	}
+	if strings.Join(recorded, ",") != "false" {
+		t.Fatalf("include_capi sent %v, want [false]", recorded)
+	}
+}

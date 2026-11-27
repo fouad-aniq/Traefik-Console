@@ -166,15 +166,13 @@ func (m *crowdsecManager) listDecisionsBouncer(ctx context.Context) ([]CrowdSecD
 		}
 		authHeader, authValue = "X-Api-Key", key
 	}
-	alertLimit, err := m.effectiveAlertLimit(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// Every active decision, blocklists included (the bouncer view has no paging): the alert limit does
+	// not apply, only the decision ceiling.
 	result := []CrowdSecDecision{}
-	if err := m.doLAPI(ctx, false, http.MethodGet, "/v1/decisions", nil, nil, authHeader, authValue, &result, http.StatusOK); err != nil {
+	if err := m.doLAPIWithin(ctx, maxLAPIDecisionBytes, false, http.MethodGet, "/v1/decisions", nil, nil, authHeader, authValue, &result, http.StatusOK); err != nil {
 		return nil, err
 	}
-	if len(result) > alertLimit {
+	if len(result) > maxLAPIDecisions {
 		return nil, ErrCrowdSecUnreachable
 	}
 	return result, nil
