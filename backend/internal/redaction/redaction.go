@@ -30,6 +30,18 @@ func sensitive(k string) bool {
 // is kept; any non-boolean value under these keys is still redacted.
 var schemaFlags = map[string]bool{"is_secret": true, "present": true}
 
+// countFields are counters whose names contain a sensitive word ("archived_secret_drafts" counts drafts
+// that held a secret). Only a number is kept: any other value under these keys is still redacted.
+var countFields = map[string]bool{"archived_secret_drafts": true}
+
+func isNumber(v any) bool {
+	switch v.(type) {
+	case json.Number, float64, int, int64:
+		return true
+	}
+	return false
+}
+
 func crowdSecCountMetadataOnly(value any) bool {
 	fields, ok := value.(map[string]any)
 	if !ok || len(fields) != 2 {
@@ -151,6 +163,8 @@ func clean(v any, opaque bool, depth int) any {
 			} else if k == "snippet_yaml" {
 				out[k] = clean(v, true, depth+1)
 			} else if _, isBool := v.(bool); isBool && (k == "present" || schemaFlags[k] && !opaque) {
+				out[k] = v
+			} else if countFields[k] && !opaque && isNumber(v) {
 				out[k] = v
 			} else if k == "key" && crowdSecCountMetadataOnly(x) {
 				out[k] = clean(v, false, depth+1)

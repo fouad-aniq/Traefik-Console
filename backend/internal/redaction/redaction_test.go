@@ -140,3 +140,16 @@ func TestPluginSettingsShowEverythingButCredentials(t *testing.T) {
 		t.Fatalf("plugin spec: %s", raw)
 	}
 }
+
+// The config state counts archived drafts that held a secret: the count is shown, a non-number under
+// the same name is still masked.
+func TestSecretDraftCountIsKeptOnlyAsANumber(t *testing.T) {
+	raw, e := JSON(map[string]any{"archived_drafts": 1, "archived_secret_drafts": 2})
+	if e != nil || !strings.Contains(string(raw), `"archived_secret_drafts":2`) {
+		t.Fatalf("count masked: %s %v", raw, e)
+	}
+	raw, _ = JSON(map[string]any{"archived_secret_drafts": "synthetic-secret"})
+	if strings.Contains(string(raw), "synthetic-secret") {
+		t.Fatalf("non-number kept: %s", raw)
+	}
+}
