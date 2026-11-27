@@ -375,12 +375,15 @@
 				title={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
 				aria-label={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
 			>
-				<span class="update-icon" aria-hidden="true"><CircleArrowUp size={16} /></span>
-				<span class="update-body">
+				<!-- Header (icon + title), then the versions across the whole card, then the link. -->
+				<span class="update-head">
+					<span class="update-icon" aria-hidden="true"><CircleArrowUp size={16} /></span>
 					<span class="update-title">{t('shell.updateTitle')}</span>
+				</span>
+				<span class="update-body">
 					<span class="update-versions numeric">
 						<span class="update-from">v{APP_VERSION}</span>
-						<ArrowRight size={12} aria-hidden="true" />
+						<ArrowRight size={10} aria-hidden="true" />
 						<span class="update-to">v{consoleUpdate.version}</span>
 					</span>
 					<span class="update-cta">{t('shell.updateCta')}<ExternalLink size={12} aria-hidden="true" /></span>
@@ -934,9 +937,9 @@
 	}
 	.update-link {
 		display: flex;
-		align-items: flex-start;
-		gap: 10px;
-		padding: 10px 12px;
+		flex-direction: column;
+		gap: 8px;
+		padding: 10px;
 		border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
 		border-radius: var(--radius-control);
 		background: var(--accent-soft);
@@ -948,36 +951,60 @@
 	.update-link:hover {
 		border-color: var(--accent);
 	}
+	.update-head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+	}
 	.update-icon {
 		position: relative;
 		display: grid;
 		place-items: center;
 		flex: none;
-		width: 26px;
-		height: 26px;
+		width: 24px;
+		height: 24px;
 		border-radius: 50%;
 		background: var(--accent);
 		color: var(--on-accent);
-	}
-	.update-body {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
 	}
 	.update-title {
 		font-weight: 600;
 		font-size: 13px;
 	}
+	.update-body {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 0;
+	}
+	/* Current version on the left, new one on the right, across the whole card. A version never breaks
+	   at its hyphen; on a sidebar too narrow for both, the new one moves to its own line, still right-aligned. */
 	.update-versions {
-		display: inline-flex;
+		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px;
-		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		justify-content: space-between;
+		gap: 2px 3px;
+		padding: 4px 5px;
+		border-radius: 4px;
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		/* The interface font with tabular figures: narrow enough for both versions on one line in the sidebar. */
 		font-size: 11.5px;
+		font-variant-numeric: tabular-nums;
 		color: var(--text-muted);
 	}
+	.update-from,
 	.update-to {
+		white-space: nowrap;
+	}
+	/* The arrow sits halfway between the two versions. */
+	.update-versions :global(svg) {
+		flex: none;
+		margin-inline: auto;
+	}
+	.update-to {
+		margin-left: auto;
 		color: var(--accent);
 		font-weight: 600;
 	}
@@ -985,7 +1012,6 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
-		margin-top: 2px;
 		color: var(--accent);
 		font-weight: 500;
 	}
@@ -1164,8 +1190,12 @@
 	.sidebar.rail .brand-title,
 	.sidebar.rail .release-label,
 	.sidebar.rail .release-version,
-	.sidebar.rail .update-body {
+	.sidebar.rail .update-body,
+	.sidebar.rail .update-title {
 		display: none;
+	}
+	.sidebar.rail .update-head {
+		justify-content: center;
 	}
 	.sidebar.rail .release-link,
 	.sidebar.rail .update-link {
@@ -1174,6 +1204,7 @@
 		border-color: transparent;
 	}
 	.sidebar.rail .update-link {
+		align-items: center;
 		background: transparent;
 	}
 	.sidebar.rail .shell-footer {
