@@ -63,6 +63,9 @@
     "releaseNotes": "Release notes for version {version}",
     "updateAvailable": "v{version} available",
     "updateAvailableHint": "Traefik Console v{version} is available: open the release notes",
+    "updateTitle": "Update available",
+    "updateCta": "See what’s new",
+    "version": "Version",
     "signedInAs": "Signed in as {name}"
   },
   "demo": {

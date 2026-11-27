@@ -61,7 +61,9 @@ describe('config state polling', () => {
 		document.dispatchEvent(new Event('visibilitychange'));
 		await waitFor(() => expect(container.querySelector('.update-link')).not.toBeNull());
 		const link = container.querySelector<HTMLAnchorElement>('.update-link')!;
-		expect(link.textContent).toContain('v0.1.0-rc.4 available');
+		expect(link.textContent).toContain('Update available');
+		expect(link.textContent).toContain('v0.1.0-rc.4');
+		expect(container.querySelector('.release-link')).toBeNull();
 		expect(link.href).toBe('https://github.com/fouad-aniq/Traefik-Console/releases/tag/v0.1.0-rc.4');
 		expect(link.target).toBe('_blank');
 	});

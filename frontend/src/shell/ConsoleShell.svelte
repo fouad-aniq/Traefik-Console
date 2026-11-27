@@ -35,7 +35,9 @@
 		LogIn,
 		Lock,
 		CircleUserRound,
-		CircleArrowUp
+		CircleArrowUp,
+		ArrowRight,
+		Tag
 	} from '@lucide/svelte';
 	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import TrafficMark from '../shared/ui/TrafficMark.svelte';
@@ -363,20 +365,8 @@
 
 {#snippet shellFooter()}
 	<div class="shell-footer">
-		<div class="release">
-			<span class="release-name">Traefik Console</span>
-			<a
-				class="release-link numeric"
-				href={RELEASES_URL}
-				target="_blank"
-				rel="noopener noreferrer"
-				aria-label={t('shell.releaseNotes', { version: APP_VERSION })}
-			>
-				v{APP_VERSION}
-				<ExternalLink size={12} aria-hidden="true" />
-			</a>
-		</div>
 		{#if consoleUpdate}
+			<!-- A newer release: one card with both versions and a link to what changed. -->
 			<a
 				class="update-link"
 				href={consoleUpdate.url}
@@ -385,8 +375,29 @@
 				title={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
 				aria-label={t('shell.updateAvailableHint', { version: consoleUpdate.version })}
 			>
-				<CircleArrowUp size={16} aria-hidden="true" />
-				<span class="update-text">{t('shell.updateAvailable', { version: consoleUpdate.version })}</span>
+				<span class="update-icon" aria-hidden="true"><CircleArrowUp size={16} /></span>
+				<span class="update-body">
+					<span class="update-title">{t('shell.updateTitle')}</span>
+					<span class="update-versions numeric">
+						<span class="update-from">v{APP_VERSION}</span>
+						<ArrowRight size={12} aria-hidden="true" />
+						<span class="update-to">v{consoleUpdate.version}</span>
+					</span>
+					<span class="update-cta">{t('shell.updateCta')}<ExternalLink size={12} aria-hidden="true" /></span>
+				</span>
+			</a>
+		{:else}
+			<a
+				class="release-link"
+				href={RELEASES_URL}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={t('shell.releaseNotes', { version: APP_VERSION })}
+				aria-label={t('shell.releaseNotes', { version: APP_VERSION })}
+			>
+				<span class="release-icon" aria-hidden="true"><Tag size={14} /></span>
+				<span class="release-label">{t('shell.version')}</span>
+				<span class="release-version numeric">v{APP_VERSION}</span>
 			</a>
 		{/if}
 	</div>
@@ -442,22 +453,22 @@
 			<div class="brand-row">
 				<span class="brand-mark" aria-hidden="true"><TrafficMark size={22} /></span>
 				<span class="brand-title">Traefik Console</span>
+				{#if wide}
+					{@const label = t(prefs.sidebarCollapsed ? 'shell.expandSidebar' : 'shell.collapseSidebar')}
+					<button
+						type="button"
+						class="sidebar-toggle"
+						aria-label={label}
+						aria-expanded={!prefs.sidebarCollapsed}
+						title={label}
+						onclick={() => setSidebarCollapsed(!prefs.sidebarCollapsed)}
+					>
+						{#if prefs.sidebarCollapsed}<PanelLeftOpen size={18} aria-hidden="true" />{:else}<PanelLeftClose size={18} aria-hidden="true" />{/if}
+					</button>
+				{/if}
 			</div>
 			{@render navGroups('sidebar')}
 			{@render shellFooter()}
-			{#if wide}
-				{@const label = t(prefs.sidebarCollapsed ? 'shell.expandSidebar' : 'shell.collapseSidebar')}
-				<button
-					type="button"
-					class="sidebar-toggle"
-					aria-label={label}
-					aria-expanded={!prefs.sidebarCollapsed}
-					title={label}
-					onclick={() => setSidebarCollapsed(!prefs.sidebarCollapsed)}
-				>
-					{#if prefs.sidebarCollapsed}<PanelLeftOpen size={18} aria-hidden="true" />{:else}<PanelLeftClose size={18} aria-hidden="true" /><span class="toggle-text">{t('shell.collapseSidebar')}</span>{/if}
-				</button>
-			{/if}
 		</aside>
 
 		<!-- Mobile drawer. The backdrop is a button on purpose: pointer dismissal
@@ -719,20 +730,18 @@
 		transition: width 160ms ease;
 	}
 	.sidebar-toggle {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		margin: 0 8px 12px;
-		padding: 8px 12px;
-		min-height: var(--touch-h);
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 32px;
+		height: 32px;
+		margin-left: auto;
+		padding: 0;
 		border: none;
 		border-radius: var(--radius-control);
 		background: transparent;
 		color: var(--text-muted);
-		font: inherit;
-		font-size: 13px;
 		cursor: pointer;
-		white-space: nowrap;
 	}
 	.sidebar-toggle:hover {
 		background: var(--surface-muted);
@@ -743,14 +752,16 @@
 		outline-offset: 2px;
 	}
 	.sidebar.rail .sidebar-toggle {
-		justify-content: center;
-		padding: 8px;
+		margin-left: 0;
 	}
 	.brand-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 20px 16px;
+		min-height: var(--topbar-h);
+		padding: 0 10px 0 16px;
+		border-bottom: 1px solid var(--border);
+		margin-bottom: 12px;
 	}
 	.brand-mark {
 		color: var(--accent);
@@ -760,6 +771,8 @@
 		font-weight: 600;
 		font-size: 16px;
 		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	/* Grouped navigation: titled groups, accepted accent-soft active state. */
 	.nav-list {
@@ -885,44 +898,99 @@
 		font-weight: 600;
 		text-align: center;
 	}
-	.release {
+	/* Version: a quiet row when current, a card with both versions when a release is newer. */
+	.release-link {
 		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 0 2px;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 10px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		color: var(--text-muted);
 		font-size: 12px;
 		line-height: 18px;
-	}
-	.release-name {
-		color: var(--text);
-		font-weight: 500;
-	}
-	.release-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		align-self: flex-start;
-		color: var(--text-muted);
+		text-decoration: none;
 	}
 	.release-link:hover {
+		border-color: var(--outline);
 		color: var(--text);
 	}
-	.update-link {
+	.release-icon {
 		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		align-self: flex-start;
-		padding: 4px 8px;
-		border-radius: 999px;
+		color: var(--connection);
+	}
+	.release-label {
+		flex: 1;
+		min-width: 0;
+	}
+	.release-version {
+		padding: 0 6px;
+		border-radius: 4px;
+		background: var(--surface-muted);
+		color: var(--text);
+		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		font-size: 11.5px;
+		font-weight: 500;
+	}
+	.update-link {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 10px 12px;
+		border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+		border-radius: var(--radius-control);
+		background: var(--accent-soft);
+		color: var(--text);
 		font-size: 12px;
 		line-height: 18px;
-		font-weight: 500;
-		color: var(--accent);
-		background: var(--accent-soft);
 		text-decoration: none;
 	}
 	.update-link:hover {
-		color: var(--accent-strong);
+		border-color: var(--accent);
+	}
+	.update-icon {
+		position: relative;
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: var(--on-accent);
+	}
+	.update-body {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.update-title {
+		font-weight: 600;
+		font-size: 13px;
+	}
+	.update-versions {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		font-size: 11.5px;
+		color: var(--text-muted);
+	}
+	.update-to {
+		color: var(--accent);
+		font-weight: 600;
+	}
+	.update-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		margin-top: 2px;
+		color: var(--accent);
+		font-weight: 500;
+	}
+	.update-link:hover .update-cta {
+		text-decoration: underline;
 	}
 
 	.content-area {
@@ -981,6 +1049,10 @@
 		flex-direction: column;
 		gap: 12px;
 		margin-bottom: 16px;
+	}
+	/* No banner to show: no empty band above the page. */
+	.state-banners:not(:has(*)) {
+		display: none;
 	}
 	.state-text { margin: 0 0 8px; }
 	.state-files {
@@ -1090,13 +1162,19 @@
 		width: 64px;
 	}
 	.sidebar.rail .brand-title,
-	.sidebar.rail .release,
-	.sidebar.rail .update-text {
+	.sidebar.rail .release-label,
+	.sidebar.rail .release-version,
+	.sidebar.rail .update-body {
 		display: none;
 	}
+	.sidebar.rail .release-link,
 	.sidebar.rail .update-link {
-		align-self: center;
-		padding: 6px;
+		justify-content: center;
+		padding: 8px;
+		border-color: transparent;
+	}
+	.sidebar.rail .update-link {
+		background: transparent;
 	}
 	.sidebar.rail .shell-footer {
 		padding: 12px 8px;
@@ -1115,8 +1193,10 @@
 		box-shadow: 0 0 0 2px var(--surface);
 	}
 	.sidebar.rail .brand-row {
+		flex-direction: column;
 		justify-content: center;
-		padding: 20px 8px;
+		gap: 6px;
+		padding: 12px 8px;
 	}
 	.sidebar.rail .nav-item {
 		justify-content: center;

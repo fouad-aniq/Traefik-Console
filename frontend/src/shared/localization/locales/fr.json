@@ -63,6 +63,9 @@
     "releaseNotes": "Notes de version {version}",
     "updateAvailable": "v{version} disponible",
     "updateAvailableHint": "Traefik Console v{version} est disponible : ouvrir les notes de version",
+    "updateTitle": "Mise à jour disponible",
+    "updateCta": "Voir les nouveautés",
+    "version": "Version",
     "signedInAs": "Connecté en tant que {name}"
   },
   "demo": {
