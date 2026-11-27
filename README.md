@@ -43,11 +43,15 @@ routes you choose.
 
 ## Quick start
 
-Download the Compose bundle from the [latest release](https://github.com/fouad-aniq/Traefik-Console/releases),
-create the data folders and start it:
+Download the Compose bundle of the newest release
+[![Release](https://img.shields.io/github/v/release/fouad-aniq/Traefik-Console?include_prereleases&label=&color=895414)](https://github.com/fouad-aniq/Traefik-Console/releases),
+create the data folders and start it. The first two lines find the newest release
+(release candidates included) and download its bundle, whose Compose files pin
+that version's image:
 
 ```sh
-curl -fsSL https://github.com/fouad-aniq/Traefik-Console/releases/latest/download/traefik-console-deploy.tar.gz | tar -xz
+TAG=$(curl -fsSL "https://api.github.com/repos/fouad-aniq/Traefik-Console/releases?per_page=1" | grep -m1 '"tag_name"' | cut -d'"' -f4)
+curl -fsSL "https://github.com/fouad-aniq/Traefik-Console/releases/download/$TAG/traefik-console-deploy.tar.gz" | tar -xz
 cd traefik-console-deploy/traefik-console
 mkdir -p config/traefik/acme data/logs data/plugins data/console
 docker compose up -d && docker compose logs console | grep TCS-
