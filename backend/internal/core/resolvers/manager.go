@@ -153,13 +153,17 @@ func (m *resolverManager) UpsertResolver(ctx context.Context, in models.Resolver
 		}
 	}
 
-	// Check environment change rule (staging <-> production requires new resolver name)
+	// Staging, production and a custom CA each keep their own storage file (<name>-<environment>.json),
+	// so switching environment points Traefik at a fresh account and certificate store: the certificates
+	// of the old CA are never served by the new one, and switching back finds them again. Two different
+	// custom CAs would share <name>-custom.json, so a custom CA address cannot be changed in place.
 	if existingRow != nil && len(existingRow.Payload) > 0 {
 		var prev models.ResolverInput
-		if json.Unmarshal(existingRow.Payload, &prev) == nil {
-			if prev.Environment != "" && in.Environment != "" && prev.Environment != in.Environment {
-				return nil, ErrEnvChangeForbidden
-			}
+		if json.Unmarshal(existingRow.Payload, &prev) != nil {
+			return nil, fmt.Errorf("%w: stored resolver", engine.ErrValidationFailed)
+		}
+		if prev.Environment == "custom" && in.Environment == "custom" && strings.TrimSpace(prev.CAURL) != strings.TrimSpace(in.CAURL) {
+			return nil, ErrEnvChangeForbidden
 		}
 	}
 
@@ -167,16 +171,6 @@ func (m *resolverManager) UpsertResolver(ctx context.Context, in models.Resolver
 	var pending []models.SecretRow
 	if err := m.validateAndBuild(ctx, &in, extSnap, &pending); err != nil {
 		return nil, fmt.Errorf("%w: resolver input", engine.ErrValidationFailed)
-	}
-
-	if existingRow != nil && len(existingRow.Payload) > 0 {
-		var previous models.ResolverInput
-		if json.Unmarshal(existingRow.Payload, &previous) != nil {
-			return nil, ErrEnvChangeForbidden
-		}
-		if previous.Environment != in.Environment {
-			return nil, ErrEnvChangeForbidden
-		}
 	}
 
 	rawJSON, err := json.Marshal(in)

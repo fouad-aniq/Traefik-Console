@@ -378,6 +378,11 @@
 	}
 
 
+	/** The certificate authority saved for this resolver (edit only). */
+	const savedEnvironment = $derived(mode === 'edit' && current?.origin === 'managed' ? current.config.environment ?? 'production' : '');
+	/** Staging ↔ production (or ↔ custom): same resolver, new storage file, Traefik restarts and asks again. */
+	const switchingEnvironment = $derived(!!savedEnvironment && r.type === 'acme' && (r.environment || 'production') !== savedEnvironment);
+	const customCaLocked = $derived(savedEnvironment === 'custom' && r.environment === 'custom');
 	const renderedYaml = $derived(current?.config.rendered_node ? stringify(current.config.rendered_node) : '');
 	const authLabel = (index: number) => {
 		const key = `resolverUI.authNames.${r.provider}.${index}`;
@@ -459,15 +464,19 @@
 								<input id={f.id} type="email" bind:value={r.email} oninput={invalidate} disabled={locked} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="email" placeholder="admin@example.com" />
 							{/snippet}
 						</Field>
-						<Field id="resolver-environment" label={c('environment')} help={mode === 'edit' ? v2('environmentLocked') : c('environmentHelp')}>
+						<Field id="resolver-environment" label={c('environment')} help={mode === 'edit' ? v2('environmentSwitchHelp') : c('environmentHelp')}>
 							{#snippet children(f)}
-								<SearchableSelect id={f.id} value={r.environment} options={[{ value: 'staging', label: c('staging') }, { value: 'production', label: c('production') }, { value: 'custom', label: c('customCA') }]} onchange={(v) => { r.environment = v as ResolverForm['environment']; invalidate(); }} disabled={locked || mode === 'edit'} />
+								<SearchableSelect id={f.id} value={r.environment} options={[{ value: 'staging', label: c('staging') }, { value: 'production', label: c('production') }, { value: 'custom', label: c('customCA') }]} onchange={(v) => { r.environment = v as ResolverForm['environment']; invalidate(); }} disabled={locked} />
 							{/snippet}
 						</Field>
+						{#if switchingEnvironment}
+							<Notice tone="warning" title={v2('environmentSwitchTitle')} message={v2(r.environment === 'production' ? 'environmentToProduction' : 'environmentSwitch')} />
+						{/if}
 						{#if r.environment === 'custom'}
-							<Field id="resolver-ca-url" label={c('caUrl')} required error={fields['identity.caUrl']}>
+							<!-- One custom CA per resolver: its certificates live in <name>-custom.json, so the address is fixed once saved. -->
+							<Field id="resolver-ca-url" label={c('caUrl')} required error={fields['identity.caUrl']} help={customCaLocked ? v2('caUrlLocked') : ''}>
 								{#snippet children(f)}
-									<input id={f.id} bind:value={r.caUrl} oninput={invalidate} type="url" placeholder="https://acme.example.com/directory" disabled={locked} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} />
+									<input id={f.id} bind:value={r.caUrl} oninput={invalidate} type="url" placeholder="https://acme.example.com/directory" disabled={locked || customCaLocked} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} />
 								{/snippet}
 							</Field>
 						{/if}

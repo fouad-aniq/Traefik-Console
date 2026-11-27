@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
 	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
@@ -147,6 +147,19 @@ describe('create flow', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
 		expect(calls.find((c) => c.method === 'PUT')!.headers['if-match']).toBe('"6"');
+	});
+	it('switches an existing resolver from staging to production with a warning, keeping its name', async () => {
+		handlers = {
+			...base([resource('le', {}, 6)]),
+			'GET /api/v1/resolvers/le': () => json(resource('le', {}, 6))
+		};
+		render(ResolversPage, { navigate: () => {}, mode: 'edit', name: 'le' });
+		await waitFor(() => expect(document.getElementById('resolver-environment')).toBeTruthy());
+		expect(screen.queryByText('Certificate authority changes')).toBeNull();
+		await fireEvent.click(document.getElementById('resolver-environment')!);
+		await fireEvent.click(within(document.getElementById('resolver-environment-listbox')!).getByRole('option', { name: 'Production (Let’s Encrypt)' }));
+		expect(await screen.findByText('Certificate authority changes')).toBeTruthy();
+		expect(screen.getByText(/weekly limits on new certificates/)).toBeTruthy();
 	});
 	it('keeps the form and offers to reload on a version conflict', async () => {
 		handlers = { ...base([]), 'PUT /api/v1/resolvers/le?dry_run=true': () => json({ code: 'ERR_VERSION_CONFLICT', message: 'stale', operation_id: 'o', retryable: false }, 409) };

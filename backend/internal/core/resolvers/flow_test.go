@@ -208,22 +208,44 @@ func TestUpsertRejectionsWriteNothing(t *testing.T) {
 	}
 }
 
-func TestEnvironmentChangeNeedsANewResolverName(t *testing.T) {
+func TestEnvironmentSwitchKeepsTheResolverAndMovesToItsOwnStorage(t *testing.T) {
 	f := newManagerFixture(t)
 	f.save(t, httpResolver("le", "staging"))
-	for _, env := range []string{"production", ""} { // "" defaults to production
-		if _, e := f.m.UpsertResolver(context.Background(), httpResolver("le", env), models.WriteOptions{}); !errors.Is(e, ErrEnvChangeForbidden) {
-			t.Fatalf("staging -> %q accepted: %v", env, e)
-		}
+	res := f.save(t, httpResolver("le", "production"))
+	if len(f.applier.Applied) != 2 {
+		t.Fatal("staging -> production must be one more operation", len(f.applier.Applied))
+	}
+	up := f.applier.Applied[1].Upserts
+	if len(up) != 1 || up[0].ID != "resolver:le" || up[0].Scope != models.ScopeStatic {
+		t.Fatal("the switch must update the same resolver as a static change", up)
+	}
+	acme, _ := res.Resource.Config.RenderedNode["acme"].(map[string]any)
+	// A new storage file: no staging certificate can be served by the production resolver.
+	if acme["storage"] != "/etc/traefik/acme/le-production.json" || acme["caServer"] != "https://acme-v02.api.letsencrypt.org/directory" {
+		t.Fatal("production resolver must use the production CA and its own storage", acme)
+	}
+	// And back: the staging storage is found again.
+	res = f.save(t, httpResolver("le", "staging"))
+	if acme, _ = res.Resource.Config.RenderedNode["acme"].(map[string]any); acme["storage"] != "/etc/traefik/acme/le-staging.json" {
+		t.Fatal("switching back must reuse the staging storage", acme)
+	}
+}
+
+func TestCustomCAAddressCannotChangeInPlace(t *testing.T) {
+	f := newManagerFixture(t)
+	custom := httpResolver("corp", "custom")
+	custom.CAURL = "https://ca-one.example.invalid/directory"
+	f.save(t, custom)
+	custom.CAURL = "https://ca-two.example.invalid/directory"
+	if _, e := f.m.UpsertResolver(context.Background(), custom, models.WriteOptions{}); !errors.Is(e, ErrEnvChangeForbidden) {
+		t.Fatal("two custom CAs would share one storage file", e)
 	}
 	if len(f.applier.Applied) != 1 {
 		t.Fatal("a refused edit reached the engine")
 	}
-	// Same environment: a normal edit.
-	edit := httpResolver("le", "staging")
-	edit.KeyType = "EC384"
-	if res := f.save(t, edit); res.Resource.Config.KeyType != "EC384" {
-		t.Fatal("same-environment edit not applied")
+	// Leaving the custom CA for Let's Encrypt is a normal switch.
+	if res := f.save(t, httpResolver("corp", "production")); res.Resource.Config.Environment != "production" {
+		t.Fatal("custom -> production not applied")
 	}
 }
 
