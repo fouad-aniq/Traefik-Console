@@ -6,6 +6,8 @@ COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/index.html frontend/tsconfig.json frontend/svelte.config.js frontend/vite.config.ts ./
 COPY frontend/src ./src
+# Favicons, app icons and the web manifest: copied as-is into dist/assets by Vite.
+COPY frontend/public ./public
 ARG VERSION=dev
 RUN APP_VERSION="$VERSION" bun run build
 
