@@ -3722,6 +3722,8 @@
       "topScenario": "Top scenario",
       "mapTitle": "Where attacks come from",
       "mapHelp": "Alert sources by country, in the selected period",
+      "noGeoipTitle": "No country data",
+      "noGeoip": "These alerts have no country, so CrowdSec's GeoIP enrichment is not running. Enable the crowdsecurity/geoip-enrich parser (part of crowdsecurity/linux) and use a CrowdSec image that includes the GeoIP database (not -slim). Alerts, bans and route protection work without it.",
       "unavailable": "No observation source answered. Check the connection settings: a bouncer key shows decisions, machine credentials or the registered container show alerts.",
       "openConnection": "Open connection settings",
       "engineMetrics": "Engine metrics",

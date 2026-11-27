@@ -36,6 +36,11 @@
 	/** Real countries only: LOCAL (private sources) and ?? (no GeoIP data) are listed but not counted as origins. */
 	const countries = $derived((stats?.top_countries ?? []).filter((i) => /^[A-Z]{2}$/.test(i.key)));
 	const topCountry = $derived(countries[0]);
+	/**
+	 * Public sources without any country: CrowdSec's GeoIP enrichment is off (or the -slim image has no
+	 * GeoIP database). Everything else works; only the map and the country ranking stay empty.
+	 */
+	const noGeoip = $derived(!!stats && stats.alerts > 0 && countries.length === 0 && (stats.top_countries ?? []).some((i) => i.key === '??' && i.count > 0));
 	const topScenario = $derived(stats?.top_scenarios?.[0]);
 	const localBans = $derived((stats?.decisions_by_origin ?? []).filter((i) => !/capi|lists/i.test(i.key)).reduce((sum, i) => sum + i.count, 0));
 	const fmt = (n: number) => n.toLocaleString(prefs.language);
@@ -153,6 +158,7 @@
 	<div class="map-row">
 		<Surface class="map-card">
 			<div class="card-head"><h3 class="card-title">{d('mapTitle')}</h3><span class="muted">{d('mapHelp')}</span></div>
+			{#if noGeoip}<Notice tone="info" title={d('noGeoipTitle')} message={d('noGeoip')} />{/if}
 			<AttackMap countries={stats.top_countries ?? []} total={stats.alerts} />
 		</Surface>
 		{@render ranking(c('stats.countries'), stats.top_countries, 'country', false, 8)}

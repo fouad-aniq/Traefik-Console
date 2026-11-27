@@ -140,6 +140,17 @@ describe('overview', () => {
 		expect(await screen.findByText('Where attacks come from')).toBeTruthy();
 		expect(await screen.findByText('No attack detected in this period')).toBeTruthy();
 	});
+	it('explains an empty map when CrowdSec records no country (GeoIP off)', async () => {
+		handlers = base(complete(), stats({ alerts: 5, top_countries: [{ key: '??', count: 4 }, { key: 'LOCAL', count: 1 }] }));
+		render(CrowdSecPage, { navigate: () => {} });
+		expect(await screen.findByText('No country data')).toBeTruthy();
+	});
+	it('does not mention GeoIP when countries are known or every source is private', async () => {
+		handlers = base(complete(), stats({ top_countries: [{ key: 'LOCAL', count: 5 }] }));
+		render(CrowdSecPage, { navigate: () => {} });
+		expect(await screen.findByText('Where attacks come from')).toBeTruthy();
+		expect(screen.queryByText('No country data')).toBeNull();
+	});
 	it('reads statistics even while protection is off', async () => {
 		handlers = base(status({ key: { present: true }, lapi: { state: 'ok', url: 'http://crowdsec:8080' }, capabilities: { auto_enroll: false, alerts: false, decisions: true, decision_create: false, decision_delete: false, allowlist_read: false, allowlist_write: false, appsec: false, metrics: false, hub_read: false } }));
 		render(CrowdSecPage, { navigate: () => {} });

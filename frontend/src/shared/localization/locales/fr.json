@@ -3722,6 +3722,8 @@
       "topScenario": "Scénario principal",
       "mapTitle": "D’où viennent les attaques",
       "mapHelp": "Sources des alertes par pays, sur la période choisie",
+      "noGeoipTitle": "Pas de données de pays",
+      "noGeoip": "Ces alertes n'ont pas de pays : l'enrichissement GeoIP de CrowdSec ne fonctionne pas. Activez le parseur crowdsecurity/geoip-enrich (inclus dans crowdsecurity/linux) et utilisez une image CrowdSec qui contient la base GeoIP (pas -slim). Les alertes, les bannissements et la protection des routes fonctionnent sans.",
       "unavailable": "Aucune source d’observation n’a répondu. Vérifiez les paramètres de connexion : une clé de bouncer donne les décisions, des identifiants machine ou le conteneur enregistré donnent les alertes.",
       "openConnection": "Ouvrir les paramètres de connexion",
       "engineMetrics": "Métriques du moteur",

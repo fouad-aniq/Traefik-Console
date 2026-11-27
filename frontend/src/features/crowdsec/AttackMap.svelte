@@ -65,7 +65,8 @@
 				{/each}
 			</g>
 		</svg>
-		{#if !counts.size}<p class="empty">{c('noAttacks')}</p>{/if}
+		<!-- Alerts without a country (no GeoIP data, private sources) are attacks too: only an empty period says none. -->
+		{#if !counts.size && !unknown && !local}<p class="empty">{c('noAttacks')}</p>{/if}
 		{#if hover}
 			<div class="tip" style="left:{hover.x}px;top:{hover.y}px" aria-hidden="true">
 				<strong>{label(hover.code)}</strong>
