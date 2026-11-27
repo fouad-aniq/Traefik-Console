@@ -17,6 +17,7 @@
 	import Tabs from '../../shared/ui/Tabs.svelte';
 	import Button from '../../shared/ui/Button.svelte';
 	import Notice from '../../shared/ui/Notice.svelte';
+	import RadioCards from '../../shared/ui/RadioCards.svelte';
 	import SummaryList from '../../shared/ui/SummaryList.svelte';
 	import CodePreview from '../../shared/ui/CodePreview.svelte';
 	import NodeCard from './NodeCard.svelte';
@@ -24,7 +25,7 @@
 	import { encodeName, needsManualRestart, newIdempotencyKey, operationOf, announceApplied, saveResource } from '../../core/mutations';
 	import { operationTone } from '../changes/models';
 	import type { Operation, OperationPreview } from '../../core/types';
-	import { formFrom, previewRule, referenceBase, type RouterResource } from '../routes/models';
+	import { formFrom, hostOn, previewRule, referenceBase, ruleFor, type RouterResource } from '../routes/models';
 	import { subdomainError } from '../routes/validation';
 	import type { DomainResource } from '../domains/models';
 	import { ApiError, NetworkError } from '../../shared/api/client';
@@ -54,7 +55,12 @@
 
 	// svelte-ignore state_referenced_locally
 	let order = $state<string[]>(op === 'add' && ordered ? [...currentOrder(connection), object.name] : currentOrder(connection));
-	let subdomain = $state('');
+	/** The route already answers on a managed domain: the new one is added as another hostname, unless the user moves it. */
+	// svelte-ignore state_referenced_locally
+	const hasDomain = relation === 'route-domain' && op === 'add' && routeForm?.mode === 'domain' && !!routeForm.domainName;
+	let domainMode = $state<'add' | 'replace'>('add');
+	// Same app, other domain: start from the subdomain it has today.
+	let subdomain = $state(hasDomain ? routeForm!.subdomain : '');
 	let pathPrefix = $state(routeForm && routeForm.mode !== 'rule' ? routeForm.pathPrefix : '');
 	let step = $state<string>(TABS.link);
 	let busy = $state(false);
@@ -79,9 +85,13 @@
 		const p = pathPrefix.trim();
 		return relation === 'route-domain' && !!p && (!p.startsWith('/') || p.length > 512 || /[`\\\s?#\x00-\x1f]/.test(p));
 	});
-	const rule = $derived(routeForm && relation === 'route-domain'
-		? previewRule({ ...routeForm, mode: 'domain', domainName: object.name, subdomain, pathPrefix }, domainMain) : '');
-	const change = $derived(buildChange(connection, op, { order: $state.snapshot(order), subdomain: subdomain.trim().toLowerCase(), pathPrefix: pathPrefix.trim() }));
+	const rule = $derived.by(() => {
+		if (!routeForm || relation !== 'route-domain' || op !== 'add') return '';
+		// Adding: the hostnames the router has today (as core-v2 compiled them) plus the new one.
+		if (hasDomain && domainMode === 'add') return ruleFor([...(route?.config.domains ?? []), hostOn(domainMain, subdomain)], pathPrefix, routeForm.protocol === 'tcp');
+		return previewRule({ ...routeForm, mode: 'domain', domainName: object.name, subdomain, pathPrefix, extraHosts: [] }, domainMain);
+	});
+	const change = $derived(buildChange(connection, op, { order: $state.snapshot(order), subdomain: subdomain.trim().toLowerCase(), pathPrefix: pathPrefix.trim(), domainMode }));
 
 	/** What the subject references today for single-valued relations (the value being replaced). */
 	const replaced = $derived.by(() => {
@@ -214,7 +224,17 @@
 					<div><dt>{tp('dialog.current')}</dt><dd>{(route?.config.entry_points ?? []).join(', ') || t('routeV2.entryPointsAuto')}</dd></div>
 					<div><dt>{tp('dialog.after')}</dt><dd>{entryPointsAfter.join(', ') || t('routeV2.entryPointsAuto')}</dd></div>
 				</SummaryList>
+			{:else if relation === 'route-domain' && op === 'remove'}
+				<SummaryList>
+					<div><dt>{tp('dialog.current')}</dt><dd><code>{route?.config.rule || '—'}</code></dd></div>
+					<div><dt>{tp('dialog.after')}</dt><dd>{tp('dialog.hostsWithout', { domain: object.name })}</dd></div>
+				</SummaryList>
 			{:else if relation === 'route-domain'}
+				{#if hasDomain}
+					<RadioCards legend={tp('dialog.domainChoice')} value={domainMode} name="link-domain-mode" disabled={busy || !!result}
+						options={[{ value: 'add', label: tp('dialog.domainAdd'), description: tp('dialog.domainAddHelp', { domain: route?.config.domain_name ?? '' }) }, { value: 'replace', label: tp('dialog.domainReplace'), description: tp('dialog.domainReplaceHelp') }]}
+						onchange={(v) => { domainMode = v as 'add' | 'replace'; invalidate(); }} />
+				{/if}
 				<Field id="link-subdomain" label={tp('dialog.hostname')} help={t('routes.subdomainHelp')} error={submitted && subdomainInvalid ? t('routes.invalidSubdomain') : ''}>
 					{#snippet children(f)}
 						<div class="hostname-row">
@@ -233,7 +253,7 @@
 					<div><dt>{tp('dialog.current')}</dt><dd><code>{route?.config.rule || '—'}</code></dd></div>
 					<div><dt>{tp('dialog.after')}</dt><dd><code>{rule || '—'}</code></dd></div>
 				</SummaryList>
-				<Notice tone="warning" message={tp('dialog.domainNote')} />
+				{#if !hasDomain || domainMode === 'replace'}<Notice tone="warning" message={tp('dialog.domainNote')} />{/if}
 			{:else if op === 'add'}
 				<SummaryList>
 					<div><dt>{tp('dialog.current')}</dt><dd>{replaced || tp('dialog.none')}</dd></div>

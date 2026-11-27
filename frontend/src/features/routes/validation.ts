@@ -1,13 +1,13 @@
 import { normalizeDomain } from '../domains/models';
-import { MAX_ENTRYPOINTS, MAX_HOSTS, MAX_MIDDLEWARES, NAME_PATTERN, isNoBackend, parseHosts, type RouteForm } from './models';
+import { MAX_ENTRYPOINTS, MAX_HOSTS, MAX_MIDDLEWARES, NAME_PATTERN, hostOn, isNoBackend, parseHosts, type RouteForm } from './models';
 
 export type RouteField =
-	| 'name' | 'domainName' | 'subdomain' | 'hosts' | 'pathPrefix' | 'customRule'
+	| 'name' | 'domainName' | 'subdomain' | 'extraHosts' | 'hosts' | 'pathPrefix' | 'customRule'
 	| 'entryPoints' | 'service' | 'middlewares' | 'priority' | 'tlsOptions';
 
 /** Which tab owns each field, so a failed submit can jump to the right place. */
 export const FIELD_TAB: Record<RouteField, 'route' | 'traffic' | 'tls'> = {
-	name: 'route', domainName: 'route', subdomain: 'route', hosts: 'route', pathPrefix: 'route', customRule: 'route',
+	name: 'route', domainName: 'route', subdomain: 'route', extraHosts: 'route', hosts: 'route', pathPrefix: 'route', customRule: 'route',
 	entryPoints: 'traffic', service: 'traffic', priority: 'traffic', middlewares: 'tls', tlsOptions: 'tls'
 };
 
@@ -22,8 +22,44 @@ export interface RouteMessages {
 	/** TCP and UDP: the entrypoints are chosen, never defaulted. */
 	entryPointsRequired?: string;
 	duplicateMiddleware: string; tooManyMiddlewares: string; invalidPriority: string; invalidTlsOptions: string;
+	/** Extra hostnames: the same hostname twice. Optional so older callers keep working. */
+	duplicateHost?: string;
+	/** Extra hostnames: Traefik gives a router one certificate resolver. */
+	resolverMismatch?: string;
 }
-export interface RouteContext { creating: boolean; existingNames: string[]; domainNames: string[] | null }
+export interface RouteContext {
+	creating: boolean; existingNames: string[]; domainNames: string[] | null;
+	/** Main name of a managed domain, to find the same hostname listed twice. */
+	mainOf?: (domain: string) => string | undefined;
+	/** Resolver a managed domain gets its certificates from ('' for uploaded certificates). */
+	resolverOf?: (domain: string) => string | undefined;
+}
+
+/** At most this many extra hostnames on one router (core-v2 accepts 50). */
+export const MAX_EXTRA_HOSTS = 20;
+
+/** One message per extra hostname row ('' when the row is fine). */
+export function extraHostErrors(form: RouteForm, ctx: RouteContext, m: RouteMessages): string[] {
+	const seen = new Set<string>();
+	const main = ctx.mainOf?.(form.domainName);
+	if (main) seen.add(hostOn(main, form.subdomain));
+	// The first resolver met (main hostname first) is the router's; uploaded certificates mix freely.
+	let resolver = ctx.resolverOf?.(form.domainName) || '';
+	return form.extraHosts.map((h) => {
+		if (!h.domainName || (ctx.domainNames && !ctx.domainNames.includes(h.domainName))) return m.domainRequired;
+		if (subdomainError(h.subdomain)) return m.invalidSubdomain;
+		const domainMain = ctx.mainOf?.(h.domainName);
+		if (domainMain) {
+			const host = hostOn(domainMain, h.subdomain);
+			if (seen.has(host)) return m.duplicateHost ?? m.invalidHosts;
+			seen.add(host);
+		}
+		const own = ctx.resolverOf?.(h.domainName) || '';
+		if (own && resolver && own !== resolver) return m.resolverMismatch ?? m.domainRequired;
+		if (own) resolver = resolver || own;
+		return '';
+	});
+}
 
 const LABEL = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const OPTIONS_NAME = /^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$/;
@@ -46,6 +82,9 @@ export function routeErrors(form: RouteForm, ctx: RouteContext, m: RouteMessages
 		if (form.mode === 'domain') {
 			if (!form.domainName || (ctx.domainNames && !ctx.domainNames.includes(form.domainName))) e.domainName = m.domainRequired;
 			if (subdomainError(form.subdomain)) e.subdomain = m.invalidSubdomain;
+			const extra = extraHostErrors(form, ctx, m).find(Boolean);
+			if (extra) e.extraHosts = extra;
+			else if (form.extraHosts.length > MAX_EXTRA_HOSTS) e.extraHosts = m.invalidHosts;
 		} else if (form.mode === 'host') {
 			const hosts = parseHosts(form.hosts).map(normalizeDomain);
 			if (!hosts.length || hosts.length > MAX_HOSTS || hosts.some((h) => !h || h.startsWith('*.')) || new Set(hosts).size !== hosts.length) e.hosts = m.invalidHosts;

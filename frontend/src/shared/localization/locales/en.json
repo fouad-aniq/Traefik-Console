@@ -809,7 +809,7 @@
     "guided": "ACME — guided configuration",
     "custom": "Custom YAML",
     "environment": "Certificate authority",
-    "environmentHelp": "Start with staging. To move to production, create a separate production resolver and explicitly switch the domain or TLS router to it. Account storage stays separate.",
+    "environmentHelp": "Start with staging to check that certificates are issued, then switch this resolver to production. Each environment keeps its own account and certificates.",
     "staging": "Test (Let’s Encrypt staging)",
     "production": "Production (Let’s Encrypt)",
     "customCA": "Custom ACME directory",
@@ -2156,6 +2156,11 @@
     "checkedHost": "Checked hostname"
   },
   "resolverV2": {
+    "caUrlLocked": "A saved custom CA cannot be replaced: create another resolver for a different CA.",
+    "environmentToProduction": "Traefik restarts and requests trusted certificates from Let’s Encrypt for every domain on this resolver. Production has weekly limits on new certificates, so check that staging issued them first. The staging certificates stay on disk.",
+    "environmentSwitch": "Traefik restarts and requests new certificates for every domain on this resolver. The current certificates stay on disk and are used again if you switch back.",
+    "environmentSwitchTitle": "Certificate authority changes",
+    "environmentSwitchHelp": "You can switch between staging and production at any time. Domains and routers using this resolver keep working with it.",
     "notDelivered": "This page is built in a later step of frontend-v2.",
     "stateColumn": "State",
     "status": {
@@ -2179,7 +2184,6 @@
       "required": "Required",
       "optional": "Optional"
     },
-    "environmentLocked": "The certificate authority cannot be changed after creation. Create a new resolver instead.",
     "providerCode": "DNS provider code",
     "providerCodeHelp": "Any supported provider code. Credentials are read from the Traefik container environment; no values are sent here.",
     "externalCredentialsGuided": "Credentials are provided by the operator environment (no values are stored by the Console).",
@@ -2514,6 +2518,15 @@
     "serviceTab": "Service"
   },
   "routeV2": {
+    "subdomainPlaceholder": "subdomain (optional)",
+    "subdomainLabel": "Subdomain of hostname {number}",
+    "domainLabel": "Domain of hostname {number}",
+    "removeHostname": "Remove hostname {number}",
+    "hostnamesHelp": "The router answers on every hostname listed. Leave the subdomain empty to use the domain itself.",
+    "addHostname": "Add hostname",
+    "duplicateHost": "This hostname is already listed.",
+    "resolverMismatch": "This domain gets certificates from another resolver. A router has one resolver: pick a domain on the same resolver, or use a second router.",
+    "hostnames": "Hostnames",
     "customizeAction": "Customize",
     "dialogCustomize": "Customize {name}",
     "customizeNotice": "This saves a new route that Console manages, with the same settings and priority {priority}, so it takes over from {name}. Change what you need (middlewares, certificate resolver...). {name} stays as a fallback: delete this route to go back to it.",
@@ -3314,6 +3327,7 @@
       "unconfigured": "Set CROWDSEC_LAPI_URL on the Console and restart it before enabling CrowdSec. The Console does not install the engine."
     },
     "alerts": {
+      "blocklistTooLarge": "Blocklist alerts are too large to list here: each one carries every IP it pulled. Their bans are on the Decisions tab.",
       "title": "CrowdSec alerts",
       "time": "Time",
       "scenario": "Scenario",
@@ -3923,6 +3937,12 @@
       }
     },
     "dialog": {
+      "domainChoice": "This router already answers on a domain",
+      "domainAdd": "Add as another hostname",
+      "domainAddHelp": "Keep {domain} and answer on this domain too.",
+      "domainReplace": "Move to this domain",
+      "domainReplaceHelp": "Replace the router’s hostnames and TLS with this domain.",
+      "hostsWithout": "Its hostnames on {domain} are removed; the others stay.",
       "removeTitle": "Remove link",
       "tabs": "Link steps",
       "tabLink": "Link",

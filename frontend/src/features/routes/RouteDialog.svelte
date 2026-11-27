@@ -10,7 +10,8 @@
 	 */
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { stringify } from 'yaml';
-	import { Route as RouteIcon, CircleAlert, ArrowUp, ArrowDown, Trash2 } from '@lucide/svelte';
+	import { Route as RouteIcon, CircleAlert, ArrowUp, ArrowDown, Trash2, Plus } from '@lucide/svelte';
+	import HostnameRow from './HostnameRow.svelte';
 	import ResourceDialog from '../../shared/ui/ResourceDialog.svelte';
 	import Field from '../../shared/ui/Field.svelte';
 	import Tabs from '../../shared/ui/Tabs.svelte';
@@ -28,7 +29,7 @@
 	import type { Operation, OperationPreview } from '../../core/types';
 	import { listChains, listDomains, listEntryPointInfo, listMiddlewares, listResolvers, listRouters, listServices, putRouter, type EntryPointInfo, type NamedRef } from './api';
 	import { MAX_MIDDLEWARES, NOOP_SERVICE, ROUTER_BASE, customizeForm, formFrom, isExternalRef, isNoBackend, newForm, previewHosts, previewRule, referenceBase, routerDefinition, routerProtocolOf, toInput, type MatchMode, type RouteForm, type RouterProtocol, type RouterResource } from './models';
-	import { FIELD_TAB, routeErrors, type RouteField } from './validation';
+	import { FIELD_TAB, MAX_EXTRA_HOSTS, extraHostErrors, routeErrors, type RouteField } from './validation';
 	import { ApiError, NetworkError } from '../../shared/api/client';
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { t } from '../../shared/localization/i18n';
@@ -108,8 +109,12 @@
 	const dirty = $derived(editable && !!baseline && JSON.stringify($state.snapshot(form)) !== baseline && !result);
 
 	const domain = $derived(domains.find((d) => d.name === form.domainName));
-	const hosts = $derived(previewHosts(form, domain?.config.main));
-	const rule = $derived(previewRule(form, domain?.config.main));
+	const domainByName = (n: string) => domains.find((d) => d.name === n);
+	const mainOf = (n: string) => domainByName(n)?.config.main as string | undefined;
+	/** Uploaded certificates ('files') need no resolver: '' lets them sit next to any resolver. */
+	const resolverOf = (n: string) => { const d = domainByName(n); return d ? (d.config.method === 'resolver' ? (d.config.resolver as string) ?? '' : '') : undefined; };
+	const hosts = $derived(previewHosts(form, domain?.config.main, mainOf));
+	const rule = $derived(previewRule(form, domain?.config.main, mainOf));
 
 	const messages = $derived({
 		noBackendNeedsMiddleware: rr('noBackendNeedsMiddleware'), hostsNeedTls: rr('hostsNeedTls'),
@@ -117,9 +122,48 @@
 		invalidHosts: rr('invalidHosts'), invalidPathPrefix: r('invalidPathPrefix'), ruleRequired: rr('ruleRequired'),
 		tooManyEntryPoints: rr('tooManyEntryPoints'), serviceRequired: r('invalidService'), duplicateMiddleware: rr('duplicateMiddleware'),
 		tooManyMiddlewares: rr('tooManyMiddlewares'), invalidPriority: rr('invalidPriority'), invalidTlsOptions: rr('invalidTlsOptions'),
-		entryPointsRequired: rr('entryPointsRequired')
+		entryPointsRequired: rr('entryPointsRequired'), duplicateHost: rr('duplicateHost'), resolverMismatch: rr('resolverMismatch')
 	});
-	const context = $derived({ creating, existingNames: existing.map((d) => d.name), domainNames: domainsLoaded ? domains.map((d) => d.name) : null });
+	const context = $derived({ creating, existingNames: existing.map((d) => d.name), domainNames: domainsLoaded ? domains.map((d) => d.name) : null, mainOf, resolverOf });
+	/** One message per extra hostname row, shown once the form was submitted. */
+	const extraErrors = $derived(submitted && form.mode === 'domain' ? extraHostErrors($state.snapshot(form), context, messages) : []);
+	/**
+	 * A new row repeats the main subdomain on a domain not used yet, preferring one whose certificates
+	 * can share this router (same resolver, or uploaded): the usual "same app, new domain" case.
+	 */
+	function addExtraHost() {
+		const used = new Set([form.domainName, ...form.extraHosts.map((h) => h.domainName)]);
+		const resolver = [form.domainName, ...form.extraHosts.map((h) => h.domainName)].map((n) => resolverOf(n)).find(Boolean) ?? '';
+		const free = domains.filter((d) => !used.has(d.name));
+		const fits = free.find((d) => { const own = resolverOf(d.name); return !own || !resolver || own === resolver; });
+		form.extraHosts.push({ domainName: (fits ?? free[0])?.name ?? '', subdomain: form.subdomain });
+		invalidate();
+	}
+	const domainChoices = $derived(domains.map((d) => ({ value: d.name, label: (d.config.main as string).replace(/^\*\./, ''), description: d.name })));
+	/** Every hostname as one list: the main one first, then the extra ones. */
+	const hostRows = $derived([{ domainName: form.domainName, subdomain: form.subdomain }, ...form.extraHosts]);
+	function setHost(index: number, patch: { domainName?: string; subdomain?: string }) {
+		if (index === 0) {
+			if (patch.domainName !== undefined) form.domainName = patch.domainName;
+			if (patch.subdomain !== undefined) form.subdomain = patch.subdomain;
+		} else {
+			Object.assign(form.extraHosts[index - 1], patch);
+		}
+		invalidate();
+	}
+	/** Removing the first hostname makes the next one the main hostname. */
+	function removeHost(index: number) {
+		if (index === 0) {
+			const [next, ...rest] = form.extraHosts;
+			if (!next) return;
+			form.domainName = next.domainName;
+			form.subdomain = next.subdomain;
+			form.extraHosts = rest;
+		} else {
+			form.extraHosts.splice(index - 1, 1);
+		}
+		invalidate();
+	}
 	const count = (tab: 'route' | 'traffic' | 'tls') => (submitted ? Object.keys(fields).filter((k) => FIELD_TAB[k as RouteField] === tab).length : 0);
 	const tabs = $derived.by(() => {
 		const traffic = { id: TABS.traffic, label: r('tabTraffic'), errorCount: count('traffic') + (udp ? count('route') : 0), errorLabel: rr('fixErrors') };
@@ -141,7 +185,6 @@
 	const withCurrent = (options: { value: string; label: string; description?: string; badge?: string }[], value: string) =>
 		value && !options.some((o) => o.value === value) ? [{ value, label: value, badge: isExternalRef(value) ? rr('externalBadge') : undefined }, ...options] : options;
 
-	const domainOptions = $derived(withCurrent(domains.map((d) => ({ value: d.name, label: d.config.main as string, description: d.name })), form.domainName));
 	const serviceOptions = $derived(withCurrent([
 		// Only an HTTP router can answer from a middleware: TCP and UDP routers always need a service.
 		...(http ? [{ value: NOOP_SERVICE, label: rr('noBackend'), description: rr('noBackendDescription'), badge: undefined as string | undefined }] : []),
@@ -429,7 +472,11 @@
 				<div><dt>{r('source')}</dt><dd>{current.origin === 'managed' ? r('managed') : r('external')} · {current.provider}</dd></div>
 				<div><dt>{rv2('stateColumn')}</dt><dd>{rv2('status.' + current.status)}</dd></div>
 				{#if !udp}<div><dt>{r('rule')}</dt><dd><code>{c.rule || '—'}</code></dd></div>{/if}
-				{#if c.domain_name}<div><dt>{r('baseDomain')}</dt><dd><button type="button" class="link" onclick={() => navigate('/domains/' + encodeURIComponent(c.domain_name ?? ''))}>{c.domain_name}</button></dd></div>{/if}
+				{#if c.domain_name}
+					{@const names = [c.domain_name, ...(c.extra_domains ?? []).map((h) => h.domain_name).filter((n) => n !== c.domain_name)]}
+					<div><dt>{r('baseDomain')}</dt><dd>{#each [...new Set(names)] as dn, i (dn)}{#if i}, {/if}<button type="button" class="link" onclick={() => navigate('/domains/' + encodeURIComponent(dn))}>{dn}</button>{/each}</dd></div>
+					{#if (c.domains ?? []).length > 1}<div><dt>{rr('hostnames')}</dt><dd>{(c.domains ?? []).join(', ')}</dd></div>{/if}
+				{/if}
 				<div><dt>{r('entryPoints')}</dt><dd>{(c.entry_points ?? []).join(', ') || '—'}</dd></div>
 				<div><dt>{r('service')}</dt><dd>{#if isNoBackend(c.service)}{rr('noBackendValue')}{:else if serviceLink(c.service, routerProtocolOf(c))}<button type="button" class="link" onclick={() => navigate(serviceLink(c.service, routerProtocolOf(c)))}>{c.service}</button>{:else}{c.service || '—'}{/if}</dd></div>
 				{#if !udp}<div><dt>{r('tlsSection')}</dt><dd>{tlsLabel(current.config)}{c.tls?.options ? ` · ${c.tls.options}` : ''}</dd></div>{/if}
@@ -495,18 +542,34 @@
 				</Field>
 
 				{#if form.mode === 'domain'}
-					<!-- One hostname line: [subdomain] . [managed domain] -->
-					<Field id="route-domain" label={rr('hostname')} required help={r('subdomainHelp')} error={submitted ? (fields.domainName || fields.subdomain) : ''}>
-						{#snippet children(f)}
-							<div class="hostname-row">
-								<input id="route-subdomain" class="subdomain" bind:value={form.subdomain} oninput={invalidate} disabled={locked || !editable} aria-label={r('subdomain')} aria-invalid={(submitted && !!fields.subdomain) || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="app" />
-								<span class="dot" aria-hidden="true">.</span>
-								<div class="base-domain">
-									<SearchableSelect id={f.id} value={form.domainName} options={domainOptions} onchange={(v) => { form.domainName = v; invalidate(); }} placeholder={r('selectDomain')} searchPlaceholder={r('selectDomain')} emptyMessage={r('noDomainsAvailable')} disabled={locked || !editable || (!domainOptions.length)} ariaInvalid={submitted && !!fields.domainName} ariaDescribedby={f.describedBy} />
-								</div>
-							</div>
-						{/snippet}
-					</Field>
+					<!-- The hostnames, drawn like a service's backend servers: one row each, a dashed button to add one. -->
+					<section class="hostnames" aria-labelledby="route-hostnames-title">
+						<div class="hostnames-head">
+							<h3 id="route-hostnames-title" class="section-title">{rr('hostnames')} <span class="required" aria-hidden="true">*</span></h3>
+							<p class="muted">{rr('hostnamesHelp')}</p>
+						</div>
+						{#each hostRows as row, index (index)}
+							<HostnameRow
+								id={index === 0 ? 'route-subdomain' : `route-extra-sub-${index}`}
+								domainId={index === 0 ? 'route-domain' : `route-extra-domain-${index}`}
+								number={index + 1}
+								subdomain={row.subdomain}
+								domain={row.domainName}
+								options={withCurrent(domainChoices, row.domainName)}
+								onsubdomain={(v) => setHost(index, { subdomain: v })}
+								ondomain={(v) => setHost(index, { domainName: v })}
+								onremove={() => removeHost(index)}
+								removable={hostRows.length > 1}
+								error={index === 0 ? (submitted ? fields.domainName || fields.subdomain || '' : '') : extraErrors[index - 1] ?? ''}
+								disabled={locked || !editable}
+							/>
+						{/each}
+						{#if editable && form.extraHosts.length < MAX_EXTRA_HOSTS}
+							<button type="button" class="add-host" onclick={addExtraHost} disabled={locked || !form.domainName || !domains.length}>
+								<Plus size={16} aria-hidden="true" /> {rr('addHostname')}
+							</button>
+						{/if}
+					</section>
 					{#if domainsLoaded && !domains.length}
 						<Notice message={rr('noDomains')}><Button size="sm" onclick={() => navigate('/domains/new')}>{rr('openDomains')}</Button></Notice>
 					{/if}
@@ -721,9 +784,14 @@
 	.validation-banner span { flex: 1; }
 	.validation-banner button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 2px 4px; }
 	.validation-banner button:hover { text-decoration: underline; }
-	.hostname-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-	.hostname-row .subdomain { flex: 2 1 0; min-width: 0; }
-	.hostname-row .dot { flex: none; font-size: 20px; font-weight: 600; line-height: 1; color: var(--text-muted); }
-	.hostname-row .base-domain { flex: 3 1 0; min-width: 0; }
-	@media (max-width: 480px) { .hostname-row { flex-wrap: wrap; } .hostname-row .subdomain, .hostname-row .base-domain { flex-basis: 100%; } .hostname-row .dot { display: none; } }
+	.hostnames { display: flex; flex-direction: column; gap: 12px; max-width: 680px; }
+	.hostnames-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+	.hostnames .section-title { display: block; margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text); }
+	.hostnames .section-title::after { content: none; }
+	.hostnames .required { color: var(--danger-text); }
+	.hostnames .muted { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 21px; }
+	/* As wide as the hostname fields, like "Add backend" of a service: the remove button's column stays empty. */
+	.add-host { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 40px); min-height: var(--control-h); border: 1px dashed var(--outline); border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+	.add-host:hover:not(:disabled) { background: var(--surface-muted); border-style: solid; }
+	.add-host:disabled { opacity: 0.5; cursor: default; }
 </style>

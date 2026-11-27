@@ -196,6 +196,7 @@ def enrich(spec, models):
         'must still cover the bound host. Middleware order/repeats and provider '
         'identities are preserved.')
     schemas['RouterInput']['properties']['tls']['description'] = 'Manual TLS mode only; ignored when domain_name supplies TLS. Resolver must exist, wildcard requests require DNS-01.'
+    schemas['RouterInput']['properties']['extra_domains']['description'] = 'More hostnames for a router bound with domain_name: optional subdomains of other managed domains. The rule matches every hostname; hostnames certified by a resolver must share the main hostname\'s resolver, hostnames with uploaded certificates must be covered by them.'
     schemas['RouterInput']['properties']['entry_points']['description'] = 'Registered TCP entrypoint names; UDP-only and unknown names are invalid for HTTP routers.'
     schemas['OperationPreview']['properties']['validation_warnings']['description'] = 'Nonblocking native warnings and advanced-rule TLS coverage uncertainty; never treat these as issuance/serving proof.'
     schemas['RouterResource']['description'] += ''

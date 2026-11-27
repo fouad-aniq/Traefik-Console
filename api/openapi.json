@@ -20133,6 +20133,12 @@
               "type": "string"
             }
           },
+          "extra_domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouterHost"
+            }
+          },
           "middlewares": {
             "type": "array",
             "items": {
@@ -20215,6 +20221,22 @@
         "additionalProperties": false,
         "required": [
           "main"
+        ]
+      },
+      "RouterHost": {
+        "type": "object",
+        "x-go-type": "internal/models.RouterHost",
+        "properties": {
+          "domain_name": {
+            "type": "string"
+          },
+          "subdomain": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "domain_name"
         ]
       },
       "Service": {
@@ -22722,6 +22744,13 @@
               "type": "string"
             },
             "description": "Registered TCP entrypoint names; UDP-only and unknown names are invalid for HTTP routers."
+          },
+          "extra_domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouterHost"
+            },
+            "description": "More hostnames for a router bound with domain_name: optional subdomains of other managed domains. The rule matches every hostname; hostnames certified by a resolver must share the main hostname's resolver, hostnames with uploaded certificates must be covered by them."
           },
           "middlewares": {
             "type": "array",

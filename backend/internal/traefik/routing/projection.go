@@ -20,8 +20,27 @@ func hasMiddleware(names []string) bool {
 // Project produces the same canonical effective configuration for reads, review
 // and YAML. It does not mutate slices/pointers owned by the supplied config.
 func Project(input models.RouterConfig, domain *models.DomainConfig, certificate *models.CertificateConfig, static Static) (models.RouterConfig, error) {
+	return ProjectWith(input, domain, certificate, nil, static)
+}
+
+// ProjectWith is Project for a router with extra hostnames: extras[i] is the domain of
+// input.ExtraDomains[i].
+func ProjectWith(input models.RouterConfig, domain *models.DomainConfig, certificate *models.CertificateConfig, extras []Binding, static Static) (models.RouterConfig, error) {
 	cfg := input
 	cfg.DomainName = strings.TrimSpace(cfg.DomainName)
+	cfg.ExtraDomains = append([]models.RouterHost(nil), cfg.ExtraDomains...)
+	for i := range cfg.ExtraDomains {
+		cfg.ExtraDomains[i].DomainName = strings.TrimSpace(cfg.ExtraDomains[i].DomainName)
+		if cfg.ExtraDomains[i].DomainName == "" {
+			return cfg, fmt.Errorf("%w: every extra hostname needs a domain", ErrInvalidRouter)
+		}
+	}
+	if len(cfg.ExtraDomains) > 0 && cfg.DomainName == "" {
+		return cfg, fmt.Errorf("%w: extra hostnames are added to a router bound to a domain", ErrInvalidRouter)
+	}
+	if len(cfg.ExtraDomains) > 50 {
+		return cfg, fmt.Errorf("%w: too many hostnames (max 50)", ErrInvalidRouter)
+	}
 	cfg.Service = strings.TrimSpace(cfg.Service)
 	cfg.Subdomain = strings.ToLower(strings.TrimSpace(cfg.Subdomain))
 	cfg.CustomRule = strings.TrimSpace(cfg.CustomRule)
@@ -64,11 +83,18 @@ func Project(input models.RouterConfig, domain *models.DomainConfig, certificate
 	if cfg.DomainName != "" && passthrough {
 		return cfg, fmt.Errorf("%w: a managed domain terminates TLS, so it cannot be passed through", ErrInvalidRouter)
 	}
-	if cfg.DomainName != "" {
-		if domain == nil {
+	// Hosts whose certificate the router's resolver must request; all of them when not domain-bound.
+	var resolverHosts []string
+	bound := cfg.DomainName != ""
+	if bound {
+		if domain == nil || len(extras) != len(cfg.ExtraDomains) {
 			return cfg, fmt.Errorf("%w: domain missing", ErrInvalidRouter)
 		}
 		if err := ApplyDomainBinding(&cfg, *domain); err != nil {
+			return cfg, err
+		}
+		var err error
+		if resolverHosts, err = applyExtraBindings(&cfg, *domain, extras); err != nil {
 			return cfg, err
 		}
 	} else if cfg.TLS != nil {
@@ -152,18 +178,24 @@ func Project(input models.RouterConfig, domain *models.DomainConfig, certificate
 					return cfg, fmt.Errorf("%w: wildcard requires DNS-01", ErrInvalidRouter)
 				}
 			}
+			if !bound {
+				resolverHosts = cfg.Domains
+			}
 			if len(names) > 0 {
-				for _, host := range cfg.Domains {
+				for _, host := range resolverHosts {
 					if !validation.NamesCover(names, host) {
 						return cfg, fmt.Errorf("%w: certificate request does not cover router host", ErrInvalidRouter)
 					}
 				}
 			}
-		} else if domain != nil && domain.Method == "files" {
+		}
+		// The main domain's uploaded certificate covers the main hostname (extra ones were checked
+		// against their own certificate); a resolver brought in by an extra hostname does not change that.
+		if bound && domain.Method == "files" {
 			if certificate == nil || certificate.Purpose != "server" {
 				return cfg, fmt.Errorf("%w: server certificate missing", ErrInvalidRouter)
 			}
-			for _, host := range cfg.Domains {
+			for _, host := range cfg.Domains[:1] {
 				if !validation.NamesCover(certificate.Domains, host) {
 					return cfg, fmt.Errorf("%w: certificate does not cover router host", ErrInvalidRouter)
 				}
@@ -176,7 +208,7 @@ func Project(input models.RouterConfig, domain *models.DomainConfig, certificate
 // projectUDP validates a UDP router: entry points and a service, nothing else. Traefik gives UDP
 // routers no rule, TLS, middlewares or priority, so any of those being set is a mistake to report.
 func projectUDP(cfg models.RouterConfig, static Static) (models.RouterConfig, error) {
-	if cfg.DomainName != "" || cfg.Subdomain != "" || len(cfg.Domains) > 0 || cfg.PathPrefix != "" || cfg.CustomRule != "" ||
+	if cfg.DomainName != "" || cfg.Subdomain != "" || len(cfg.ExtraDomains) > 0 || len(cfg.Domains) > 0 || cfg.PathPrefix != "" || cfg.CustomRule != "" ||
 		strings.TrimSpace(cfg.Rule) != "" || cfg.TLS != nil || cfg.Priority != 0 || hasMiddleware(cfg.Middlewares) {
 		return cfg, fmt.Errorf("%w: a UDP router has only entry points and a service", ErrInvalidRouter)
 	}

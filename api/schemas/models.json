@@ -2848,6 +2848,10 @@
       "type": "[]string",
       "optional": false
     },
+    "extra_domains": {
+      "type": "[]RouterHost",
+      "optional": true
+    },
     "middlewares": {
       "type": "[]string",
       "optional": true
@@ -2878,6 +2882,16 @@
     },
     "tls": {
       "type": "*RouterTLS",
+      "optional": true
+    }
+  },
+  "internal/models.RouterHost": {
+    "domain_name": {
+      "type": "string",
+      "optional": false
+    },
+    "subdomain": {
+      "type": "string",
       "optional": true
     }
   },

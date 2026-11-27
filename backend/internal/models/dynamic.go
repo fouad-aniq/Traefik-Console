@@ -1,5 +1,7 @@
 package models
 
+import "strings"
+
 // RouterConfig (`kind = 'router'`)
 type RouterConfig struct {
 	// Protocol is http (the default when empty), tcp or udp. It cannot change once created.
@@ -17,6 +19,45 @@ type RouterConfig struct {
 	Middlewares []string   `json:"middlewares,omitempty" yaml:"middlewares,omitempty"`
 	Priority    int        `json:"priority,omitempty" yaml:"priority,omitempty"`
 	TLS         *RouterTLS `json:"tls,omitempty" yaml:"tls,omitempty"`
+
+	// ExtraDomains are more managed hostnames for the same router (domain mode only): the router
+	// answers on every one of them, and each follows its domain when that domain changes.
+	ExtraDomains []RouterHost `json:"extra_domains,omitempty" yaml:"-"`
+}
+
+// RouterHost is one more hostname of a domain-bound router: an optional subdomain of a managed domain.
+type RouterHost struct {
+	DomainName string `json:"domain_name"`
+	Subdomain  string `json:"subdomain,omitempty"`
+}
+
+// DomainNames lists the managed domains a router uses: its main domain first, then its extra
+// hostnames' domains, each once.
+func (c RouterConfig) DomainNames() []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(name string) {
+		name = strings.TrimSpace(name)
+		if name != "" && !seen[name] {
+			seen[name] = true
+			out = append(out, name)
+		}
+	}
+	add(c.DomainName)
+	for _, h := range c.ExtraDomains {
+		add(h.DomainName)
+	}
+	return out
+}
+
+// UsesDomain reports whether the router has a hostname on the managed domain.
+func (c RouterConfig) UsesDomain(name string) bool {
+	for _, n := range c.DomainNames() {
+		if n == name {
+			return true
+		}
+	}
+	return false
 }
 
 // NoopService is Traefik's built-in service for a router that has no backend: the

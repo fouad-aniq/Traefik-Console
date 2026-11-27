@@ -69,5 +69,19 @@ func (v View) Project(cfg models.RouterConfig) (models.RouterConfig, error) {
 			}
 		}
 	}
-	return Project(cfg, domain, cert, v.static)
+	var extras []Binding
+	for _, host := range cfg.ExtraDomains {
+		d, ok := v.domains[strings.TrimSpace(host.DomainName)]
+		if !ok {
+			return cfg, ErrDomainMissing
+		}
+		b := Binding{Domain: d}
+		if d.Method == "files" {
+			if c, ok := v.certificates[d.Certificate]; ok {
+				b.Certificate = &c
+			}
+		}
+		extras = append(extras, b)
+	}
+	return ProjectWith(cfg, domain, cert, extras, v.static)
 }

@@ -3,6 +3,7 @@
  * - GET /api/v1/routers → Resource<RouterConfig>[] (managed + external; external are read-only)
  * - PUT /api/v1/routers/{name} body RouterInput. The backend compiles `rule` from one of:
  *     domain_name (+ subdomain)  → host derived from a managed Domain, TLS taken from that Domain
+ *       + extra_domains[]        → more hostnames on managed domains (same resolver), one router
  *     domains[]                  → explicit hostnames, TLS chosen on the router
  *     custom_rule                → a Traefik rule written by hand, TLS chosen on the router
  *   plus an optional path_prefix for the first two.
@@ -26,12 +27,16 @@ export interface RouterTLS {
 	options?: string;
 	domains?: { main: string; sans?: string[] | null }[] | null;
 }
+/** One more hostname of a domain-bound router: an optional subdomain of a managed domain. */
+export interface RouterHost { domain_name: string; subdomain?: string }
+
 export interface RouterConfig {
 	/** http when absent. */
 	protocol?: RouterProtocol;
 	entry_points: string[] | null;
 	domain_name?: string;
 	subdomain?: string;
+	extra_domains?: RouterHost[] | null;
 	domains: string[] | null;
 	path_prefix?: string;
 	custom_rule?: string;
@@ -49,6 +54,7 @@ export interface RouterInput {
 	entry_points: string[];
 	domain_name?: string;
 	subdomain?: string;
+	extra_domains?: RouterHost[];
 	domains?: string[];
 	path_prefix?: string;
 	custom_rule?: string;
@@ -68,6 +74,8 @@ export interface RouteForm {
 	mode: MatchMode;
 	domainName: string;
 	subdomain: string;
+	/** More hostnames on managed domains (domain mode): the router answers on all of them. */
+	extraHosts: { domainName: string; subdomain: string }[];
 	/** One hostname per line (commas also accepted). */
 	hosts: string;
 	pathPrefix: string;
@@ -90,7 +98,7 @@ export const MAX_HOSTS = 20;
 
 export const newForm = (protocol: RouterProtocol = 'http'): RouteForm => ({
 	protocol,
-	name: '', mode: protocol === 'tcp' ? 'any' : 'domain', domainName: '', subdomain: '', hosts: '', pathPrefix: '', customRule: '',
+	name: '', mode: protocol === 'tcp' ? 'any' : 'domain', domainName: '', subdomain: '', extraHosts: [], hosts: '', pathPrefix: '', customRule: '',
 	entryPoints: [], service: '', middlewares: [], priority: '',
 	// A TCP router matching every connection is usually plain TCP; HTTP routers default to HTTPS.
 	tlsEnabled: protocol === 'http', tlsPassthrough: false, tlsResolver: '', tlsOptions: ''
@@ -110,6 +118,7 @@ export function formFrom(name: string, c: RouterConfig): RouteForm {
 		mode,
 		domainName: c.domain_name ?? '',
 		subdomain: c.subdomain ?? '',
+		extraHosts: mode === 'domain' ? (c.extra_domains ?? []).map((h) => ({ domainName: h.domain_name, subdomain: h.subdomain ?? '' })) : [],
 		hosts: mode === 'host' ? (c.domains ?? []).join('\n') : '',
 		pathPrefix: c.path_prefix ?? '',
 		customRule: mode === 'rule' ? custom : '',
@@ -147,6 +156,9 @@ export function toInput(form: RouteForm): RouterInput {
 	if (form.mode === 'domain') {
 		out.domain_name = form.domainName;
 		if (form.subdomain.trim()) out.subdomain = form.subdomain.trim().toLowerCase();
+		if (form.extraHosts.length) {
+			out.extra_domains = form.extraHosts.map((h) => (h.subdomain.trim() ? { domain_name: h.domainName, subdomain: h.subdomain.trim().toLowerCase() } : { domain_name: h.domainName }));
+		}
 	} else if (form.mode === 'host') {
 		out.domains = parseHosts(form.hosts).map((h) => normalizeDomain(h) ?? h);
 	} else if (form.mode === 'any') {
@@ -172,28 +184,45 @@ export function toInput(form: RouteForm): RouterInput {
 	return out;
 }
 
-/** Hostnames the router will answer on, before the backend compiles them (for the live preview). */
-export function previewHosts(form: RouteForm, domainMain: string | undefined): string[] {
+/** The hostname a subdomain names inside a managed domain (`app` + `*.example.com` → `app.example.com`). */
+export function hostOn(domainMain: string, subdomain: string): string {
+	const base = domainMain.replace(/^\*\./, '');
+	const sub = subdomain.trim().toLowerCase();
+	return sub ? `${sub}.${base}` : base;
+}
+
+/**
+ * Hostnames the router will answer on, before the backend compiles them (for the live preview).
+ * `mainOf` gives the main name of the domains of the extra hostnames; without it they are left out.
+ */
+export function previewHosts(form: RouteForm, domainMain: string | undefined, mainOf?: (domain: string) => string | undefined): string[] {
 	if (form.mode === 'domain') {
 		if (!domainMain) return [];
-		const base = domainMain.replace(/^\*\./, '');
-		const sub = form.subdomain.trim().toLowerCase();
-		return [sub ? `${sub}.${base}` : base];
+		const out = [hostOn(domainMain, form.subdomain)];
+		for (const extra of form.extraHosts ?? []) {
+			const main = mainOf?.(extra.domainName);
+			if (main) out.push(hostOn(main, extra.subdomain));
+		}
+		return out;
 	}
 	if (form.mode === 'host') return parseHosts(form.hosts).map((h) => normalizeDomain(h) ?? h.toLowerCase());
 	return [];
 }
 
 /** Client-side twin of core-v2 `CompileRouterRule` / `CompileTCPRule`, used only to preview the rule before the server compiles it. */
-export function previewRule(form: RouteForm, domainMain: string | undefined): string {
+export function previewRule(form: RouteForm, domainMain: string | undefined, mainOf?: (domain: string) => string | undefined): string {
 	if (form.protocol === 'udp') return '';
 	if (form.mode === 'any') return MATCH_ANY;
 	if (form.mode === 'rule') return form.customRule.trim();
-	const tcp = form.protocol === 'tcp';
-	const hosts = previewHosts(form, domainMain).map((h) => (tcp ? 'HostSNI(`' : 'Host(`') + h + '`)');
+	return ruleFor(previewHosts(form, domainMain, mainOf), form.pathPrefix, form.protocol === 'tcp');
+}
+
+/** The rule core-v2 compiles from hostnames and an optional path prefix (HostSNI for TCP, which has no path). */
+export function ruleFor(hostnames: string[], pathPrefix: string, tcp = false): string {
+	const hosts = hostnames.map((h) => (tcp ? 'HostSNI(`' : 'Host(`') + h + '`)');
 	if (!hosts.length) return '';
 	const expr = hosts.length > 1 ? '(' + hosts.join(' || ') + ')' : hosts[0];
-	let prefix = form.pathPrefix.trim();
+	let prefix = pathPrefix.trim();
 	if (tcp || !prefix) return expr;
 	if (!prefix.startsWith('/')) prefix = '/' + prefix;
 	return `${expr} && PathPrefix(\`${prefix}\`)`;

@@ -809,7 +809,7 @@
     "guided": "ACME — configuration guidée",
     "custom": "YAML personnalisé",
     "environment": "Autorité de certification",
-    "environmentHelp": "Commencez en préproduction. Pour passer en production, créez un résolveur de production distinct puis sélectionnez-le explicitement pour le domaine ou le routeur TLS. Le stockage des comptes reste séparé.",
+    "environmentHelp": "Commencez par le test pour vérifier que les certificats sont délivrés, puis passez ce résolveur en production. Chaque environnement garde son propre compte et ses certificats.",
     "staging": "Test (staging Let’s Encrypt)",
     "production": "Production (Let’s Encrypt)",
     "customCA": "Annuaire ACME personnalisé",
@@ -2156,6 +2156,11 @@
     "checkedHost": "Nom d’hôte vérifié"
   },
   "resolverV2": {
+    "caUrlLocked": "Une autorité personnalisée enregistrée ne peut pas être remplacée : créez un autre résolveur pour une autre autorité.",
+    "environmentToProduction": "Traefik redémarre et demande à Let’s Encrypt des certificats de confiance pour chaque domaine de ce résolveur. La production limite le nombre de nouveaux certificats par semaine : vérifiez d’abord que le test les a délivrés. Les certificats de test restent sur le disque.",
+    "environmentSwitch": "Traefik redémarre et demande de nouveaux certificats pour chaque domaine de ce résolveur. Les certificats actuels restent sur le disque et sont réutilisés si vous revenez en arrière.",
+    "environmentSwitchTitle": "L’autorité de certification change",
+    "environmentSwitchHelp": "Vous pouvez passer du test à la production à tout moment. Les domaines et routeurs qui utilisent ce résolveur continuent de fonctionner avec lui.",
     "notDelivered": "Cette page sera construite dans une étape ultérieure de frontend-v2.",
     "stateColumn": "État",
     "status": {
@@ -2179,7 +2184,6 @@
       "required": "Obligatoire",
       "optional": "Facultatif"
     },
-    "environmentLocked": "L’autorité de certification ne peut pas être modifiée après la création. Créez plutôt un nouveau résolveur.",
     "providerCode": "Code du fournisseur DNS",
     "providerCodeHelp": "Tout code de fournisseur pris en charge. Les identifiants sont lus dans l’environnement du conteneur Traefik ; aucune valeur n’est envoyée ici.",
     "externalCredentialsGuided": "Les identifiants sont fournis par l’environnement de l’opérateur (la Console ne stocke aucune valeur).",
@@ -2514,6 +2518,15 @@
     "serviceTab": "Service"
   },
   "routeV2": {
+    "subdomainPlaceholder": "sous-domaine (facultatif)",
+    "subdomainLabel": "Sous-domaine du nom d’hôte {number}",
+    "domainLabel": "Domaine du nom d’hôte {number}",
+    "removeHostname": "Retirer le nom d’hôte {number}",
+    "hostnamesHelp": "Le routeur répond sur chaque nom d’hôte de la liste. Laissez le sous-domaine vide pour utiliser le domaine lui-même.",
+    "addHostname": "Ajouter un nom d’hôte",
+    "duplicateHost": "Ce nom d’hôte est déjà dans la liste.",
+    "resolverMismatch": "Ce domaine obtient ses certificats d’un autre résolveur. Un routeur n’a qu’un résolveur : choisissez un domaine sur le même résolveur, ou utilisez un second routeur.",
+    "hostnames": "Noms d’hôte",
     "customizeAction": "Personnaliser",
     "dialogCustomize": "Personnaliser {name}",
     "customizeNotice": "Cela enregistre une nouvelle route gérée par Console, avec les mêmes réglages et la priorité {priority}, pour qu’elle remplace {name}. Modifiez ce dont vous avez besoin (middlewares, résolveur de certificats...). {name} reste en secours : supprimez cette route pour y revenir.",
@@ -3314,6 +3327,7 @@
       "unconfigured": "Définissez CROWDSEC_LAPI_URL sur la Console et redémarrez-la avant d’activer CrowdSec. La Console n’installe pas le moteur."
     },
     "alerts": {
+      "blocklistTooLarge": "Les alertes de liste de blocage sont trop volumineuses pour être listées ici : chacune contient toutes les IP récupérées. Leurs bannissements sont dans l’onglet Décisions.",
       "title": "Alertes CrowdSec",
       "time": "Date",
       "scenario": "Scénario",
@@ -3923,6 +3937,12 @@
       }
     },
     "dialog": {
+      "domainChoice": "Ce routeur répond déjà sur un domaine",
+      "domainAdd": "Ajouter comme autre nom d’hôte",
+      "domainAddHelp": "Garder {domain} et répondre aussi sur ce domaine.",
+      "domainReplace": "Passer sur ce domaine",
+      "domainReplaceHelp": "Remplacer les noms d’hôte et le TLS du routeur par ceux de ce domaine.",
+      "hostsWithout": "Ses noms d’hôte sur {domain} sont retirés ; les autres restent.",
       "removeTitle": "Supprimer le lien",
       "tabs": "Étapes du lien",
       "tabLink": "Lien",

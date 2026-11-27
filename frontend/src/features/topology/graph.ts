@@ -188,7 +188,10 @@ export function buildGraph(inv: Inventory): Graph {
 		const route = byId.get(nodeId('route', r.name))!;
 		const c = r.config;
 		for (const ep of c.entry_points ?? []) link('route-entrypoint', route, resolve(['entrypoint'], ep, route));
-		if (c.domain_name) link('route-domain', route, resolve(['domain'], c.domain_name, route));
+		if (c.domain_name) {
+			link('route-domain', route, resolve(['domain'], c.domain_name, route));
+			for (const extra of c.extra_domains ?? []) link('route-domain', route, resolve(['domain'], extra.domain_name, route));
+		}
 		else if (c.tls?.cert_resolver) link('route-resolver', route, resolve(['resolver'], c.tls.cert_resolver, route));
 		(c.middlewares ?? []).forEach((ref, i) => link('route-middleware', route, resolve(['middleware', 'chain'], ref, route), i + 1));
 		if (c.service) link('route-service', route, resolve(['service'], c.service, route));
@@ -523,6 +526,8 @@ export function canDisconnect(graph: Graph, edge: GraphEdge): ConnectResult {
 	const subject = graph.byId.get(edge.subject)!, object = graph.byId.get(edge.object)!;
 	if (edge.relation === 'middleware-service') return { ok: false, error: 'incompatible', subject };
 	if (subject.readOnly || !subject.resource) return { ok: false, error: 'readOnly', subject };
+	// A route keeps at least one domain: one of several hostnames' domains can go (the next one becomes the main one).
+	if (edge.relation === 'route-domain' && (((subject.resource as RouterResource).config.extra_domains ?? []).length > 0)) return { ok: true, connection: { relation: edge.relation, subject, object } };
 	if (edge.relation === 'route-service' || edge.relation === 'route-domain' || edge.relation === 'domain-resolver' || edge.relation === 'domain-certificate') return { ok: false, error: 'required', subject };
 	if (edge.relation === 'chain-middleware' && ((subject.resource as ChainResource).config.middlewares ?? []).length <= 1) return { ok: false, error: 'required', subject };
 	return { ok: true, connection: { relation: edge.relation, subject, object } };
@@ -538,6 +543,8 @@ export interface ConnectOptions {
 	/** route-domain: optional subdomain and path prefix. */
 	subdomain?: string;
 	pathPrefix?: string;
+	/** route-domain on a route that already has a domain: answer on one more hostname (default), or move to this domain. */
+	domainMode?: 'add' | 'replace';
 }
 
 export type Change =
@@ -582,11 +589,23 @@ export function buildChange(c: Connection, op: 'add' | 'remove', opts: ConnectOp
 			form.service = object.name;
 			break;
 		case 'route-domain':
+			if (op === 'remove') {
+				// Drop every hostname on that domain; the first remaining one becomes the main hostname.
+				const all = [{ domainName: form.domainName, subdomain: form.subdomain }, ...form.extraHosts].filter((h) => h.domainName !== object.name);
+				if (all.length) { form.domainName = all[0].domainName; form.subdomain = all[0].subdomain; form.extraHosts = all.slice(1); }
+				break;
+			}
+			if (form.mode === 'domain' && form.domainName && opts.domainMode !== 'replace') {
+				form.extraHosts = [...form.extraHosts, { domainName: object.name, subdomain: opts.subdomain ?? '' }];
+				if (opts.pathPrefix !== undefined) form.pathPrefix = opts.pathPrefix;
+				break;
+			}
 			// A hand-written rule has no path prefix of its own; hosts mode keeps the one it had.
 			if (form.mode === 'rule') form.pathPrefix = '';
 			form.mode = 'domain';
 			form.domainName = object.name;
 			form.subdomain = opts.subdomain ?? '';
+			form.extraHosts = [];
 			if (opts.pathPrefix !== undefined) form.pathPrefix = opts.pathPrefix;
 			break;
 		case 'route-resolver':

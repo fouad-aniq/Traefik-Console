@@ -29,7 +29,7 @@ func AnnotateDomain(d *models.UIResource[models.DomainConfig], src DomainSources
 	}
 	u := &models.DomainUsage{Routers: []models.RouterRef{}, Certificates: certs}
 	for _, r := range src.Routers {
-		if r.Config.DomainName == d.Name {
+		if r.Config.UsesDomain(d.Name) {
 			u.Routers = append(u.Routers, routerRef(r))
 		}
 	}

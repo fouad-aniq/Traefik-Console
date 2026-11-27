@@ -205,3 +205,25 @@ func TestListDomainsComputesUsedBy(t *testing.T) {
 		t.Errorf("UsedBy = %v, want [site]", items[0].Config.UsedBy)
 	}
 }
+
+func TestExtraHostnameCountsAsUsingTheDomain(t *testing.T) {
+	routerRaw, _ := json.Marshal(models.RouterConfig{DomainName: "old", Service: "svc", ExtraDomains: []models.RouterHost{{DomainName: "new", Subdomain: "git"}}})
+	store := &stubStore{items: map[string]*models.ConfigItemRow{
+		"domain:old":  activeRow(t, models.KindDomain, "old", models.DomainConfig{Name: "old", Main: "example.com"}),
+		"domain:new":  activeRow(t, models.KindDomain, "new", models.DomainConfig{Name: "new", Main: "example.net"}),
+		"router:site": {ID: "router:site", Kind: models.KindRouter, Name: "site", Payload: routerRaw},
+	}}
+	mgr := NewDomainManager(store, stubFiles{}, nil, fakeApplier{store})
+	items, err := mgr.ListDomains(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range items {
+		if len(item.Config.UsedBy) != 1 || item.Config.UsedBy[0] != "site" {
+			t.Errorf("%s UsedBy = %v, want [site]", item.Name, item.Config.UsedBy)
+		}
+	}
+	if _, err := mgr.DeleteDomain(context.Background(), "new", models.WriteOptions{}); !errors.Is(err, ErrDomainInUse) {
+		t.Fatalf("deleting a domain an extra hostname uses: %v, want ErrDomainInUse", err)
+	}
+}

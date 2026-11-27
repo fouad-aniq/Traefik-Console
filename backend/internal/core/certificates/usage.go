@@ -72,13 +72,20 @@ func ACMEUsage(names []string, resolver string, domains domainList, routers rout
 		if r.Config.TLS == nil || r.Config.TLS.CertResolver != resolver {
 			continue
 		}
+		listed := false
 		for _, h := range routerHosts(r.Config) {
-			if Covers(names, h) {
+			if !Covers(names, h) {
+				continue
+			}
+			if !listed {
 				out.Routers = append(out.Routers, routerRef(r))
-				if r.Config.DomainName != "" {
-					viaRouters[r.Config.DomainName] = true
+				listed = true
+			}
+			// The certificate serves this router through the domain(s) the covered host belongs to.
+			for _, d := range domains {
+				if r.Config.UsesDomain(d.Name) && hostInZone(h, d.Config) {
+					viaRouters[d.Name] = true
 				}
-				break
 			}
 		}
 	}
@@ -89,6 +96,11 @@ func ACMEUsage(names []string, resolver string, domains domainList, routers rout
 	}
 	sortUsage(out)
 	return out
+}
+
+// hostInZone reports whether host is the domain itself, one of its names, or a host under it.
+func hostInZone(host string, d models.DomainConfig) bool {
+	return namesInZone([]string{host}, d)
 }
 
 func namesInZone(names []string, d models.DomainConfig) bool {
@@ -119,8 +131,11 @@ func UploadedUsage(name string, domains domainList, routers routerList) *models.
 		}
 	}
 	for _, r := range routers {
-		if r.Config.DomainName != "" && selected[r.Config.DomainName] {
-			out.Routers = append(out.Routers, routerRef(r))
+		for _, name := range r.Config.DomainNames() {
+			if selected[name] {
+				out.Routers = append(out.Routers, routerRef(r))
+				break
+			}
 		}
 	}
 	sortUsage(out)

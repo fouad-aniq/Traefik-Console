@@ -253,3 +253,28 @@ func TestARouterStillNeedsAServiceOrTheNoBackendChoice(t *testing.T) {
 		}
 	}
 }
+
+func TestUpsertRouterAnswersOnExtraDomains(t *testing.T) {
+	old := activeRow(t, models.KindDomain, "old", models.DomainConfig{Name: "old", Main: "example.com", Method: "resolver", Resolver: "cf-prod"})
+	next := activeRow(t, models.KindDomain, "next", models.DomainConfig{Name: "next", Main: "example.net", Method: "resolver", Resolver: "cf-prod"})
+	mgr := newTestManager(t, old, next)
+	item, err := mgr.UpsertRouter(context.Background(), "git", models.RouterConfig{
+		DomainName: "old", Subdomain: "git", Service: "gitea",
+		ExtraDomains: []models.RouterHost{{DomainName: "next", Subdomain: "git"}},
+	}, models.WriteOptions{})
+	if err != nil {
+		t.Fatalf("UpsertRouter() error = %v", err)
+	}
+	cfg := item.Resource.Config
+	if cfg.Rule != "(Host(`git.example.com`) || Host(`git.example.net`))" {
+		t.Errorf("Rule = %q", cfg.Rule)
+	}
+	if len(cfg.ExtraDomains) != 1 || cfg.ExtraDomains[0].DomainName != "next" {
+		t.Errorf("ExtraDomains = %+v", cfg.ExtraDomains)
+	}
+	if _, err := mgr.UpsertRouter(context.Background(), "git", models.RouterConfig{
+		DomainName: "old", Service: "gitea", ExtraDomains: []models.RouterHost{{DomainName: "ghost"}},
+	}, models.WriteOptions{}); !errors.Is(err, ErrRouterDomainNotFound) {
+		t.Fatalf("unknown extra domain: %v, want ErrRouterDomainNotFound", err)
+	}
+}

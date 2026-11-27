@@ -81,8 +81,10 @@ func (m *domainManager) domainUsage(ctx context.Context) (map[string][]string, e
 	usedBy := make(map[string][]string)
 	for _, rRow := range routerRows {
 		var rCfg models.RouterConfig
-		if json.Unmarshal(rRow.Payload, &rCfg) == nil && rCfg.DomainName != "" {
-			usedBy[rCfg.DomainName] = append(usedBy[rCfg.DomainName], rRow.Name)
+		if json.Unmarshal(rRow.Payload, &rCfg) == nil {
+			for _, domain := range rCfg.DomainNames() {
+				usedBy[domain] = append(usedBy[domain], rRow.Name)
+			}
 		}
 	}
 	return usedBy, nil
@@ -185,7 +187,7 @@ func (m *domainManager) DeleteDomain(ctx context.Context, name string, opts mode
 	}
 	for _, rRow := range routers {
 		var rCfg models.RouterConfig
-		if json.Unmarshal(rRow.Payload, &rCfg) == nil && rCfg.DomainName == name {
+		if json.Unmarshal(rRow.Payload, &rCfg) == nil && rCfg.UsesDomain(name) {
 			return nil, fmt.Errorf("%w: used by router '%s'", ErrDomainInUse, rRow.Name)
 		}
 	}
@@ -379,14 +381,32 @@ func (m *domainManager) probeHost(ctx context.Context, name string, d models.Dom
 	var hosts []string
 	for _, row := range rows {
 		var r models.RouterConfig
-		if json.Unmarshal(row.Payload, &r) != nil || r.DomainName != name {
+		if json.Unmarshal(row.Payload, &r) != nil || !r.UsesDomain(name) {
 			continue
 		}
-		hosts = append(hosts, r.Domains...)
+		// A router with hostnames on several domains: only the ones inside this domain.
+		inZone := func(h string) bool {
+			h = strings.ToLower(strings.TrimSpace(h))
+			for _, zone := range append([]string{d.Main}, d.SANs...) {
+				z := strings.TrimPrefix(strings.ToLower(zone), "*.")
+				if h == z || h == "*."+z || strings.HasSuffix(h, "."+z) {
+					return true
+				}
+			}
+			return false
+		}
+		for _, h := range r.Domains {
+			if inZone(h) {
+				hosts = append(hosts, h)
+			}
+		}
 		if r.TLS != nil {
 			for _, td := range r.TLS.Domains {
-				hosts = append(hosts, td.Main)
-				hosts = append(hosts, td.SANs...)
+				for _, h := range append([]string{td.Main}, td.SANs...) {
+					if inZone(h) {
+						hosts = append(hosts, h)
+					}
+				}
 			}
 		}
 	}
