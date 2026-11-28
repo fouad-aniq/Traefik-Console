@@ -3,6 +3,7 @@ package crowdsec
 import (
 	"bufio"
 	"context"
+	"github.com/traefik-console/internal/project"
 	"io"
 	"math"
 	"net/http"
@@ -69,7 +70,7 @@ func (m *crowdsecManager) metricsFrom(ctx context.Context, metricsURL, token, ac
 		return result
 	}
 	req.Header.Set("Accept", "text/plain")
-	req.Header.Set("User-Agent", "Traefik-Console/2.0")
+	req.Header.Set("User-Agent", project.UserAgent())
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}

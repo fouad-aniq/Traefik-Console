@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/traefik-console/internal/project"
 )
 
 func TestSemverPrecedence(t *testing.T) {
@@ -70,7 +72,7 @@ func TestPicksTheNewestReleaseOfTheSameChannel(t *testing.T) {
 		c.URL = s.URL
 		c.Refresh(context.Background())
 		got := c.Latest()
-		if (got == nil) != (tc.want == "") || got != nil && (got.Version != tc.want || got.URL != "https://github.com/"+Repository+"/releases/tag/v"+tc.want) {
+		if (got == nil) != (tc.want == "") || got != nil && (got.Version != tc.want || got.URL != "https://github.com/"+project.Repository+"/releases/tag/v"+tc.want) {
 			t.Fatalf("current %s: got %+v, want %q", tc.current, got, tc.want)
 		}
 	}

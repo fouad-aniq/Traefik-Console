@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/traefik-console/internal/docker"
+	"github.com/traefik-console/internal/project"
 )
 
 const maxLAPIResponseBytes = 1 << 20
@@ -92,7 +93,7 @@ func (m *crowdsecManager) doLAPIWithin(ctx context.Context, maxBytes int, machin
 		return ErrCrowdSecUnreachable
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Traefik-Console/2.0")
+	req.Header.Set("User-Agent", project.UserAgent())
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

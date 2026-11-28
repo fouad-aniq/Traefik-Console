@@ -15,12 +15,13 @@ import (
 
 	"github.com/traefik-console/internal/engine"
 	"github.com/traefik-console/internal/models"
+	"github.com/traefik-console/internal/project"
 )
 
 const (
 	crowdsecPluginShortName = "crowdsec-bouncer"
-	crowdsecPluginModule    = "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
-	crowdsecDefaultVersion  = "v1.8.1"
+	crowdsecPluginModule    = project.CrowdSecPluginModule
+	crowdsecDefaultVersion  = project.CrowdSecPluginVersion
 	crowdsecSecretName      = "crowdsec_lapi_key"
 	crowdsecMachineSecret   = "crowdsec_machine_password"
 	crowdsecCACertSecret    = "crowdsec_ca_certificate"
@@ -645,7 +646,7 @@ func (m *crowdsecManager) verifyLAPIConnection(ctx context.Context, lapiURL, api
 	if apiKey != "" {
 		req.Header.Set("X-Api-Key", apiKey)
 	}
-	req.Header.Set("User-Agent", "Traefik-Console-Verifier/1.0")
+	req.Header.Set("User-Agent", project.UserAgent())
 
 	resp, err := clientCopy.Do(req)
 	if err != nil {

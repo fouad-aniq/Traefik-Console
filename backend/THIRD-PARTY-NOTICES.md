@@ -4,12 +4,12 @@ Versions are retained from the existing pinned go.mod/go.sum; no dependency upgr
 
 A symbol-level binary govulncheck scan is evidence about known Go advisories, not an OS/image scan, proof of active upstream maintenance, or an automatic upgrade recommendation. The source scanner available here cannot parse Go 1.27; that limitation remains disclosed.
 
-## Optional external Traefik plugin — CrowdSec bouncer v1.8.1
+## Optional external Traefik plugin — CrowdSec bouncer v1.8.2
 
 The Console can declare `github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin`
-`v1.8.1`, but does not compile or redistribute that plugin. Traefik downloads the
+`v1.8.2`, but does not compile or redistribute that plugin. Traefik downloads the
 external plugin at runtime. The reviewed upstream license is Apache License 2.0:
-<https://github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin/blob/v1.8.1/LICENSE>.
+<https://github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin/blob/v1.8.2/LICENSE>.
 Its terms apply to the plugin itself, not to a claim of live compatibility or a
 Console redistribution of upstream code.
 

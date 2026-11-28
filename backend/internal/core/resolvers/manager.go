@@ -25,6 +25,7 @@ import (
 	"github.com/traefik-console/internal/engine"
 	"github.com/traefik-console/internal/models"
 	"github.com/traefik-console/internal/presentation"
+	"github.com/traefik-console/internal/project"
 	"github.com/traefik-console/internal/traefik/status"
 )
 
@@ -271,10 +272,10 @@ func (m *resolverManager) validateAndBuild(ctx context.Context, r *models.Resolv
 
 	switch r.Environment {
 	case "staging":
-		r.CAURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
+		r.CAURL = project.LetsEncryptStagingURL
 	case "production", "":
 		r.Environment = "production"
-		r.CAURL = "https://acme-v02.api.letsencrypt.org/directory"
+		r.CAURL = project.LetsEncryptProductionURL
 	case "custom":
 		u, err := url.Parse(r.CAURL)
 		if err != nil || u.Scheme != "https" || u.Host == "" {

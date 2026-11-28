@@ -4,15 +4,13 @@ package updates
 import (
 	"context"
 	"encoding/json"
+	"github.com/traefik-console/internal/project"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 )
-
-// Repository is where Traefik Console releases are published.
-const Repository = "fouad-aniq/Traefik-Console"
 
 // Release is a newer published version and its release notes page.
 type Release struct {
@@ -52,9 +50,9 @@ func New(currentVersion string, enabled bool) *Checker {
 	return &Checker{
 		current:    current,
 		includePre: current.prerelease(),
-		URL:        "https://api.github.com/repos/" + Repository + "/releases?per_page=30",
+		URL:        project.ReleasesAPIURL(),
 		Client:     &http.Client{Timeout: 15 * time.Second},
-		MaxAge:     5 * time.Minute,
+		MaxAge:     project.UpdateCheckInterval,
 		now:        time.Now,
 	}
 }
@@ -129,7 +127,7 @@ func (c *Checker) fetch(ctx context.Context, etag string) (*Release, string, boo
 		return nil, "", false
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "traefik-console-update-check")
+	req.Header.Set("User-Agent", project.UserAgent())
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
 	}
@@ -154,7 +152,7 @@ func (c *Checker) fetch(ctx context.Context, etag string) (*Release, string, boo
 		}
 		if best == nil || v.compare(bestVersion) > 0 {
 			// The link is built from the validated tag, never taken from the response.
-			best, bestVersion = &Release{Version: trimV(r.TagName), URL: "https://github.com/" + Repository + "/releases/tag/" + r.TagName}, v
+			best, bestVersion = &Release{Version: trimV(r.TagName), URL: project.ReleasePageURL(r.TagName)}, v
 		}
 	}
 	return best, resp.Header.Get("ETag"), true

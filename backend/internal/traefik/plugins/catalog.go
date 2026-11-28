@@ -15,10 +15,11 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/traefik-console/internal/models"
+	"github.com/traefik-console/internal/project"
 	"github.com/traefik-console/internal/traefik/validation"
 )
 
-const traefikCatalogURL = "https://plugins.traefik.io/api/services/plugins"
+const traefikCatalogURL = project.PluginCatalogURL
 
 type catalogEntry struct {
 	Import        string         `json:"import"`

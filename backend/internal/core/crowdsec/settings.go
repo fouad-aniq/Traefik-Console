@@ -11,6 +11,7 @@ import (
 
 	"github.com/traefik-console/internal/docker"
 	"github.com/traefik-console/internal/models"
+	"github.com/traefik-console/internal/project"
 )
 
 const (
@@ -489,7 +490,7 @@ func (m *crowdsecManager) endpointAnswersStatus(ctx context.Context, rawURL stri
 	if err != nil {
 		return false
 	}
-	req.Header.Set("User-Agent", "Traefik-Console-Verifier/1.0")
+	req.Header.Set("User-Agent", project.UserAgent())
 	resp, err := copyClient.Do(req)
 	if err != nil {
 		return false
