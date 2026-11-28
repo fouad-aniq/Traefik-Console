@@ -5,13 +5,15 @@ GOPROXY ?= off
 OUTPUT ?= $(abspath ../.scratch/backend-build)
 export GOCACHE GOPROXY
 export GOTOOLCHAIN := local
-.PHONY: toolchain deps format-check vet test race contract build verify
+.PHONY: toolchain deps format format-check vet test race contract build verify
 toolchain:
 	@test "$$(go env GOVERSION)" = "$(GO_VERSION)" || { echo "Require exact $(GO_VERSION)"; exit 1; }
 deps: toolchain
 	go mod download
+format: toolchain
+	"$(GOFMT)" -w .
 format-check: toolchain
-	@test -z "$$("$(GOFMT)" -l .)"
+	@files="$$("$(GOFMT)" -l .)"; test -z "$$files" || { echo "Not gofmt-formatted (run make format):"; echo "$$files"; exit 1; }
 vet: toolchain
 	go vet ./...
 test: toolchain
