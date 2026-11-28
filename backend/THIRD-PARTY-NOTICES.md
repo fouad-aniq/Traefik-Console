@@ -156,7 +156,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/crypto v0.58.0 — LICENSE
+## golang.org/x/crypto v0.59.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -188,7 +188,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/net v0.62.0 — LICENSE
+## golang.org/x/net v0.63.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -220,7 +220,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/sys v0.49.0 — LICENSE
+## golang.org/x/sys v0.50.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -252,7 +252,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/text v0.43.0 — LICENSE
+## golang.org/x/text v0.44.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -357,7 +357,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## modernc.org/libc v1.79.0 — LICENSE
+## modernc.org/libc v1.82.14 — LICENSE
 
 ```text
 Copyright (c) 2017 The Libc Authors. All rights reserved.
@@ -389,7 +389,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/libc v1.79.0 — LICENSE-3RD-PARTY.md
+## modernc.org/libc v1.82.14 — LICENSE-3RD-PARTY.md
 
 ```text
 # Third-Party Software Notices
@@ -731,7 +731,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/memory v1.12.1 — LICENSE
+## modernc.org/memory v1.13.1 — LICENSE
 
 ```text
 Copyright (c) 2017 The Memory Authors. All rights reserved.
@@ -763,7 +763,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/memory v1.12.1 — LICENSE-GO
+## modernc.org/memory v1.13.1 — LICENSE-GO
 
 ```text
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -795,13 +795,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/memory v1.12.1 — LICENSE-LOGO
+## modernc.org/memory v1.13.1 — LICENSE-LOGO
 
 ```text
 https://commons.wikimedia.org/wiki/File:Memory_infra_logo.png
 ```
 
-## modernc.org/memory v1.12.1 — LICENSE-MMAP-GO
+## modernc.org/memory v1.13.1 — LICENSE-MMAP-GO
 
 ```text
 Copyright (c) 2011, Evan Shaw <edsrzf@gmail.com>
@@ -830,7 +830,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/sqlite v1.61.1 — LICENSE
+## modernc.org/sqlite v1.63.0 — LICENSE
 
 ```text
 Copyright (c) 2017 The Sqlite Authors. All rights reserved.
@@ -861,7 +861,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## modernc.org/sqlite v1.61.1 — LICENSE-3RD-PARTY.md
+## modernc.org/sqlite v1.63.0 — LICENSE-3RD-PARTY.md
 
 ```text
 # Third-Party Licenses
@@ -909,7 +909,7 @@ and license texts it points at are the ones you have to carry with you.
 | [Go](https://github.com/golang/go) | -- | BSD-3-Clause | modernc.org/libc | [N1](#N1) |
 | [go-netdb](https://github.com/dominikh/go-netdb) | -- | MIT | modernc.org/libc | [N1](#N1) |
 | [golang.org/x/sys](https://pkg.go.dev/golang.org/x/sys) | v0.49.0 | BSD-3-Clause | github.com/google/pprof, github.com/mattn/go-isatty, modernc.org/libc, modernc.org/memory, `go.mod` | [L3](#L3) |
-| [modernc.org/libc](https://pkg.go.dev/modernc.org/libc) | v1.79.0 | BSD-3-Clause | `go.mod` | [L4](#L4) |
+| [modernc.org/libc](https://pkg.go.dev/modernc.org/libc) | v1.80.1 | BSD-3-Clause | `go.mod` | [L4](#L4) |
 | [modernc.org/mathutil](https://pkg.go.dev/modernc.org/mathutil) | v1.7.1 | BSD-3-Clause | modernc.org/fileutil, modernc.org/libc, modernc.org/memory, `go.mod` | [L4](#L4) |
 | [modernc.org/memory](https://pkg.go.dev/modernc.org/memory) | v1.12.1 | BSD-3-Clause, attribution reference | modernc.org/libc, `go.mod` | [L4](#L4), [L2](#L2), [L5](#L5), [L6](#L6) |
 | [musl libc](https://musl.libc.org/) | -- | MIT | modernc.org/libc | [N1](#N1) |
@@ -954,8 +954,8 @@ this one.
 | [golang.org/x/mod](https://pkg.go.dev/golang.org/x/mod) | v0.42.0 | BSD-3-Clause | modernc.org/libc | [L3](#L3) |
 | [golang.org/x/sync](https://pkg.go.dev/golang.org/x/sync) | v0.24.0 | BSD-3-Clause | modernc.org/libc | [L3](#L3) |
 | [golang.org/x/tools](https://pkg.go.dev/golang.org/x/tools) | v0.52.0 | BSD-3-Clause | modernc.org/libc | [L3](#L3) |
-| [modernc.org/cc/v4](https://pkg.go.dev/modernc.org/cc/v4) | v4.30.3 | BSD-3-Clause | modernc.org/libc | [L4](#L4) |
-| [modernc.org/ccgo/v4](https://pkg.go.dev/modernc.org/ccgo/v4) | v4.37.0 | BSD-3-Clause | modernc.org/libc | [L4](#L4) |
+| [modernc.org/cc/v4](https://pkg.go.dev/modernc.org/cc/v4) | v4.30.6-0.20261101114202-1b9d1a076f6b | BSD-3-Clause | modernc.org/libc | [L4](#L4) |
+| [modernc.org/ccgo/v4](https://pkg.go.dev/modernc.org/ccgo/v4) | v4.38.1 | BSD-3-Clause | modernc.org/libc | [L4](#L4) |
 | [modernc.org/gc/v2](https://pkg.go.dev/modernc.org/gc/v2) | v2.6.5 | BSD-3-Clause | modernc.org/libc | [L16](#L16) |
 | [modernc.org/gc/v3](https://pkg.go.dev/modernc.org/gc/v3) | v3.2.0 | BSD-3-Clause | modernc.org/libc | [L16](#L16) |
 | [modernc.org/goabi0](https://pkg.go.dev/modernc.org/goabi0) | v0.2.0 | BSD-3-Clause | modernc.org/libc | [L17](#L17) |
@@ -2480,7 +2480,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ---
 ```
 
-## modernc.org/sqlite v1.61.1 — LICENSE-SQLITE
+## modernc.org/sqlite v1.63.0 — LICENSE-SQLITE
 
 ```text
 SQLite Is Public Domain
@@ -2510,7 +2510,7 @@ public domain dedications on file. So the SQLite code base is clean and is
 uncontaminated with licensed code from other projects.
 ```
 
-## modernc.org/sqlite v1.61.1 — LICENSE-SQLITE_VEC
+## modernc.org/sqlite v1.63.0 — LICENSE-SQLITE_VEC
 
 ```text
 MIT License

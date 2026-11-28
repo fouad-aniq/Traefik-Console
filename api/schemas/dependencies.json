@@ -45,7 +45,7 @@
     },
     {
       "module": "golang.org/x/crypto",
-      "version": "v0.58.0",
+      "version": "v0.59.0",
       "license_files": [
         {
           "name": "LICENSE",
@@ -55,7 +55,7 @@
     },
     {
       "module": "golang.org/x/net",
-      "version": "v0.62.0",
+      "version": "v0.63.0",
       "license_files": [
         {
           "name": "LICENSE",
@@ -65,7 +65,7 @@
     },
     {
       "module": "golang.org/x/sys",
-      "version": "v0.49.0",
+      "version": "v0.50.0",
       "license_files": [
         {
           "name": "LICENSE",
@@ -75,7 +75,7 @@
     },
     {
       "module": "golang.org/x/text",
-      "version": "v0.43.0",
+      "version": "v0.44.0",
       "license_files": [
         {
           "name": "LICENSE",
@@ -99,7 +99,7 @@
     },
     {
       "module": "modernc.org/libc",
-      "version": "v1.79.0",
+      "version": "v1.82.14",
       "license_files": [
         {
           "name": "LICENSE",
@@ -123,7 +123,7 @@
     },
     {
       "module": "modernc.org/memory",
-      "version": "v1.12.1",
+      "version": "v1.13.1",
       "license_files": [
         {
           "name": "LICENSE",
@@ -145,7 +145,7 @@
     },
     {
       "module": "modernc.org/sqlite",
-      "version": "v1.61.1",
+      "version": "v1.63.0",
       "license_files": [
         {
           "name": "LICENSE",
@@ -153,7 +153,7 @@
         },
         {
           "name": "LICENSE-3RD-PARTY.md",
-          "sha256": "4194f8e7119be72babd499db4f6f1f7547e36e8a7bffcb2b9c8df241b8f1576a"
+          "sha256": "f4a00ade8f4057ab0ea49097d9c459df8559fcf10ca78da0c950343fb7428d37"
         },
         {
           "name": "LICENSE-SQLITE",
