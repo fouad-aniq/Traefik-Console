@@ -7,8 +7,16 @@
  *
  * Hosts that are IPv6 literals are shown without brackets and bracketed when joined.
  */
-export interface UrlParts { scheme: string; host: string; port: string; path: string }
-export interface AddressParts { host: string; port: string }
+export interface UrlParts {
+	scheme: string;
+	host: string;
+	port: string;
+	path: string;
+}
+export interface AddressParts {
+	host: string;
+	port: string;
+}
 
 const KNOWN_SCHEME = /^(https?|h2c):\/\//i;
 const ANY_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
@@ -58,4 +66,5 @@ export function joinAddress(p: AddressParts): string {
 }
 
 /** True when typed or pasted text into the host field carries more than a host. */
-export const carriesMore = (text: string) => ANY_SCHEME.test(text.trim()) || (/[:/]/.test(text) && !bareIPv6(text.trim()));
+export const carriesMore = (text: string) =>
+	ANY_SCHEME.test(text.trim()) || (/[:/]/.test(text) && !bareIPv6(text.trim()));

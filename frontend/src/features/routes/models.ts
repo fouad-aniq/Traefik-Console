@@ -16,8 +16,13 @@ import { normalizeDomain } from '../domains/models';
 export type RouterProtocol = 'http' | 'tcp' | 'udp';
 export const ROUTER_PROTOCOLS: RouterProtocol[] = ['http', 'tcp', 'udp'];
 /** Each router opens under the base path of its own protocol, so the dialog knows which editor to show. */
-export const ROUTER_BASE: Record<RouterProtocol, string> = { http: '/routers', tcp: '/tcp-routers', udp: '/udp-routers' };
-export const routerProtocolOf = (c: { protocol?: string } | null | undefined): RouterProtocol => (c?.protocol === 'tcp' || c?.protocol === 'udp' ? c.protocol : 'http');
+export const ROUTER_BASE: Record<RouterProtocol, string> = {
+	http: '/routers',
+	tcp: '/tcp-routers',
+	udp: '/udp-routers',
+};
+export const routerProtocolOf = (c: { protocol?: string } | null | undefined): RouterProtocol =>
+	c?.protocol === 'tcp' || c?.protocol === 'udp' ? c.protocol : 'http';
 
 export interface RouterTLS {
 	enabled?: boolean;
@@ -28,7 +33,10 @@ export interface RouterTLS {
 	domains?: { main: string; sans?: string[] | null }[] | null;
 }
 /** One more hostname of a domain-bound router: an optional subdomain of a managed domain. */
-export interface RouterHost { domain_name: string; subdomain?: string }
+export interface RouterHost {
+	domain_name: string;
+	subdomain?: string;
+}
 
 export interface RouterConfig {
 	/** http when absent. */
@@ -98,27 +106,55 @@ export const MAX_HOSTS = 20;
 
 export const newForm = (protocol: RouterProtocol = 'http'): RouteForm => ({
 	protocol,
-	name: '', mode: protocol === 'tcp' ? 'any' : 'domain', domainName: '', subdomain: '', extraHosts: [], hosts: '', pathPrefix: '', customRule: '',
-	entryPoints: [], service: '', middlewares: [], priority: '',
+	name: '',
+	mode: protocol === 'tcp' ? 'any' : 'domain',
+	domainName: '',
+	subdomain: '',
+	extraHosts: [],
+	hosts: '',
+	pathPrefix: '',
+	customRule: '',
+	entryPoints: [],
+	service: '',
+	middlewares: [],
+	priority: '',
 	// A TCP router matching every connection is usually plain TCP; HTTP routers default to HTTPS.
-	tlsEnabled: protocol === 'http', tlsPassthrough: false, tlsResolver: '', tlsOptions: ''
+	tlsEnabled: protocol === 'http',
+	tlsPassthrough: false,
+	tlsResolver: '',
+	tlsOptions: '',
 });
 
-export const parseHosts = (text: string) => text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+export const parseHosts = (text: string) =>
+	text
+		.split(/[\n,]+/)
+		.map((s) => s.trim())
+		.filter(Boolean);
 
 export function formFrom(name: string, c: RouterConfig): RouteForm {
 	const protocol = routerProtocolOf(c);
 	const base = newForm(protocol);
 	const custom = c.custom_rule || c.rule || '';
-	const mode: MatchMode = protocol === 'tcp' && custom === MATCH_ANY && !c.domain_name ? 'any'
-		: c.domain_name ? 'domain' : c.custom_rule ? 'rule' : (c.domains ?? []).length ? 'host' : 'rule';
+	const mode: MatchMode =
+		protocol === 'tcp' && custom === MATCH_ANY && !c.domain_name
+			? 'any'
+			: c.domain_name
+				? 'domain'
+				: c.custom_rule
+					? 'rule'
+					: (c.domains ?? []).length
+						? 'host'
+						: 'rule';
 	return {
 		...base,
 		name,
 		mode,
 		domainName: c.domain_name ?? '',
 		subdomain: c.subdomain ?? '',
-		extraHosts: mode === 'domain' ? (c.extra_domains ?? []).map((h) => ({ domainName: h.domain_name, subdomain: h.subdomain ?? '' })) : [],
+		extraHosts:
+			mode === 'domain'
+				? (c.extra_domains ?? []).map((h) => ({ domainName: h.domain_name, subdomain: h.subdomain ?? '' }))
+				: [],
 		hosts: mode === 'host' ? (c.domains ?? []).join('\n') : '',
 		pathPrefix: c.path_prefix ?? '',
 		customRule: mode === 'rule' ? custom : '',
@@ -129,7 +165,7 @@ export function formFrom(name: string, c: RouterConfig): RouteForm {
 		tlsEnabled: mode === 'domain' ? true : !!c.tls,
 		tlsPassthrough: !!c.tls?.passthrough,
 		tlsResolver: c.tls?.cert_resolver ?? '',
-		tlsOptions: c.tls?.options ?? ''
+		tlsOptions: c.tls?.options ?? '',
 	};
 }
 
@@ -140,8 +176,13 @@ export function formFrom(name: string, c: RouterConfig): RouteForm {
  */
 export function customizeForm(source: RouterResource): RouteForm {
 	const c = source.config;
-	const qualify = (ref: string) => (ref.includes('@') || source.provider === 'file' || !source.provider ? ref : `${ref}@${source.provider}`);
-	const form = formFrom(source.name.split('@')[0] + '-custom', { ...c, service: c.service ? qualify(c.service) : c.service, middlewares: (c.middlewares ?? []).map(qualify) });
+	const qualify = (ref: string) =>
+		ref.includes('@') || source.provider === 'file' || !source.provider ? ref : `${ref}@${source.provider}`;
+	const form = formFrom(source.name.split('@')[0] + '-custom', {
+		...c,
+		service: c.service ? qualify(c.service) : c.service,
+		middlewares: (c.middlewares ?? []).map(qualify),
+	});
 	const rule = c.custom_rule || c.rule || '';
 	form.priority = String((c.priority || rule.length) + 1);
 	return form;
@@ -157,7 +198,11 @@ export function toInput(form: RouteForm): RouterInput {
 		out.domain_name = form.domainName;
 		if (form.subdomain.trim()) out.subdomain = form.subdomain.trim().toLowerCase();
 		if (form.extraHosts.length) {
-			out.extra_domains = form.extraHosts.map((h) => (h.subdomain.trim() ? { domain_name: h.domainName, subdomain: h.subdomain.trim().toLowerCase() } : { domain_name: h.domainName }));
+			out.extra_domains = form.extraHosts.map((h) =>
+				h.subdomain.trim()
+					? { domain_name: h.domainName, subdomain: h.subdomain.trim().toLowerCase() }
+					: { domain_name: h.domainName },
+			);
 		}
 	} else if (form.mode === 'host') {
 		out.domains = parseHosts(form.hosts).map((h) => normalizeDomain(h) ?? h);
@@ -166,7 +211,8 @@ export function toInput(form: RouteForm): RouterInput {
 	} else {
 		out.custom_rule = form.customRule.trim();
 	}
-	if (form.protocol === 'http' && (form.mode === 'domain' || form.mode === 'host') && form.pathPrefix.trim()) out.path_prefix = form.pathPrefix.trim();
+	if (form.protocol === 'http' && (form.mode === 'domain' || form.mode === 'host') && form.pathPrefix.trim())
+		out.path_prefix = form.pathPrefix.trim();
 	// HTTP and TCP routers both take middlewares (each from its own pool); UDP returned above.
 	if (form.middlewares.length) out.middlewares = form.middlewares.map((m) => m.trim());
 	const priority = form.priority.trim();
@@ -195,7 +241,11 @@ export function hostOn(domainMain: string, subdomain: string): string {
  * Hostnames the router will answer on, before the backend compiles them (for the live preview).
  * `mainOf` gives the main name of the domains of the extra hostnames; without it they are left out.
  */
-export function previewHosts(form: RouteForm, domainMain: string | undefined, mainOf?: (domain: string) => string | undefined): string[] {
+export function previewHosts(
+	form: RouteForm,
+	domainMain: string | undefined,
+	mainOf?: (domain: string) => string | undefined,
+): string[] {
 	if (form.mode === 'domain') {
 		if (!domainMain) return [];
 		const out = [hostOn(domainMain, form.subdomain)];
@@ -210,7 +260,11 @@ export function previewHosts(form: RouteForm, domainMain: string | undefined, ma
 }
 
 /** Client-side twin of core-v2 `CompileRouterRule` / `CompileTCPRule`, used only to preview the rule before the server compiles it. */
-export function previewRule(form: RouteForm, domainMain: string | undefined, mainOf?: (domain: string) => string | undefined): string {
+export function previewRule(
+	form: RouteForm,
+	domainMain: string | undefined,
+	mainOf?: (domain: string) => string | undefined,
+): string {
 	if (form.protocol === 'udp') return '';
 	if (form.mode === 'any') return MATCH_ANY;
 	if (form.mode === 'rule') return form.customRule.trim();
@@ -247,11 +301,13 @@ export function routerDefinition(c: RouterConfig): Record<string, unknown> {
 	const protocol = routerProtocolOf(c);
 	const tls = c.tls
 		? {
-			...(c.tls.passthrough ? { passthrough: true } : {}),
-			...(c.tls.cert_resolver ? { certResolver: c.tls.cert_resolver } : {}),
-			...(c.tls.options ? { options: c.tls.options } : {}),
-			...(c.tls.domains?.length ? { domains: c.tls.domains.map((d) => ({ main: d.main, ...(d.sans?.length ? { sans: d.sans } : {}) })) } : {})
-		}
+				...(c.tls.passthrough ? { passthrough: true } : {}),
+				...(c.tls.cert_resolver ? { certResolver: c.tls.cert_resolver } : {}),
+				...(c.tls.options ? { options: c.tls.options } : {}),
+				...(c.tls.domains?.length
+					? { domains: c.tls.domains.map((d) => ({ main: d.main, ...(d.sans?.length ? { sans: d.sans } : {}) })) }
+					: {}),
+			}
 		: undefined;
 	if (protocol === 'udp') {
 		if (!c.service && !(c.entry_points ?? []).length) return {};
@@ -264,6 +320,6 @@ export function routerDefinition(c: RouterConfig): Record<string, unknown> {
 		service: c.service ?? '',
 		...((c.middlewares ?? []).length ? { middlewares: c.middlewares } : {}),
 		...(c.priority ? { priority: c.priority } : {}),
-		...(tls ? { tls } : {})
+		...(tls ? { tls } : {}),
 	};
 }

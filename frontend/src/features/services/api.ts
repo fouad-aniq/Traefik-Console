@@ -12,5 +12,7 @@ export const deleteService = (name: string, version: number, opts?: WriteOptions
 	removeResource('/api/v1/services/' + encodeName(name), version, opts);
 /** Bounded read of Traefik's own runtime view; no backend URL is probed or returned. */
 export const diagnoseService = (name: string, protocol: ServiceProtocol = 'http', signal?: AbortSignal) =>
-	api.get<ServiceDiagnostic>('/api/v1/services/' + encodeName(name) + '/diagnostics' + (protocol === 'http' ? '' : '?protocol=' + protocol), { signal });
-
+	api.get<ServiceDiagnostic>(
+		'/api/v1/services/' + encodeName(name) + '/diagnostics' + (protocol === 'http' ? '' : '?protocol=' + protocol),
+		{ signal },
+	);

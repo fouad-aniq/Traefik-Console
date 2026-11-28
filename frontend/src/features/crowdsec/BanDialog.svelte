@@ -51,26 +51,67 @@
 	}
 </script>
 
-<ResourceDialog title={c('ban.title')} description={c('ban.description')} closeLabel={t('common.close')} {onclose} suspended={busy}>
+<ResourceDialog
+	title={c('ban.title')}
+	description={c('ban.description')}
+	closeLabel={t('common.close')}
+	{onclose}
+	suspended={busy}
+>
 	{#snippet icon()}<ShieldAlert size={36} aria-hidden="true" />{/snippet}
 	<div class="stack">
 		{#if done}
 			<Notice tone="info" title={c('ban.doneTitle')} message={c('ban.done', { ip: ip.trim(), duration })} />
 		{:else}
 			{#if error}<Notice tone="error" message={error} />{/if}
-			<Field id="ban-ip" label={c('ban.ip')} required help={submitted && ipError ? '' : c('ban.ipHelp')} error={submitted ? ipError : ''}>
+			<Field
+				id="ban-ip"
+				label={c('ban.ip')}
+				required
+				help={submitted && ipError ? '' : c('ban.ipHelp')}
+				error={submitted ? ipError : ''}
+			>
 				{#snippet children(f)}
-					<input id={f.id} bind:value={ip} disabled={busy} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="203.0.113.7 · 198.51.100.0/24" />
+					<input
+						id={f.id}
+						bind:value={ip}
+						disabled={busy}
+						aria-invalid={f.invalid || undefined}
+						aria-describedby={f.describedBy}
+						autocomplete="off"
+						spellcheck="false"
+						placeholder="203.0.113.7 · 198.51.100.0/24"
+					/>
 				{/snippet}
 			</Field>
 			<Field id="ban-duration" label={c('ban.duration')} help={c('ban.durationHelp')}>
 				{#snippet children(f)}
-					<SearchableSelect id={f.id} value={duration} options={DURATIONS.map((d) => ({ value: d, label: c('ban.durations.' + d) }))} onchange={(v) => (duration = v)} disabled={busy} ariaDescribedby={f.describedBy} />
+					<SearchableSelect
+						id={f.id}
+						value={duration}
+						options={DURATIONS.map((d) => ({ value: d, label: c('ban.durations.' + d) }))}
+						onchange={(v) => (duration = v)}
+						disabled={busy}
+						ariaDescribedby={f.describedBy}
+					/>
 				{/snippet}
 			</Field>
-			<Field id="ban-reason" label={c('ban.reason')} help={submitted && reasonError ? '' : c('ban.reasonHelp')} error={submitted ? reasonError : ''}>
+			<Field
+				id="ban-reason"
+				label={c('ban.reason')}
+				help={submitted && reasonError ? '' : c('ban.reasonHelp')}
+				error={submitted ? reasonError : ''}
+			>
 				{#snippet children(f)}
-					<input id={f.id} bind:value={reason} disabled={busy} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" maxlength="256" />
+					<input
+						id={f.id}
+						bind:value={reason}
+						disabled={busy}
+						aria-invalid={f.invalid || undefined}
+						aria-describedby={f.describedBy}
+						autocomplete="off"
+						maxlength="256"
+					/>
 				{/snippet}
 			</Field>
 		{/if}
@@ -82,5 +123,8 @@
 </ResourceDialog>
 
 <style>
-	.stack { display: grid; gap: 20px; }
+	.stack {
+		display: grid;
+		gap: 20px;
+	}
 </style>

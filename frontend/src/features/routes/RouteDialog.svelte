@@ -27,20 +27,61 @@
 	import { needsManualRestart, newIdempotencyKey, operationOf, announceApplied } from '../../core/mutations';
 	import { operationTone } from '../changes/models';
 	import type { Operation, OperationPreview } from '../../core/types';
-	import { listChains, listDomains, listEntryPointInfo, listMiddlewares, listResolvers, listRouters, listServices, putRouter, type EntryPointInfo, type NamedRef } from './api';
-	import { MAX_MIDDLEWARES, NOOP_SERVICE, ROUTER_BASE, customizeForm, formFrom, isExternalRef, isNoBackend, newForm, previewHosts, previewRule, referenceBase, routerDefinition, routerProtocolOf, toInput, type MatchMode, type RouteForm, type RouterProtocol, type RouterResource } from './models';
+	import {
+		listChains,
+		listDomains,
+		listEntryPointInfo,
+		listMiddlewares,
+		listResolvers,
+		listRouters,
+		listServices,
+		putRouter,
+		type EntryPointInfo,
+		type NamedRef,
+	} from './api';
+	import {
+		MAX_MIDDLEWARES,
+		NOOP_SERVICE,
+		ROUTER_BASE,
+		customizeForm,
+		formFrom,
+		isExternalRef,
+		isNoBackend,
+		newForm,
+		previewHosts,
+		previewRule,
+		referenceBase,
+		routerDefinition,
+		routerProtocolOf,
+		toInput,
+		type MatchMode,
+		type RouteForm,
+		type RouterProtocol,
+		type RouterResource,
+	} from './models';
 	import { FIELD_TAB, MAX_EXTRA_HOSTS, extraHostErrors, routeErrors, type RouteField } from './validation';
 	import { ApiError, NetworkError } from '../../shared/api/client';
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { t } from '../../shared/localization/i18n';
 
-	let { mode = 'create', name = '', protocol = 'http', routers = undefined, listError = '', navigate, onchanged }: {
-		mode?: string; name?: string;
+	let {
+		mode = 'create',
+		name = '',
+		protocol = 'http',
+		routers = undefined,
+		listError = '',
+		navigate,
+		onchanged,
+	}: {
+		mode?: string;
+		name?: string;
 		/** The protocol of a new router, and of the pickers to load; an existing router's own protocol wins once it is read. */
 		protocol?: RouterProtocol;
 		/** The page's list: the dialog reads names and the router to edit from it instead of asking again. `null` while the page is still loading; left out, the dialog reads the list itself (the map opens it that way). */
-		routers?: RouterResource[] | null; listError?: string;
-		navigate: (p: string) => void; onchanged?: () => void
+		routers?: RouterResource[] | null;
+		listError?: string;
+		navigate: (p: string) => void;
+		onchanged?: () => void;
 	} = $props();
 
 	const r = (key: string, args?: Record<string, string | number>) => t('routes.' + key, args);
@@ -100,9 +141,10 @@
 	const controller = new AbortController();
 
 	/** Managed names are unique whatever the protocol; Traefik's own routers may share a name across protocols, so the URL's protocol breaks the tie. */
-	const findRouter = (all: RouterResource[]) => all.find((d) => d.name === name && routerProtocolOf(d.config) === protocol) ?? all.find((d) => d.name === name);
+	const findRouter = (all: RouterResource[]) =>
+		all.find((d) => d.name === name && routerProtocolOf(d.config) === protocol) ?? all.find((d) => d.name === name);
 	const current = $derived(findRouter(existing));
-	const version = () => (creating ? 0 : current?.version ?? 0);
+	const version = () => (creating ? 0 : (current?.version ?? 0));
 	const editable = $derived(!viewing && (creating || (!!current && !current.read_only)));
 	const locked = $derived(busy || !!result);
 	const serverErrors = $derived(review?.validation_errors ?? []);
@@ -112,34 +154,63 @@
 	const domainByName = (n: string) => domains.find((d) => d.name === n);
 	const mainOf = (n: string) => domainByName(n)?.config.main as string | undefined;
 	/** Uploaded certificates ('files') need no resolver: '' lets them sit next to any resolver. */
-	const resolverOf = (n: string) => { const d = domainByName(n); return d ? (d.config.method === 'resolver' ? (d.config.resolver as string) ?? '' : '') : undefined; };
+	const resolverOf = (n: string) => {
+		const d = domainByName(n);
+		return d ? (d.config.method === 'resolver' ? ((d.config.resolver as string) ?? '') : '') : undefined;
+	};
 	const hosts = $derived(previewHosts(form, domain?.config.main, mainOf));
 	const rule = $derived(previewRule(form, domain?.config.main, mainOf));
 
 	const messages = $derived({
-		noBackendNeedsMiddleware: rr('noBackendNeedsMiddleware'), hostsNeedTls: rr('hostsNeedTls'),
-		invalidName: r('invalidName'), nameTaken: rr('nameTaken'), domainRequired: rr('domainRequired'), invalidSubdomain: r('invalidSubdomain'),
-		invalidHosts: rr('invalidHosts'), invalidPathPrefix: r('invalidPathPrefix'), ruleRequired: rr('ruleRequired'),
-		tooManyEntryPoints: rr('tooManyEntryPoints'), serviceRequired: r('invalidService'), duplicateMiddleware: rr('duplicateMiddleware'),
-		tooManyMiddlewares: rr('tooManyMiddlewares'), invalidPriority: rr('invalidPriority'), invalidTlsOptions: rr('invalidTlsOptions'),
-		entryPointsRequired: rr('entryPointsRequired'), duplicateHost: rr('duplicateHost'), resolverMismatch: rr('resolverMismatch')
+		noBackendNeedsMiddleware: rr('noBackendNeedsMiddleware'),
+		hostsNeedTls: rr('hostsNeedTls'),
+		invalidName: r('invalidName'),
+		nameTaken: rr('nameTaken'),
+		domainRequired: rr('domainRequired'),
+		invalidSubdomain: r('invalidSubdomain'),
+		invalidHosts: rr('invalidHosts'),
+		invalidPathPrefix: r('invalidPathPrefix'),
+		ruleRequired: rr('ruleRequired'),
+		tooManyEntryPoints: rr('tooManyEntryPoints'),
+		serviceRequired: r('invalidService'),
+		duplicateMiddleware: rr('duplicateMiddleware'),
+		tooManyMiddlewares: rr('tooManyMiddlewares'),
+		invalidPriority: rr('invalidPriority'),
+		invalidTlsOptions: rr('invalidTlsOptions'),
+		entryPointsRequired: rr('entryPointsRequired'),
+		duplicateHost: rr('duplicateHost'),
+		resolverMismatch: rr('resolverMismatch'),
 	});
-	const context = $derived({ creating, existingNames: existing.map((d) => d.name), domainNames: domainsLoaded ? domains.map((d) => d.name) : null, mainOf, resolverOf });
+	const context = $derived({
+		creating,
+		existingNames: existing.map((d) => d.name),
+		domainNames: domainsLoaded ? domains.map((d) => d.name) : null,
+		mainOf,
+		resolverOf,
+	});
 	/** One message per extra hostname row, shown once the form was submitted. */
-	const extraErrors = $derived(submitted && form.mode === 'domain' ? extraHostErrors($state.snapshot(form), context, messages) : []);
+	const extraErrors = $derived(
+		submitted && form.mode === 'domain' ? extraHostErrors($state.snapshot(form), context, messages) : [],
+	);
 	/**
 	 * A new row repeats the main subdomain on a domain not used yet, preferring one whose certificates
 	 * can share this router (same resolver, or uploaded): the usual "same app, new domain" case.
 	 */
 	function addExtraHost() {
 		const used = new Set([form.domainName, ...form.extraHosts.map((h) => h.domainName)]);
-		const resolver = [form.domainName, ...form.extraHosts.map((h) => h.domainName)].map((n) => resolverOf(n)).find(Boolean) ?? '';
+		const resolver =
+			[form.domainName, ...form.extraHosts.map((h) => h.domainName)].map((n) => resolverOf(n)).find(Boolean) ?? '';
 		const free = domains.filter((d) => !used.has(d.name));
-		const fits = free.find((d) => { const own = resolverOf(d.name); return !own || !resolver || own === resolver; });
+		const fits = free.find((d) => {
+			const own = resolverOf(d.name);
+			return !own || !resolver || own === resolver;
+		});
 		form.extraHosts.push({ domainName: (fits ?? free[0])?.name ?? '', subdomain: form.subdomain });
 		invalidate();
 	}
-	const domainChoices = $derived(domains.map((d) => ({ value: d.name, label: (d.config.main as string).replace(/^\*\./, ''), description: d.name })));
+	const domainChoices = $derived(
+		domains.map((d) => ({ value: d.name, label: (d.config.main as string).replace(/^\*\./, ''), description: d.name })),
+	);
 	/** Every hostname as one list: the main one first, then the extra ones. */
 	const hostRows = $derived([{ domainName: form.domainName, subdomain: form.subdomain }, ...form.extraHosts]);
 	function setHost(index: number, patch: { domainName?: string; subdomain?: string }) {
@@ -164,55 +235,122 @@
 		}
 		invalidate();
 	}
-	const count = (tab: 'route' | 'traffic' | 'tls') => (submitted ? Object.keys(fields).filter((k) => FIELD_TAB[k as RouteField] === tab).length : 0);
+	const count = (tab: 'route' | 'traffic' | 'tls') =>
+		submitted ? Object.keys(fields).filter((k) => FIELD_TAB[k as RouteField] === tab).length : 0;
 	const tabs = $derived.by(() => {
-		const traffic = { id: TABS.traffic, label: r('tabTraffic'), errorCount: count('traffic') + (udp ? count('route') : 0), errorLabel: rr('fixErrors') };
+		const traffic = {
+			id: TABS.traffic,
+			label: r('tabTraffic'),
+			errorCount: count('traffic') + (udp ? count('route') : 0),
+			errorLabel: rr('fixErrors'),
+		};
 		const review = { id: TABS.review, label: r('review') };
 		if (udp) return [traffic, review];
 		return [
 			{ id: TABS.route, label: r('tabRoute'), errorCount: count('route'), errorLabel: rr('fixErrors') },
 			traffic,
 			{ id: TABS.tls, label: r('tabTlsMw'), errorCount: count('tls'), errorLabel: rr('fixErrors') },
-			review
+			review,
 		];
 	});
 	/** The editor's steps in order; Back and Continue walk this list. */
 	const order = $derived(tabs.map((x) => x.id));
-	const stepAfter = (delta: number) => order[Math.max(0, Math.min(order.length - 1, order.indexOf(step as (typeof order)[number]) + delta))];
+	const stepAfter = (delta: number) =>
+		order[Math.max(0, Math.min(order.length - 1, order.indexOf(step as (typeof order)[number]) + delta))];
 	const tabFor = (key: 'route' | 'traffic' | 'tls') => (udp && key === 'route' ? TABS.traffic : TABS[key]);
 
 	/** Keep the saved value selectable even if the picker no longer lists it (external or removed references). */
-	const withCurrent = (options: { value: string; label: string; description?: string; badge?: string }[], value: string) =>
-		value && !options.some((o) => o.value === value) ? [{ value, label: value, badge: isExternalRef(value) ? rr('externalBadge') : undefined }, ...options] : options;
+	const withCurrent = (
+		options: { value: string; label: string; description?: string; badge?: string }[],
+		value: string,
+	) =>
+		value && !options.some((o) => o.value === value)
+			? [{ value, label: value, badge: isExternalRef(value) ? rr('externalBadge') : undefined }, ...options]
+			: options;
 
-	const serviceOptions = $derived(withCurrent([
-		// Only an HTTP router can answer from a middleware: TCP and UDP routers always need a service.
-		...(http ? [{ value: NOOP_SERVICE, label: rr('noBackend'), description: rr('noBackendDescription'), badge: undefined as string | undefined }] : []),
-		// Traefik itself reports noop@internal as a service; it is already offered above as "No backend".
-		// A router only uses services of its own protocol.
-		...services.filter((s) => s.name !== NOOP_SERVICE && (s.config?.protocol ?? 'http') === form.protocol).map((s) => ({
-			value: s.name, label: s.name,
-			description: s.origin === 'managed' ? ((s.config.servers as { url?: string; address?: string }[] | null)?.[0]?.url ?? (s.config.servers as { address?: string }[] | null)?.[0]?.address ?? '') : s.provider,
-			badge: s.origin === 'external' ? rr('externalBadge') : undefined
-		}))
-	], form.service));
-	const middlewareOptions = $derived(
-		[...middlewares.filter((m) => (m.config?.protocol ?? 'http') === form.protocol).map((m) => ({ value: m.name, label: m.name, description: (m.config.type as string) ?? '', badge: m.origin === 'external' ? rr('externalBadge') : undefined })),
-		 ...(http ? chains : []).map((c) => ({ value: c.name, label: c.name, description: rr('chainBadge'), badge: undefined as string | undefined }))]
-			.filter((o) => !form.middlewares.includes(o.value))
+	const serviceOptions = $derived(
+		withCurrent(
+			[
+				// Only an HTTP router can answer from a middleware: TCP and UDP routers always need a service.
+				...(http
+					? [
+							{
+								value: NOOP_SERVICE,
+								label: rr('noBackend'),
+								description: rr('noBackendDescription'),
+								badge: undefined as string | undefined,
+							},
+						]
+					: []),
+				// Traefik itself reports noop@internal as a service; it is already offered above as "No backend".
+				// A router only uses services of its own protocol.
+				...services
+					.filter((s) => s.name !== NOOP_SERVICE && (s.config?.protocol ?? 'http') === form.protocol)
+					.map((s) => ({
+						value: s.name,
+						label: s.name,
+						description:
+							s.origin === 'managed'
+								? ((s.config.servers as { url?: string; address?: string }[] | null)?.[0]?.url ??
+									(s.config.servers as { address?: string }[] | null)?.[0]?.address ??
+									'')
+								: s.provider,
+						badge: s.origin === 'external' ? rr('externalBadge') : undefined,
+					})),
+			],
+			form.service,
+		),
 	);
-	const resolverOptions = $derived([{ value: '', label: rr('tlsResolverNone') }, ...withCurrent(resolvers.map((x) => ({ value: x.name, label: x.name })), form.tlsResolver).filter((o) => o.value)]);
+	const middlewareOptions = $derived(
+		[
+			...middlewares
+				.filter((m) => (m.config?.protocol ?? 'http') === form.protocol)
+				.map((m) => ({
+					value: m.name,
+					label: m.name,
+					description: (m.config.type as string) ?? '',
+					badge: m.origin === 'external' ? rr('externalBadge') : undefined,
+				})),
+			...(http ? chains : []).map((c) => ({
+				value: c.name,
+				label: c.name,
+				description: rr('chainBadge'),
+				badge: undefined as string | undefined,
+			})),
+		].filter((o) => !form.middlewares.includes(o.value)),
+	);
+	const resolverOptions = $derived([
+		{ value: '', label: rr('tlsResolverNone') },
+		...withCurrent(
+			resolvers.map((x) => ({ value: x.name, label: x.name })),
+			form.tlsResolver,
+		).filter((o) => o.value),
+	]);
 	/** A UDP router can only listen on a UDP entrypoint, the others on a TCP one. */
-	const kindEntryPoints = $derived(entryPoints.filter((e) => (udp ? e.protocol === 'udp' : e.protocol !== 'udp')).map((e) => e.name));
+	const kindEntryPoints = $derived(
+		entryPoints.filter((e) => (udp ? e.protocol === 'udp' : e.protocol !== 'udp')).map((e) => e.name),
+	);
 	/** Entrypoints HTTP routers already listen on (web and websecure are TCP entrypoints that carry HTTP). */
-	const httpEntryPoints = $derived(new Set(existing.filter((x) => routerProtocolOf(x.config) === 'http' && x.name !== name).flatMap((x) => x.config.entry_points ?? [])));
-	const entryPointOptions = $derived([...new Set([...kindEntryPoints, ...form.entryPoints])].map((e) => ({
-		value: e, label: e, description: tcp && httpEntryPoints.has(e) ? rr('entryPointSharedHttp') : undefined
-	})));
+	const httpEntryPoints = $derived(
+		new Set(
+			existing
+				.filter((x) => routerProtocolOf(x.config) === 'http' && x.name !== name)
+				.flatMap((x) => x.config.entry_points ?? []),
+		),
+	);
+	const entryPointOptions = $derived(
+		[...new Set([...kindEntryPoints, ...form.entryPoints])].map((e) => ({
+			value: e,
+			label: e,
+			description: tcp && httpEntryPoints.has(e) ? rr('entryPointSharedHttp') : undefined,
+		})),
+	);
 	/** A TCP router matching every connection comes before HTTP routers: on a shared entrypoint they stop answering. */
 	const takenOver = $derived(tcp && form.mode === 'any' ? form.entryPoints.filter((e) => httpEntryPoints.has(e)) : []);
 	/** Services the router can use: its own protocol, without Traefik's built-in no-backend one. */
-	const kindServices = $derived(services.filter((s) => s.name !== NOOP_SERVICE && (s.config?.protocol ?? 'http') === form.protocol));
+	const kindServices = $derived(
+		services.filter((s) => s.name !== NOOP_SERVICE && (s.config?.protocol ?? 'http') === form.protocol),
+	);
 
 	$effect(() => {
 		navigationGuard.setDirty(dirty);
@@ -224,19 +362,59 @@
 		if (!viewing) void loadPickers();
 		return unsub;
 	});
-	onDestroy(() => { disposed = true; controller.abort(); });
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
 
 	async function loadPickers(kind: RouterProtocol = protocol) {
 		const sig = controller.signal;
 		// Only what the protocol uses: a UDP router needs no domains, middlewares or resolvers.
 		const jobs: [string, Promise<unknown>][] = [];
-		if (kind !== 'udp') jobs.push(['domains', listDomains(sig).then((v) => { domains = v; domainsLoaded = true; })]);
-		jobs.push(['services', listServices(sig).then((v) => { services = v; })]);
+		if (kind !== 'udp')
+			jobs.push([
+				'domains',
+				listDomains(sig).then((v) => {
+					domains = v;
+					domainsLoaded = true;
+				}),
+			]);
+		jobs.push([
+			'services',
+			listServices(sig).then((v) => {
+				services = v;
+			}),
+		]);
 		// Chains group HTTP middlewares only; a TCP router picks from the TCP middlewares.
-		if (kind === 'http') jobs.push(['middlewares', Promise.all([listMiddlewares(sig), listChains(sig)]).then(([m, c]) => { middlewares = m; chains = c; })]);
-		if (kind === 'tcp') jobs.push(['middlewares', listMiddlewares(sig).then((m) => { middlewares = m; chains = []; })]);
-		if (kind !== 'udp') jobs.push(['resolvers', listResolvers(sig).then((v) => { resolvers = v; })]);
-		jobs.push(['entrypoints', listEntryPointInfo(sig).then((v) => { entryPoints = v; })]);
+		if (kind === 'http')
+			jobs.push([
+				'middlewares',
+				Promise.all([listMiddlewares(sig), listChains(sig)]).then(([m, c]) => {
+					middlewares = m;
+					chains = c;
+				}),
+			]);
+		if (kind === 'tcp')
+			jobs.push([
+				'middlewares',
+				listMiddlewares(sig).then((m) => {
+					middlewares = m;
+					chains = [];
+				}),
+			]);
+		if (kind !== 'udp')
+			jobs.push([
+				'resolvers',
+				listResolvers(sig).then((v) => {
+					resolvers = v;
+				}),
+			]);
+		jobs.push([
+			'entrypoints',
+			listEntryPointInfo(sig).then((v) => {
+				entryPoints = v;
+			}),
+		]);
 		const settled = await Promise.allSettled(jobs.map(([, p]) => p));
 		if (disposed) return;
 		pickersFailed = jobs.filter((_, i) => settled[i].status === 'rejected').map(([k]) => k);
@@ -247,9 +425,16 @@
 	let initialised = false;
 	$effect(() => {
 		if (initialised) return;
-		if (routers) { initialised = true; init(routers); }
-		else if (listError) { initialised = true; loadError = listError; }
-		else if (routers === undefined) { initialised = true; void readList(); }
+		if (routers) {
+			initialised = true;
+			init(routers);
+		} else if (listError) {
+			initialised = true;
+			loadError = listError;
+		} else if (routers === undefined) {
+			initialised = true;
+			void readList();
+		}
 	});
 
 	/** Only for a dialog opened without a page list. */
@@ -264,8 +449,13 @@
 	/** The page owns the list: ask it to read again, then start over from what it returns. */
 	function retry() {
 		loadError = '';
-		if (routers === undefined) { initialised = true; void readList(); return; }
-		initialised = false; onchanged?.();
+		if (routers === undefined) {
+			initialised = true;
+			void readList();
+			return;
+		}
+		initialised = false;
+		onchanged?.();
 	}
 
 	function init(all: RouterResource[]) {
@@ -299,12 +489,21 @@
 		const all = routeErrors($state.snapshot(form), context, messages);
 		if (!scope) return all;
 		const shown = scope;
-		return Object.fromEntries(Object.entries(all).filter(([k]) =>
-			shown.includes(tabFor(FIELD_TAB[k as RouteField])) && !(k === 'service' && isNoBackend(form.service)))) as typeof all;
+		return Object.fromEntries(
+			Object.entries(all).filter(
+				([k]) => shown.includes(tabFor(FIELD_TAB[k as RouteField])) && !(k === 'service' && isNoBackend(form.service)),
+			),
+		) as typeof all;
 	};
 
 	function invalidate() {
-		review = null; staged = null; reviewError = ''; applyKey = ''; uncertain = false; error = ''; conflict = false;
+		review = null;
+		staged = null;
+		reviewError = '';
+		applyKey = '';
+		uncertain = false;
+		error = '';
+		conflict = false;
 		if (submitted) fields = validateNow();
 	}
 
@@ -317,7 +516,10 @@
 			scope = scope ? [...new Set([...scope, ...walked])] : walked;
 			submitted = true;
 			fields = validateNow();
-			if (Object.keys(fields).length) { await focusFirstError(); return; }
+			if (Object.keys(fields).length) {
+				await focusFirstError();
+				return;
+			}
 		}
 		step = id;
 	}
@@ -327,21 +529,29 @@
 		if (tcp && next !== form.mode) {
 			// A TCP hostname is read from the TLS handshake (SNI), so matching one turns TLS on; matching
 			// every connection has no name to read, so it turns TLS off.
-			if (next === 'any') { form.tlsEnabled = false; form.tlsPassthrough = false; }
-			else if (form.mode === 'any') form.tlsEnabled = true;
+			if (next === 'any') {
+				form.tlsEnabled = false;
+				form.tlsPassthrough = false;
+			} else if (form.mode === 'any') form.tlsEnabled = true;
 		}
-		form.mode = next; invalidate();
+		form.mode = next;
+		invalidate();
 	}
 	function addMiddleware(ref: string) {
 		if (!ref || form.middlewares.length >= MAX_MIDDLEWARES) return;
-		form.middlewares = [...form.middlewares, ref]; invalidate();
+		form.middlewares = [...form.middlewares, ref];
+		invalidate();
 	}
 	function moveMiddleware(index: number, delta: number) {
 		const next = [...form.middlewares];
 		[next[index], next[index + delta]] = [next[index + delta], next[index]];
-		form.middlewares = next; invalidate();
+		form.middlewares = next;
+		invalidate();
 	}
-	function removeMiddleware(index: number) { form.middlewares = form.middlewares.filter((_, i) => i !== index); invalidate(); }
+	function removeMiddleware(index: number) {
+		form.middlewares = form.middlewares.filter((_, i) => i !== index);
+		invalidate();
+	}
 
 	function validate(): boolean {
 		scope = null;
@@ -362,25 +572,40 @@
 
 	async function selectStep(id: string) {
 		if (busy || result || id === step) return;
-		if (id === TABS.review) { await stageAndReview(); return; }
+		if (id === TABS.review) {
+			await stageAndReview();
+			return;
+		}
 		await goTo(id);
 	}
 
 	function describeFailure(e: unknown, fallback: string) {
-		if (e instanceof ApiError && e.code === 'ERR_VERSION_CONFLICT') { conflict = true; return rv2('conflict'); }
+		if (e instanceof ApiError && e.code === 'ERR_VERSION_CONFLICT') {
+			conflict = true;
+			return rv2('conflict');
+		}
 		const base = errorMessage(e, fallback);
 		return e instanceof ApiError && e.operationId ? `${base} (${rv2('operation')} ${e.operationId})` : base;
 	}
 
 	async function stageAndReview() {
 		if (busy || !editable) return;
-		if (!validate()) { await focusFirstError(); return; }
-		busy = true; error = ''; conflict = false;
+		if (!validate()) {
+			await focusFirstError();
+			return;
+		}
+		busy = true;
+		error = '';
+		conflict = false;
 		try {
-			const preview = await putRouter(form.name, toInput($state.snapshot(form)), version(), { dryRun: true, signal: controller.signal });
+			const preview = await putRouter(form.name, toInput($state.snapshot(form)), version(), {
+				dryRun: true,
+				signal: controller.signal,
+			});
 			if (disposed) return;
 			step = TABS.review;
-			review = preview.preview ?? null; applyKey = newIdempotencyKey();
+			review = preview.preview ?? null;
+			applyKey = newIdempotencyKey();
 		} catch (e) {
 			if (disposed) return;
 			if (e instanceof ApiError && (e.status === 422 || e.status === 400)) step = firstStep;
@@ -394,7 +619,8 @@
 		busy = true;
 		try {
 			existing = await listRouters(controller.signal);
-			conflict = false; error = '';
+			conflict = false;
+			error = '';
 		} catch (e) {
 			error = describeFailure(e, rv2('reviewFailed'));
 		} finally {
@@ -404,22 +630,37 @@
 
 	async function apply() {
 		if (!review || busy || serverErrors.length) return;
-		busy = true; error = '';
+		busy = true;
+		error = '';
 		try {
-			const saved = await putRouter(form.name, toInput($state.snapshot(form)), version(), { idempotencyKey: applyKey, signal: controller.signal });
+			const saved = await putRouter(form.name, toInput($state.snapshot(form)), version(), {
+				idempotencyKey: applyKey,
+				signal: controller.signal,
+			});
 			if (disposed) return;
-			result = operationOf(saved, t('writeV2.noChange')); manualRestart = needsManualRestart(saved); uncertain = false; staged = saved.resource ?? null;
+			result = operationOf(saved, t('writeV2.noChange'));
+			manualRestart = needsManualRestart(saved);
+			uncertain = false;
+			staged = saved.resource ?? null;
 			navigationGuard.setDirty(false);
 			onchanged?.();
 			// Applied: back to the table; the outcome is announced as a flash.
-			if (announceApplied(result, manualRestart, form.name)) { navigate(parent); return; }
+			if (announceApplied(result, manualRestart, form.name)) {
+				navigate(parent);
+				return;
+			}
 		} catch (e) {
 			if (disposed) return;
 			if (e instanceof NetworkError) {
 				uncertain = true;
 				error = rv2('applyUncertain');
 			} else {
-				if (e instanceof ApiError && [404, 409, 410, 412, 422, 428].includes(e.status)) { review = null; applyKey = ''; uncertain = false; step = firstStep; }
+				if (e instanceof ApiError && [404, 409, 410, 412, 422, 428].includes(e.status)) {
+					review = null;
+					applyKey = '';
+					uncertain = false;
+					step = firstStep;
+				}
 				error = describeFailure(e, rv2('applyFailed'));
 			}
 		} finally {
@@ -435,13 +676,25 @@
 		});
 	}
 
-	const tlsLabel = (c: RouterResource['config']) => !c.tls ? (routerProtocolOf(c) === 'tcp' ? rr('plainTcp') : rr('httpOnly'))
-		: c.tls.passthrough ? rr('tlsPassthroughValue')
-		: c.tls.cert_resolver ? rr('httpsResolver', { name: c.tls.cert_resolver })
-		: routerProtocolOf(c) === 'tcp' ? rr('tlsTerminated') : rr('https');
-	const domainTlsText = (d: NamedRef) => d.config.method === 'resolver' ? rr('domainTlsResolver', { name: d.config.resolver }) : rr('domainTlsFiles', { name: d.config.certificate });
+	const tlsLabel = (c: RouterResource['config']) =>
+		!c.tls
+			? routerProtocolOf(c) === 'tcp'
+				? rr('plainTcp')
+				: rr('httpOnly')
+			: c.tls.passthrough
+				? rr('tlsPassthroughValue')
+				: c.tls.cert_resolver
+					? rr('httpsResolver', { name: c.tls.cert_resolver })
+					: routerProtocolOf(c) === 'tcp'
+						? rr('tlsTerminated')
+						: rr('https');
+	const domainTlsText = (d: NamedRef) =>
+		d.config.method === 'resolver'
+			? rr('domainTlsResolver', { name: d.config.resolver })
+			: rr('domainTlsFiles', { name: d.config.certificate });
 	const SERVICE_BASE = { http: '/services', tcp: '/tcp-services', udp: '/udp-services' } as const;
-	const serviceLink = (ref: string, p: RouterProtocol = form.protocol) => (isExternalRef(ref) ? '' : SERVICE_BASE[p] + '/' + encodeURIComponent(referenceBase(ref)));
+	const serviceLink = (ref: string, p: RouterProtocol = form.protocol) =>
+		isExternalRef(ref) ? '' : SERVICE_BASE[p] + '/' + encodeURIComponent(referenceBase(ref));
 	const stagedConfig = $derived(staged?.config);
 	const viewYaml = $derived.by(() => {
 		const definition = current ? routerDefinition(current.config) : {};
@@ -449,10 +702,25 @@
 	});
 </script>
 
-<ResourceDialog title={viewing ? name : customizing ? rr('dialogCustomize', { name }) : rr((creating ? 'dialogCreate.' : 'dialogEdit.') + form.protocol)} description={viewing ? (http ? t('topology.kind.route') : rr('kind.' + form.protocol)) : ''} closeLabel={t('common.close')} onclose={close} {suspended}>
+<ResourceDialog
+	title={viewing
+		? name
+		: customizing
+			? rr('dialogCustomize', { name })
+			: rr((creating ? 'dialogCreate.' : 'dialogEdit.') + form.protocol)}
+	description={viewing ? (http ? t('topology.kind.route') : rr('kind.' + form.protocol)) : ''}
+	closeLabel={t('common.close')}
+	onclose={close}
+	{suspended}
+>
 	{#snippet icon()}<RouteIcon size={32} aria-hidden="true" />{/snippet}
 	{#snippet navigation()}
-		{#if !loading && !loadError && !viewing}<Tabs {tabs} selected={step} onselect={selectStep} label={r('editorTabs')} />{/if}
+		{#if !loading && !loadError && !viewing}<Tabs
+				{tabs}
+				selected={step}
+				onselect={selectStep}
+				label={r('editorTabs')}
+			/>{/if}
 	{/snippet}
 
 	{#if loading}
@@ -467,27 +735,85 @@
 		<div class="stack">
 			{#if current.read_only}<Notice message={rr('externalNote')} />{/if}
 			<SummaryList>
-				<div><dt>{r('name')}</dt><dd>{current.name}</dd></div>
-				<div><dt>{rr('protocolColumn')}</dt><dd>{rr('kind.' + routerProtocolOf(c))}</dd></div>
-				<div><dt>{r('source')}</dt><dd>{current.origin === 'managed' ? r('managed') : r('external')} · {current.provider}</dd></div>
-				<div><dt>{rv2('stateColumn')}</dt><dd>{rv2('status.' + current.status)}</dd></div>
-				{#if !udp}<div><dt>{r('rule')}</dt><dd><code>{c.rule || '—'}</code></dd></div>{/if}
+				<div>
+					<dt>{r('name')}</dt>
+					<dd>{current.name}</dd>
+				</div>
+				<div>
+					<dt>{rr('protocolColumn')}</dt>
+					<dd>{rr('kind.' + routerProtocolOf(c))}</dd>
+				</div>
+				<div>
+					<dt>{r('source')}</dt>
+					<dd>{current.origin === 'managed' ? r('managed') : r('external')} · {current.provider}</dd>
+				</div>
+				<div>
+					<dt>{rv2('stateColumn')}</dt>
+					<dd>{rv2('status.' + current.status)}</dd>
+				</div>
+				{#if !udp}<div>
+						<dt>{r('rule')}</dt>
+						<dd><code>{c.rule || '—'}</code></dd>
+					</div>{/if}
 				{#if c.domain_name}
-					{@const names = [c.domain_name, ...(c.extra_domains ?? []).map((h) => h.domain_name).filter((n) => n !== c.domain_name)]}
-					<div><dt>{r('baseDomain')}</dt><dd>{#each [...new Set(names)] as dn, i (dn)}{#if i}, {/if}<button type="button" class="link" onclick={() => navigate('/domains/' + encodeURIComponent(dn))}>{dn}</button>{/each}</dd></div>
-					{#if (c.domains ?? []).length > 1}<div><dt>{rr('hostnames')}</dt><dd>{(c.domains ?? []).join(', ')}</dd></div>{/if}
+					{@const names = [
+						c.domain_name,
+						...(c.extra_domains ?? []).map((h) => h.domain_name).filter((n) => n !== c.domain_name),
+					]}
+					<div>
+						<dt>{r('baseDomain')}</dt>
+						<dd>
+							{#each [...new Set(names)] as dn, i (dn)}{#if i},
+								{/if}<button type="button" class="link" onclick={() => navigate('/domains/' + encodeURIComponent(dn))}>
+									{dn}
+								</button>{/each}
+						</dd>
+					</div>
+					{#if (c.domains ?? []).length > 1}<div>
+							<dt>{rr('hostnames')}</dt>
+							<dd>{(c.domains ?? []).join(', ')}</dd>
+						</div>{/if}
 				{/if}
-				<div><dt>{r('entryPoints')}</dt><dd>{(c.entry_points ?? []).join(', ') || '—'}</dd></div>
-				<div><dt>{r('service')}</dt><dd>{#if isNoBackend(c.service)}{rr('noBackendValue')}{:else if serviceLink(c.service, routerProtocolOf(c))}<button type="button" class="link" onclick={() => navigate(serviceLink(c.service, routerProtocolOf(c)))}>{c.service}</button>{:else}{c.service || '—'}{/if}</dd></div>
-				{#if !udp}<div><dt>{r('tlsSection')}</dt><dd>{tlsLabel(current.config)}{c.tls?.options ? ` · ${c.tls.options}` : ''}</dd></div>{/if}
-				{#if c.priority}<div><dt>{r('priority')}</dt><dd>{c.priority}</dd></div>{/if}
-				{#if current.updated_at}<div><dt>{rr('updated')}</dt><dd><RelativeTime value={current.updated_at} /></dd></div>{/if}
+				<div>
+					<dt>{r('entryPoints')}</dt>
+					<dd>{(c.entry_points ?? []).join(', ') || '—'}</dd>
+				</div>
+				<div>
+					<dt>{r('service')}</dt>
+					<dd>
+						{#if isNoBackend(c.service)}{rr(
+								'noBackendValue',
+							)}{:else if serviceLink(c.service, routerProtocolOf(c))}<button
+								type="button"
+								class="link"
+								onclick={() => navigate(serviceLink(c.service, routerProtocolOf(c)))}
+							>
+								{c.service}
+							</button>{:else}{c.service || '—'}{/if}
+					</dd>
+				</div>
+				{#if !udp}<div>
+						<dt>{r('tlsSection')}</dt>
+						<dd>{tlsLabel(current.config)}{c.tls?.options ? ` · ${c.tls.options}` : ''}</dd>
+					</div>{/if}
+				{#if c.priority}<div>
+						<dt>{r('priority')}</dt>
+						<dd>{c.priority}</dd>
+					</div>{/if}
+				{#if current.updated_at}<div>
+						<dt>{rr('updated')}</dt>
+						<dd><RelativeTime value={current.updated_at} /></dd>
+					</div>{/if}
 			</SummaryList>
 			{#if current.live_error_msg}<Notice tone="error" message={current.live_error_msg} />{/if}
 			{#if routerProtocolOf(c) !== 'udp'}
 				<h3>{r('middlewaresSection')}</h3>
 				{#if (c.middlewares ?? []).length}
-					<ol class="members">{#each c.middlewares ?? [] as m, i (i + m)}<li><span class="order">{i + 1}</span><span class="url">{m}</span></li>{/each}</ol>
+					<ol class="members">
+						{#each c.middlewares ?? [] as m, i (i + m)}<li>
+								<span class="order">{i + 1}</span><span class="url">{m}</span>
+							</li>{/each}
+					</ol>
 				{:else}
 					<p class="muted">{r('noMiddlewaresAttached')}</p>
 				{/if}
@@ -501,7 +827,10 @@
 			{#if !editable}<Notice tone="warning" message={rr('notEditable')} />{/if}
 			{#if customizing && listReady}<Notice message={rr('customizeNotice', { name, priority: form.priority })} />{/if}
 			{#if pickersFailed.length}
-				<Notice tone="warning" message={rr('pickersFailed', { list: pickersFailed.map((k) => rr('picker.' + k)).join(', ') })}>
+				<Notice
+					tone="warning"
+					message={rr('pickersFailed', { list: pickersFailed.map((k) => rr('picker.' + k)).join(', ') })}
+				>
 					<Button size="sm" onclick={() => loadPickers()}>{t('common.retry')}</Button>
 				</Notice>
 			{/if}
@@ -513,114 +842,264 @@
 			{#if submitted && Object.keys(fields).length && step !== TABS.review}
 				<div class="validation-banner" role="alert">
 					<CircleAlert size={16} aria-hidden="true" />
-					<span>{rv2(Object.keys(fields).length === 1 ? 'fixFieldsOne' : 'fixFields', { count: Object.keys(fields).length })}</span>
+					<span>
+						{rv2(Object.keys(fields).length === 1 ? 'fixFieldsOne' : 'fixFields', {
+							count: Object.keys(fields).length,
+						})}
+					</span>
 					<button type="button" onclick={focusFirstError}>{rv2('goToField')}</button>
 				</div>
 			{/if}
 
 			{#snippet nameField()}
-				<Field id="route-name" label={r('name')} required help={creating ? r('nameHelp') : r('immutable')} error={submitted ? fields.name : ''}>
+				<Field
+					id="route-name"
+					label={r('name')}
+					required
+					help={creating ? r('nameHelp') : r('immutable')}
+					error={submitted ? fields.name : ''}
+				>
 					{#snippet children(f)}
-						<input id={f.id} bind:value={form.name} oninput={invalidate} readonly={!creating} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder={tcp ? 'postgres' : udp ? 'dns' : 'my-app'} />
+						<input
+							id={f.id}
+							bind:value={form.name}
+							oninput={invalidate}
+							readonly={!creating}
+							disabled={locked || !editable}
+							aria-invalid={f.invalid || undefined}
+							aria-describedby={f.describedBy}
+							autocomplete="off"
+							spellcheck="false"
+							placeholder={tcp ? 'postgres' : udp ? 'dns' : 'my-app'}
+						/>
 					{/snippet}
 				</Field>
 			{/snippet}
 
 			{#if !udp}
-			<div id="panel-route-route" role="tabpanel" aria-labelledby="tab-route-route" hidden={step !== TABS.route} class="stack">
-				{@render nameField()}
-				<Field id="route-mode" label={rr('matchMode')} required help={rr('mode.' + (tcp && form.mode === 'host' ? 'hostTcp' : form.mode) + 'Hint')}>
-					{#snippet children(f)}
-						<SearchableSelect id={f.id} value={form.mode} onchange={chooseMode} disabled={locked || !editable} ariaDescribedby={f.describedBy}
-							options={[
-								...(tcp ? [{ value: 'any', label: rr('mode.any') }] : []),
-								{ value: 'domain', label: rr('mode.domain') },
-								{ value: 'host', label: tcp ? rr('mode.hostTcp') : rr('mode.host') },
-								{ value: 'rule', label: rr('mode.rule') }
-							]} />
-					{/snippet}
-				</Field>
-
-				{#if form.mode === 'domain'}
-					<!-- The hostnames, drawn like a service's backend servers: one row each, a dashed button to add one. -->
-					<section class="hostnames" aria-labelledby="route-hostnames-title">
-						<div class="hostnames-head">
-							<h3 id="route-hostnames-title" class="section-title">{rr('hostnames')} <span class="required" aria-hidden="true">*</span></h3>
-							<p class="muted">{rr('hostnamesHelp')}</p>
-						</div>
-						{#each hostRows as row, index (index)}
-							<HostnameRow
-								id={index === 0 ? 'route-subdomain' : `route-extra-sub-${index}`}
-								domainId={index === 0 ? 'route-domain' : `route-extra-domain-${index}`}
-								number={index + 1}
-								subdomain={row.subdomain}
-								domain={row.domainName}
-								options={withCurrent(domainChoices, row.domainName)}
-								onsubdomain={(v) => setHost(index, { subdomain: v })}
-								ondomain={(v) => setHost(index, { domainName: v })}
-								onremove={() => removeHost(index)}
-								removable={hostRows.length > 1}
-								error={index === 0 ? (submitted ? fields.domainName || fields.subdomain || '' : '') : extraErrors[index - 1] ?? ''}
+				<div
+					id="panel-route-route"
+					role="tabpanel"
+					aria-labelledby="tab-route-route"
+					hidden={step !== TABS.route}
+					class="stack"
+				>
+					{@render nameField()}
+					<Field
+						id="route-mode"
+						label={rr('matchMode')}
+						required
+						help={rr('mode.' + (tcp && form.mode === 'host' ? 'hostTcp' : form.mode) + 'Hint')}
+					>
+						{#snippet children(f)}
+							<SearchableSelect
+								id={f.id}
+								value={form.mode}
+								onchange={chooseMode}
 								disabled={locked || !editable}
+								ariaDescribedby={f.describedBy}
+								options={[
+									...(tcp ? [{ value: 'any', label: rr('mode.any') }] : []),
+									{ value: 'domain', label: rr('mode.domain') },
+									{ value: 'host', label: tcp ? rr('mode.hostTcp') : rr('mode.host') },
+									{ value: 'rule', label: rr('mode.rule') },
+								]}
 							/>
-						{/each}
-						{#if editable && form.extraHosts.length < MAX_EXTRA_HOSTS}
-							<button type="button" class="add-host" onclick={addExtraHost} disabled={locked || !form.domainName || !domains.length}>
-								<Plus size={16} aria-hidden="true" /> {rr('addHostname')}
-							</button>
-						{/if}
-					</section>
-					{#if domainsLoaded && !domains.length}
-						<Notice message={rr('noDomains')}><Button size="sm" onclick={() => navigate('/domains/new')}>{rr('openDomains')}</Button></Notice>
-					{/if}
-				{:else if form.mode === 'host'}
-					<Field id="route-hosts" label={rr('hosts')} required help={rr('hostsHelp')} error={submitted ? fields.hosts : ''}>
-						{#snippet children(f)}
-							<textarea id={f.id} rows="3" bind:value={form.hosts} oninput={invalidate} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="app.example.com"></textarea>
 						{/snippet}
 					</Field>
-				{:else if form.mode === 'rule'}
-					<Field id="route-rule" label={rr('customRule')} required help={rr('customRuleHelp')} error={submitted ? fields.customRule : ''}>
-						{#snippet children(f)}
-							<textarea id={f.id} class="mono" rows="3" bind:value={form.customRule} oninput={invalidate} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder={'Host(`app.example.com`) && Method(`GET`)'}></textarea>
-						{/snippet}
-					</Field>
-				{/if}
 
-				{#if http && form.mode !== 'rule'}
-					<Field id="route-path" label={r('pathPrefix')} help={r('pathPrefixHelp')} error={submitted ? fields.pathPrefix : ''}>
-						{#snippet children(f)}
-							<input id={f.id} bind:value={form.pathPrefix} oninput={invalidate} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="/api" />
-						{/snippet}
-					</Field>
-				{/if}
-				{#if rule}
-					<div class="preview">
-						<span class="muted">{r('ruleSummary')}</span>
-						<code>{rule}</code>
-					</div>
-				{/if}
-			</div>
+					{#if form.mode === 'domain'}
+						<!-- The hostnames, drawn like a service's backend servers: one row each, a dashed button to add one. -->
+						<section class="hostnames" aria-labelledby="route-hostnames-title">
+							<div class="hostnames-head">
+								<h3 id="route-hostnames-title" class="section-title">
+									{rr('hostnames')} <span class="required" aria-hidden="true">*</span>
+								</h3>
+								<p class="muted">{rr('hostnamesHelp')}</p>
+							</div>
+							{#each hostRows as row, index (index)}
+								<HostnameRow
+									id={index === 0 ? 'route-subdomain' : `route-extra-sub-${index}`}
+									domainId={index === 0 ? 'route-domain' : `route-extra-domain-${index}`}
+									number={index + 1}
+									subdomain={row.subdomain}
+									domain={row.domainName}
+									options={withCurrent(domainChoices, row.domainName)}
+									onsubdomain={(v) => setHost(index, { subdomain: v })}
+									ondomain={(v) => setHost(index, { domainName: v })}
+									onremove={() => removeHost(index)}
+									removable={hostRows.length > 1}
+									error={index === 0
+										? submitted
+											? fields.domainName || fields.subdomain || ''
+											: ''
+										: (extraErrors[index - 1] ?? '')}
+									disabled={locked || !editable}
+								/>
+							{/each}
+							{#if editable && form.extraHosts.length < MAX_EXTRA_HOSTS}
+								<button
+									type="button"
+									class="add-host"
+									onclick={addExtraHost}
+									disabled={locked || !form.domainName || !domains.length}
+								>
+									<Plus size={16} aria-hidden="true" />
+									{rr('addHostname')}
+								</button>
+							{/if}
+						</section>
+						{#if domainsLoaded && !domains.length}
+							<Notice message={rr('noDomains')}>
+								<Button size="sm" onclick={() => navigate('/domains/new')}>{rr('openDomains')}</Button>
+							</Notice>
+						{/if}
+					{:else if form.mode === 'host'}
+						<Field
+							id="route-hosts"
+							label={rr('hosts')}
+							required
+							help={rr('hostsHelp')}
+							error={submitted ? fields.hosts : ''}
+						>
+							{#snippet children(f)}
+								<textarea
+									id={f.id}
+									rows="3"
+									bind:value={form.hosts}
+									oninput={invalidate}
+									disabled={locked || !editable}
+									aria-invalid={f.invalid || undefined}
+									aria-describedby={f.describedBy}
+									autocomplete="off"
+									spellcheck="false"
+									placeholder="app.example.com"></textarea>
+							{/snippet}
+						</Field>
+					{:else if form.mode === 'rule'}
+						<Field
+							id="route-rule"
+							label={rr('customRule')}
+							required
+							help={rr('customRuleHelp')}
+							error={submitted ? fields.customRule : ''}
+						>
+							{#snippet children(f)}
+								<textarea
+									id={f.id}
+									class="mono"
+									rows="3"
+									bind:value={form.customRule}
+									oninput={invalidate}
+									disabled={locked || !editable}
+									aria-invalid={f.invalid || undefined}
+									aria-describedby={f.describedBy}
+									autocomplete="off"
+									spellcheck="false"
+									placeholder={'Host(`app.example.com`) && Method(`GET`)'}></textarea>
+							{/snippet}
+						</Field>
+					{/if}
+
+					{#if http && form.mode !== 'rule'}
+						<Field
+							id="route-path"
+							label={r('pathPrefix')}
+							help={r('pathPrefixHelp')}
+							error={submitted ? fields.pathPrefix : ''}
+						>
+							{#snippet children(f)}
+								<input
+									id={f.id}
+									bind:value={form.pathPrefix}
+									oninput={invalidate}
+									disabled={locked || !editable}
+									aria-invalid={f.invalid || undefined}
+									aria-describedby={f.describedBy}
+									autocomplete="off"
+									spellcheck="false"
+									placeholder="/api"
+								/>
+							{/snippet}
+						</Field>
+					{/if}
+					{#if rule}
+						<div class="preview">
+							<span class="muted">{r('ruleSummary')}</span>
+							<code>{rule}</code>
+						</div>
+					{/if}
+				</div>
 			{/if}
 
-			<div id="panel-route-traffic" role="tabpanel" aria-labelledby="tab-route-traffic" hidden={step !== TABS.traffic} class="stack">
+			<div
+				id="panel-route-traffic"
+				role="tabpanel"
+				aria-labelledby="tab-route-traffic"
+				hidden={step !== TABS.traffic}
+				class="stack"
+			>
 				{#if udp}
 					{@render nameField()}
 					<Notice message={rr('udpNote')} />
 				{/if}
-				<Field id="route-service" label={r('service')} required help={r('serviceHelp')} error={submitted ? fields.service : ''}>
+				<Field
+					id="route-service"
+					label={r('service')}
+					required
+					help={r('serviceHelp')}
+					error={submitted ? fields.service : ''}
+				>
 					{#snippet children(f)}
-						<SearchableSelect id={f.id} value={form.service} options={serviceOptions} onchange={(v) => { form.service = v; invalidate(); }} placeholder={r('selectService')} searchPlaceholder={r('searchServices')} emptyMessage={r('noMatchingServices')} disabled={locked || !editable} ariaInvalid={f.invalid} ariaDescribedby={f.describedBy} />
+						<SearchableSelect
+							id={f.id}
+							value={form.service}
+							options={serviceOptions}
+							onchange={(v) => {
+								form.service = v;
+								invalidate();
+							}}
+							placeholder={r('selectService')}
+							searchPlaceholder={r('searchServices')}
+							emptyMessage={r('noMatchingServices')}
+							disabled={locked || !editable}
+							ariaInvalid={f.invalid}
+							ariaDescribedby={f.describedBy}
+						/>
 					{/snippet}
 				</Field>
 				{#if isNoBackend(form.service)}<Notice message={rr('noBackendHint')} />{/if}
 				{#if !kindServices.length && pickersDone && !pickersFailed.includes('services')}
-					<Notice message={rr(http ? 'noServices' : tcp ? 'noServicesTcp' : 'noServicesUdp')}><Button size="sm" onclick={() => navigate(SERVICE_BASE[form.protocol] + '/new')}>{rr(http ? 'openServices' : tcp ? 'openServicesTcp' : 'openServicesUdp')}</Button></Notice>
+					<Notice message={rr(http ? 'noServices' : tcp ? 'noServicesTcp' : 'noServicesUdp')}>
+						<Button size="sm" onclick={() => navigate(SERVICE_BASE[form.protocol] + '/new')}>
+							{rr(http ? 'openServices' : tcp ? 'openServicesTcp' : 'openServicesUdp')}
+						</Button>
+					</Notice>
 				{/if}
 
-				<Field id="route-entrypoints" label={r('entryPoints')} required={!http} help={http ? rr('entryPointsDefault') : rr('entryPointsChoose', { kind: form.protocol.toUpperCase() })} error={submitted ? fields.entryPoints : ''}>
+				<Field
+					id="route-entrypoints"
+					label={r('entryPoints')}
+					required={!http}
+					help={http ? rr('entryPointsDefault') : rr('entryPointsChoose', { kind: form.protocol.toUpperCase() })}
+					error={submitted ? fields.entryPoints : ''}
+				>
 					{#snippet children(f)}
-						<SearchableMultiSelect id={f.id} values={form.entryPoints} options={entryPointOptions} onchange={(v) => { form.entryPoints = v; invalidate(); }} placeholder={r('selectEntryPoints')} searchPlaceholder={r('searchEntryPoints')} emptyMessage={r('noMatchingEntryPoints')} disabled={locked || !editable} ariaInvalid={f.invalid} ariaDescribedby={f.describedBy} />
+						<SearchableMultiSelect
+							id={f.id}
+							values={form.entryPoints}
+							options={entryPointOptions}
+							onchange={(v) => {
+								form.entryPoints = v;
+								invalidate();
+							}}
+							placeholder={r('selectEntryPoints')}
+							searchPlaceholder={r('searchEntryPoints')}
+							emptyMessage={r('noMatchingEntryPoints')}
+							disabled={locked || !editable}
+							ariaInvalid={f.invalid}
+							ariaDescribedby={f.describedBy}
+						/>
 					{/snippet}
 				</Field>
 				{#if pickersDone && !pickersFailed.includes('entrypoints') && !kindEntryPoints.length && !http}
@@ -630,109 +1109,278 @@
 					<Notice tone="warning" message={rr('takesOverHttp', { list: takenOver.join(', ') })} />
 				{/if}
 				{#if !udp}
-				<Field id="route-priority" label={r('priorityDisclosure')} help={r('priorityHelp')} error={submitted ? fields.priority : ''}>
-					{#snippet children(f)}
-						<input id={f.id} bind:value={form.priority} oninput={invalidate} inputmode="numeric" disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder={r('priorityPlaceholder')} />
-					{/snippet}
-				</Field>
+					<Field
+						id="route-priority"
+						label={r('priorityDisclosure')}
+						help={r('priorityHelp')}
+						error={submitted ? fields.priority : ''}
+					>
+						{#snippet children(f)}
+							<input
+								id={f.id}
+								bind:value={form.priority}
+								oninput={invalidate}
+								inputmode="numeric"
+								disabled={locked || !editable}
+								aria-invalid={f.invalid || undefined}
+								aria-describedby={f.describedBy}
+								autocomplete="off"
+								spellcheck="false"
+								placeholder={r('priorityPlaceholder')}
+							/>
+						{/snippet}
+					</Field>
 				{/if}
 			</div>
 
 			{#if !udp}
-			<div id="panel-route-tls" role="tabpanel" aria-labelledby="tab-route-tls" hidden={step !== TABS.tls} class="stack">
-				<h3>{r('tlsSection')}</h3>
-				{#if tcp && form.mode === 'any'}
-					<p class="muted">{rr('tlsAnyHint')}</p>
-				{:else if form.mode === 'domain' && !form.tlsPassthrough}
-					{#if domain}
-						<Notice message={rr('domainTls', { text: domainTlsText(domain) })} />
+				<div
+					id="panel-route-tls"
+					role="tabpanel"
+					aria-labelledby="tab-route-tls"
+					hidden={step !== TABS.tls}
+					class="stack"
+				>
+					<h3>{r('tlsSection')}</h3>
+					{#if tcp && form.mode === 'any'}
+						<p class="muted">{rr('tlsAnyHint')}</p>
+					{:else if form.mode === 'domain' && !form.tlsPassthrough}
+						{#if domain}
+							<Notice message={rr('domainTls', { text: domainTlsText(domain) })} />
+						{:else}
+							<p class="muted">{rr('domainTlsPending')}</p>
+						{/if}
 					{:else}
-						<p class="muted">{rr('domainTlsPending')}</p>
+						{#if tcp}
+							<Checkbox
+								id="route-tls-passthrough"
+								checked={form.tlsPassthrough}
+								label={rr('tlsPassthrough')}
+								help={rr('tlsPassthroughHelp')}
+								disabled={locked || !editable}
+								onchange={(v) => {
+									form.tlsPassthrough = v;
+									if (v) form.tlsEnabled = true;
+									invalidate();
+								}}
+							/>
+						{/if}
+						<Checkbox
+							id="route-tls-enabled"
+							checked={form.tlsEnabled || form.tlsPassthrough}
+							label={rr(tcp ? 'tlsTerminate' : 'tlsEnable')}
+							help={rr(tcp ? 'tlsTerminateHelp' : 'tlsEnableHelp')}
+							disabled={locked || !editable || form.tlsPassthrough}
+							onchange={(v) => {
+								form.tlsEnabled = v;
+								invalidate();
+							}}
+						/>
+						{#if form.tlsEnabled && !form.tlsPassthrough}
+							<Field id="route-tls-resolver" label={r('certResolver')} help={r('certResolverHelp')}>
+								{#snippet children(f)}
+									<SearchableSelect
+										id={f.id}
+										value={form.tlsResolver}
+										options={resolverOptions}
+										onchange={(v) => {
+											form.tlsResolver = v;
+											invalidate();
+										}}
+										placeholder={r('selectResolver')}
+										searchPlaceholder={r('searchResolvers')}
+										emptyMessage={r('noResolvers')}
+										disabled={locked || !editable}
+										ariaDescribedby={f.describedBy}
+									/>
+								{/snippet}
+							</Field>
+							<Field
+								id="route-tls-options"
+								label={r('tlsOptions')}
+								help={r('tlsOptionsHelp')}
+								error={submitted ? fields.tlsOptions : ''}
+							>
+								{#snippet children(f)}
+									<input
+										id={f.id}
+										bind:value={form.tlsOptions}
+										oninput={invalidate}
+										disabled={locked || !editable}
+										aria-invalid={f.invalid || undefined}
+										aria-describedby={f.describedBy}
+										autocomplete="off"
+										spellcheck="false"
+										placeholder="default"
+									/>
+								{/snippet}
+							</Field>
+						{/if}
 					{/if}
-				{:else}
-					{#if tcp}
-						<Checkbox id="route-tls-passthrough" checked={form.tlsPassthrough} label={rr('tlsPassthrough')} help={rr('tlsPassthroughHelp')} disabled={locked || !editable} onchange={(v) => { form.tlsPassthrough = v; if (v) form.tlsEnabled = true; invalidate(); }} />
-					{/if}
-					<Checkbox id="route-tls-enabled" checked={form.tlsEnabled || form.tlsPassthrough} label={rr(tcp ? 'tlsTerminate' : 'tlsEnable')} help={rr(tcp ? 'tlsTerminateHelp' : 'tlsEnableHelp')} disabled={locked || !editable || form.tlsPassthrough} onchange={(v) => { form.tlsEnabled = v; invalidate(); }} />
-					{#if form.tlsEnabled && !form.tlsPassthrough}
-						<Field id="route-tls-resolver" label={r('certResolver')} help={r('certResolverHelp')}>
-							{#snippet children(f)}
-								<SearchableSelect id={f.id} value={form.tlsResolver} options={resolverOptions} onchange={(v) => { form.tlsResolver = v; invalidate(); }} placeholder={r('selectResolver')} searchPlaceholder={r('searchResolvers')} emptyMessage={r('noResolvers')} disabled={locked || !editable} ariaDescribedby={f.describedBy} />
-							{/snippet}
-						</Field>
-						<Field id="route-tls-options" label={r('tlsOptions')} help={r('tlsOptionsHelp')} error={submitted ? fields.tlsOptions : ''}>
-							{#snippet children(f)}
-								<input id={f.id} bind:value={form.tlsOptions} oninput={invalidate} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="default" />
-							{/snippet}
-						</Field>
-					{/if}
-				{/if}
 
-				<h3>{r('middlewaresSection')}</h3>
-				<p class="muted">{http ? r('middlewaresHelp') : rr('tcpMiddlewaresHelp')}</p>
-				{#if submitted && fields.middlewares}<Notice tone="error" message={fields.middlewares} />{/if}
-				<Field id="route-add-middleware" label={r('addMiddleware')}>
-					{#snippet children(f)}
-						<SearchableSelect id={f.id} value="" options={middlewareOptions} onchange={addMiddleware} placeholder={r('selectMiddleware')} searchPlaceholder={r('searchMiddlewares')} emptyMessage={r('noMiddlewaresAvailable')} disabled={locked || !editable || form.middlewares.length >= MAX_MIDDLEWARES || !middlewareOptions.length} />
-					{/snippet}
-				</Field>
-				{#if form.middlewares.length}
-					<ol class="members">
-						{#each form.middlewares as m, index (m)}
-							<li>
-								<span class="order">{index + 1}</span>
-								<span class="url">{m}{#if isExternalRef(m)} <span class="muted">· {rr('externalBadge')}</span>{/if}</span>
-								<div class="member-actions">
-									<Button size="sm" disabled={locked || !editable || index === 0} onclick={() => moveMiddleware(index, -1)}><ArrowUp size={14} aria-hidden="true" /><span class="sr-only">{r('moveUp')} {m}</span></Button>
-									<Button size="sm" disabled={locked || !editable || index === form.middlewares.length - 1} onclick={() => moveMiddleware(index, 1)}><ArrowDown size={14} aria-hidden="true" /><span class="sr-only">{r('moveDown')} {m}</span></Button>
-									<Button size="sm" variant="danger" disabled={locked || !editable} onclick={() => removeMiddleware(index)}><Trash2 size={14} aria-hidden="true" /><span class="sr-only">{r('removeMiddleware')} {m}</span></Button>
-								</div>
-							</li>
-						{/each}
-					</ol>
-				{:else}
-					<p class="muted">{r('noMiddlewaresAttached')}</p>
-				{/if}
-				{#if tcp && pickersDone && !pickersFailed.includes('middlewares') && !middlewareOptions.length && !form.middlewares.length}
-					<Notice message={rr('noTcpMiddlewares')}><Button size="sm" onclick={() => navigate('/tcp-middlewares/new')}>{rr('createTcpMiddleware')}</Button></Notice>
-				{/if}
-			</div>
+					<h3>{r('middlewaresSection')}</h3>
+					<p class="muted">{http ? r('middlewaresHelp') : rr('tcpMiddlewaresHelp')}</p>
+					{#if submitted && fields.middlewares}<Notice tone="error" message={fields.middlewares} />{/if}
+					<Field id="route-add-middleware" label={r('addMiddleware')}>
+						{#snippet children(f)}
+							<SearchableSelect
+								id={f.id}
+								value=""
+								options={middlewareOptions}
+								onchange={addMiddleware}
+								placeholder={r('selectMiddleware')}
+								searchPlaceholder={r('searchMiddlewares')}
+								emptyMessage={r('noMiddlewaresAvailable')}
+								disabled={locked ||
+									!editable ||
+									form.middlewares.length >= MAX_MIDDLEWARES ||
+									!middlewareOptions.length}
+							/>
+						{/snippet}
+					</Field>
+					{#if form.middlewares.length}
+						<ol class="members">
+							{#each form.middlewares as m, index (m)}
+								<li>
+									<span class="order">{index + 1}</span>
+									<span class="url">
+										{m}{#if isExternalRef(m)}
+											<span class="muted">· {rr('externalBadge')}</span>{/if}
+									</span>
+									<div class="member-actions">
+										<Button
+											size="sm"
+											disabled={locked || !editable || index === 0}
+											onclick={() => moveMiddleware(index, -1)}
+										>
+											<ArrowUp size={14} aria-hidden="true" /><span class="sr-only">{r('moveUp')} {m}</span>
+										</Button>
+										<Button
+											size="sm"
+											disabled={locked || !editable || index === form.middlewares.length - 1}
+											onclick={() => moveMiddleware(index, 1)}
+										>
+											<ArrowDown size={14} aria-hidden="true" /><span class="sr-only">{r('moveDown')} {m}</span>
+										</Button>
+										<Button
+											size="sm"
+											variant="danger"
+											disabled={locked || !editable}
+											onclick={() => removeMiddleware(index)}
+										>
+											<Trash2 size={14} aria-hidden="true" /><span class="sr-only">{r('removeMiddleware')} {m}</span>
+										</Button>
+									</div>
+								</li>
+							{/each}
+						</ol>
+					{:else}
+						<p class="muted">{r('noMiddlewaresAttached')}</p>
+					{/if}
+					{#if tcp && pickersDone && !pickersFailed.includes('middlewares') && !middlewareOptions.length && !form.middlewares.length}
+						<Notice message={rr('noTcpMiddlewares')}>
+							<Button size="sm" onclick={() => navigate('/tcp-middlewares/new')}>{rr('createTcpMiddleware')}</Button>
+						</Notice>
+					{/if}
+				</div>
 			{/if}
 
-			<div id="panel-route-review" role="tabpanel" aria-labelledby="tab-route-review" hidden={step !== TABS.review} class="stack">
+			<div
+				id="panel-route-review"
+				role="tabpanel"
+				aria-labelledby="tab-route-review"
+				hidden={step !== TABS.review}
+				class="stack"
+			>
 				{#if result}
-					<Notice tone={operationTone(result.status)} title={t('operationV2.status.' + result.status)} message={result.summary}>
+					<Notice
+						tone={operationTone(result.status)}
+						title={t('operationV2.status.' + result.status)}
+						message={result.summary}
+					>
 						{#if result.id}<span class="muted">{t('operationV2.id', { id: result.id })}</span>{/if}
 					</Notice>
 					{#if manualRestart}<Notice tone="warning" message={t('writeV2.manualRestart')} />{/if}
 				{:else if review}
 					<SummaryList>
-						<div><dt>{r('name')}</dt><dd>{form.name}</dd></div>
-						<div><dt>{rr('protocolColumn')}</dt><dd>{rr('kind.' + form.protocol)}</dd></div>
-						{#if !udp}<div><dt>{r('rule')}</dt><dd><code>{stagedConfig?.rule || rule}</code></dd></div>{/if}
-						<div><dt>{r('entryPoints')}</dt><dd>{(stagedConfig?.entry_points ?? form.entryPoints).join(', ') || rr('entryPointsAuto')}</dd></div>
-						<div><dt>{r('service')}</dt><dd>{isNoBackend(form.service) ? rr('noBackendValue') : form.service}</dd></div>
-						{#if !udp}<div><dt>{r('tlsSection')}</dt><dd>{stagedConfig ? tlsLabel({ ...stagedConfig, protocol: form.protocol }) : form.tlsPassthrough ? rr('tlsPassthroughValue') : form.mode === 'domain' || form.tlsEnabled ? rr(tcp ? 'tlsTerminated' : 'https') : rr(tcp ? 'plainTcp' : 'httpOnly')}</dd></div>{/if}
-						{#if http && form.middlewares.length}<div><dt>{r('middlewaresSection')}</dt><dd>{form.middlewares.join(' → ')}</dd></div>{/if}
-						{#if !udp && form.priority.trim() && Number(form.priority) !== 0}<div><dt>{r('priority')}</dt><dd>{form.priority.trim()}</dd></div>{/if}
-						{#if staged?.updated_at}<div><dt>{rr('updated')}</dt><dd><RelativeTime value={staged.updated_at} /></dd></div>{/if}
-						<div><dt>{rv2('pendingTotal')}</dt><dd>{review.changes?.length ?? 0}</dd></div>
+						<div>
+							<dt>{r('name')}</dt>
+							<dd>{form.name}</dd>
+						</div>
+						<div>
+							<dt>{rr('protocolColumn')}</dt>
+							<dd>{rr('kind.' + form.protocol)}</dd>
+						</div>
+						{#if !udp}<div>
+								<dt>{r('rule')}</dt>
+								<dd><code>{stagedConfig?.rule || rule}</code></dd>
+							</div>{/if}
+						<div>
+							<dt>{r('entryPoints')}</dt>
+							<dd>{(stagedConfig?.entry_points ?? form.entryPoints).join(', ') || rr('entryPointsAuto')}</dd>
+						</div>
+						<div>
+							<dt>{r('service')}</dt>
+							<dd>{isNoBackend(form.service) ? rr('noBackendValue') : form.service}</dd>
+						</div>
+						{#if !udp}<div>
+								<dt>{r('tlsSection')}</dt>
+								<dd>
+									{stagedConfig
+										? tlsLabel({ ...stagedConfig, protocol: form.protocol })
+										: form.tlsPassthrough
+											? rr('tlsPassthroughValue')
+											: form.mode === 'domain' || form.tlsEnabled
+												? rr(tcp ? 'tlsTerminated' : 'https')
+												: rr(tcp ? 'plainTcp' : 'httpOnly')}
+								</dd>
+							</div>{/if}
+						{#if http && form.middlewares.length}<div>
+								<dt>{r('middlewaresSection')}</dt>
+								<dd>{form.middlewares.join(' → ')}</dd>
+							</div>{/if}
+						{#if !udp && form.priority.trim() && Number(form.priority) !== 0}<div>
+								<dt>{r('priority')}</dt>
+								<dd>{form.priority.trim()}</dd>
+							</div>{/if}
+						{#if staged?.updated_at}<div>
+								<dt>{rr('updated')}</dt>
+								<dd><RelativeTime value={staged.updated_at} /></dd>
+							</div>{/if}
+						<div>
+							<dt>{rv2('pendingTotal')}</dt>
+							<dd>{review.changes?.length ?? 0}</dd>
+						</div>
 					</SummaryList>
 					{#if serverErrors.length}
 						<Notice tone="error" title={rv2('serverErrors')}>
-							<ul class="reasons">{#each serverErrors as ve}<li>{ve.item_id}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}</ul>
+							<ul class="reasons">
+								{#each serverErrors as ve}<li>{ve.item_id}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}
+							</ul>
 						</Notice>
 					{/if}
 					{#if review.requires_restart}
 						<Notice tone="warning" message={t('resolverUI.lifecycleHelp')}>
-							{#if review.restart_reasons?.length}<ul class="reasons">{#each review.restart_reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+							{#if review.restart_reasons?.length}<ul class="reasons">
+									{#each review.restart_reasons as reason}<li>{reason}</li>{/each}
+								</ul>{/if}
 						</Notice>
 					{/if}
-					{#if review.static_diff}<CodePreview label={rv2('diff.static')} code={review.static_diff} language="diff" />{/if}
-					{#if review.dynamic_diff}<CodePreview label={rv2('diff.dynamic')} code={review.dynamic_diff} language="diff" />{/if}
+					{#if review.static_diff}<CodePreview
+							label={rv2('diff.static')}
+							code={review.static_diff}
+							language="diff"
+						/>{/if}
+					{#if review.dynamic_diff}<CodePreview
+							label={rv2('diff.dynamic')}
+							code={review.dynamic_diff}
+							language="diff"
+						/>{/if}
 					{#if !review.static_diff && !review.dynamic_diff}<Notice tone="info" message={rr('noFileChanges')} />{/if}
 				{:else if reviewError}
-					<Notice tone="error" message={reviewError}><Button size="sm" onclick={stageAndReview}>{t('common.retry')}</Button></Notice>
+					<Notice tone="error" message={reviewError}>
+						<Button size="sm" onclick={stageAndReview}>{t('common.retry')}</Button>
+					</Notice>
 				{:else}
 					<p role="status">{rv2('staging')}</p>
 				{/if}
@@ -743,19 +1391,31 @@
 	{#snippet footer()}
 		<Button onclick={close} disabled={busy}>{result || viewing ? t('common.close') : t('common.cancel')}</Button>
 		{#if viewing && current && !current.read_only}
-			<Button variant="primary" onclick={() => navigate(ROUTER_BASE[routerProtocolOf(current.config)] + '/' + encodeURIComponent(current.name) + '/edit')}>{r('edit')}</Button>
+			<Button
+				variant="primary"
+				onclick={() =>
+					navigate(ROUTER_BASE[routerProtocolOf(current.config)] + '/' + encodeURIComponent(current.name) + '/edit')}
+			>
+				{r('edit')}
+			</Button>
 		{/if}
 		{#if !loading && !loadError && !viewing && !result && editable}
 			{#if step === TABS.review}
 				<Button onclick={() => (step = stepAfter(-1))} disabled={busy}>{t('domainUI.back')}</Button>
 				{#if review}
-					<Button variant="primary" onclick={apply} pending={busy} disabled={busy || serverErrors.length > 0}>{t('domainUI.' + (busy ? 'applying' : uncertain ? 'retryApply' : 'apply'))}</Button>
+					<Button variant="primary" onclick={apply} pending={busy} disabled={busy || serverErrors.length > 0}>
+						{t('domainUI.' + (busy ? 'applying' : uncertain ? 'retryApply' : 'apply'))}
+					</Button>
 				{/if}
 			{:else if stepAfter(1) === TABS.review}
-				{#if stepAfter(-1) !== step}<Button onclick={() => (step = stepAfter(-1))} disabled={busy}>{t('domainUI.back')}</Button>{/if}
+				{#if stepAfter(-1) !== step}<Button onclick={() => (step = stepAfter(-1))} disabled={busy}>
+						{t('domainUI.back')}
+					</Button>{/if}
 				<Button variant="primary" onclick={stageAndReview} pending={busy} disabled={busy}>{rv2('stageReview')}</Button>
 			{:else}
-				{#if stepAfter(-1) !== step}<Button onclick={() => (step = stepAfter(-1))} disabled={busy}>{t('domainUI.back')}</Button>{/if}
+				{#if stepAfter(-1) !== step}<Button onclick={() => (step = stepAfter(-1))} disabled={busy}>
+						{t('domainUI.back')}
+					</Button>{/if}
 				<Button variant="primary" onclick={() => goTo(stepAfter(1))} disabled={busy}>{t('domainUI.continue')}</Button>
 			{/if}
 		{/if}
@@ -763,35 +1423,189 @@
 </ResourceDialog>
 
 <style>
-	.stack, .stack:not([hidden]) { display: flex; flex-direction: column; gap: 24px; }
-	.stack[hidden] { display: none; }
-	h3 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 13px; font-weight: 600; color: var(--text); }
-	h3::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-	.muted { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 21px; }
-	.reasons { margin: 8px 0 0; padding-left: 20px; font-size: 14px; line-height: 22px; }
-	textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
-	textarea.mono, code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; }
-	.preview { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface-muted); }
-	.preview code { overflow-wrap: anywhere; }
-	.members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-	.members li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface-muted); }
-	.member-actions { display: flex; gap: 6px; margin-left: auto; }
-	.order { min-width: 24px; color: var(--text-muted); font-size: 13px; }
-	.url { overflow-wrap: anywhere; font-size: 14px; }
-	.link { border: 0; background: transparent; padding: 0; color: var(--connection); font: inherit; cursor: pointer; }
-	.link:hover { text-decoration: underline; }
-	.validation-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--danger-text) 30%, transparent); border-radius: var(--radius-card); background: var(--danger-bg); color: var(--danger-text); font-size: 13px; line-height: 18px; }
-	.validation-banner span { flex: 1; }
-	.validation-banner button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 2px 4px; }
-	.validation-banner button:hover { text-decoration: underline; }
-	.hostnames { display: flex; flex-direction: column; gap: 12px; max-width: 680px; }
-	.hostnames-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
-	.hostnames .section-title { display: block; margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text); }
-	.hostnames .section-title::after { content: none; }
-	.hostnames .required { color: var(--danger-text); }
-	.hostnames .muted { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 21px; }
+	.stack,
+	.stack:not([hidden]) {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	.stack[hidden] {
+		display: none;
+	}
+	h3 {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin: 0;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text);
+	}
+	h3::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border);
+	}
+	.muted {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 21px;
+	}
+	.reasons {
+		margin: 8px 0 0;
+		padding-left: 20px;
+		font-size: 14px;
+		line-height: 22px;
+	}
+	textarea {
+		width: 100%;
+		box-sizing: border-box;
+		resize: vertical;
+		font: inherit;
+	}
+	textarea.mono,
+	code {
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 13px;
+	}
+	.preview {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 12px 14px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface-muted);
+	}
+	.preview code {
+		overflow-wrap: anywhere;
+	}
+	.members {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.members li {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface-muted);
+	}
+	.member-actions {
+		display: flex;
+		gap: 6px;
+		margin-left: auto;
+	}
+	.order {
+		min-width: 24px;
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+	.url {
+		overflow-wrap: anywhere;
+		font-size: 14px;
+	}
+	.link {
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: var(--connection);
+		font: inherit;
+		cursor: pointer;
+	}
+	.link:hover {
+		text-decoration: underline;
+	}
+	.validation-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 14px;
+		border: 1px solid color-mix(in srgb, var(--danger-text) 30%, transparent);
+		border-radius: var(--radius-card);
+		background: var(--danger-bg);
+		color: var(--danger-text);
+		font-size: 13px;
+		line-height: 18px;
+	}
+	.validation-banner span {
+		flex: 1;
+	}
+	.validation-banner button {
+		border: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 2px 4px;
+	}
+	.validation-banner button:hover {
+		text-decoration: underline;
+	}
+	.hostnames {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		max-width: 680px;
+	}
+	.hostnames-head {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-bottom: 4px;
+	}
+	.hostnames .section-title {
+		display: block;
+		margin: 0;
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 20px;
+		color: var(--text);
+	}
+	.hostnames .section-title::after {
+		content: none;
+	}
+	.hostnames .required {
+		color: var(--danger-text);
+	}
+	.hostnames .muted {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 21px;
+	}
 	/* As wide as the hostname fields, like "Add backend" of a service: the remove button's column stays empty. */
-	.add-host { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 40px); min-height: var(--control-h); border: 1px dashed var(--outline); border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
-	.add-host:hover:not(:disabled) { background: var(--surface-muted); border-style: solid; }
-	.add-host:disabled { opacity: 0.5; cursor: default; }
+	.add-host {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: calc(100% - 40px);
+		min-height: var(--control-h);
+		border: 1px dashed var(--outline);
+		border-radius: var(--radius-control);
+		background: transparent;
+		color: var(--text);
+		font: inherit;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+	}
+	.add-host:hover:not(:disabled) {
+		background: var(--surface-muted);
+		border-style: solid;
+	}
+	.add-host:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
 </style>

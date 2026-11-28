@@ -6,7 +6,7 @@
 		title,
 		subtitle = '',
 		breadcrumb = '',
-		actions
+		actions,
 	}: {
 		title: string;
 		subtitle?: string;
@@ -33,9 +33,22 @@
 </header>
 
 <style>
- .page-header { margin-bottom: 24px; gap: 16px 24px; }
- .page-title { margin: 0; font-size: 26px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
- @media (max-width: 767px) { .page-header { margin-bottom: 20px; } }
+	.page-header {
+		margin-bottom: 24px;
+		gap: 16px 24px;
+	}
+	.page-title {
+		margin: 0;
+		font-size: 26px;
+		line-height: 34px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+	}
+	@media (max-width: 767px) {
+		.page-header {
+			margin-bottom: 20px;
+		}
+	}
 
 	.crumbs {
 		margin-bottom: 8px;

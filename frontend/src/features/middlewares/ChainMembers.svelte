@@ -47,13 +47,34 @@
 {/if}
 
 <style>
-	.members { display: flex; align-items: center; min-width: 0; }
+	.members {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
 	/* The whole label opens the panel; the icon sits on the text's centre line. */
-	.trigger { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; line-height: 20px; }
-	.trigger :global(svg) { flex: none; color: var(--text-muted); }
-	.none { color: var(--text-muted); }
+	.trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		white-space: nowrap;
+		line-height: 20px;
+	}
+	.trigger :global(svg) {
+		flex: none;
+		color: var(--text-muted);
+	}
+	.none {
+		color: var(--text-muted);
+	}
 
-	.panel { display: flex; flex-direction: column; gap: 10px; min-width: 220px; max-width: 360px; }
+	.panel {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		min-width: 220px;
+		max-width: 360px;
+	}
 	.panel-title {
 		margin: 0;
 		font-size: 11px;
@@ -64,7 +85,13 @@
 		color: var(--text-muted);
 	}
 	/* Long chains scroll inside the panel instead of covering the page. */
-	.flow { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+	.flow {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 320px;
+		overflow-y: auto;
+	}
 	.flow li {
 		position: relative;
 		display: flex;
@@ -100,6 +127,13 @@
 		font-size: 11px;
 		font-weight: 600;
 	}
-	.member-name { font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
-	.provider { color: var(--text-muted); flex: none; }
+	.member-name {
+		font-weight: 500;
+		color: var(--text);
+		overflow-wrap: anywhere;
+	}
+	.provider {
+		color: var(--text-muted);
+		flex: none;
+	}
 </style>

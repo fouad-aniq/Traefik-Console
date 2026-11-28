@@ -2,46 +2,120 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import MiddlewaresPage from '../src/features/middlewares/MiddlewaresPage.svelte';
-import { externalType, hasRedacted, isSensitiveKey, refersTo, serializeConfig, stateFromConfig, nativeSchema } from '../src/features/middlewares/models';
+import {
+	externalType,
+	hasRedacted,
+	isSensitiveKey,
+	refersTo,
+	serializeConfig,
+	stateFromConfig,
+	nativeSchema,
+} from '../src/features/middlewares/models';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
-const preview = (extra = {}) => ({ changes: [{ action: 'created', id: 'middleware:strip-api', kind: 'middleware', name: 'strip-api', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+m: {}', requires_restart: false, ...extra });
-const operation = (extra = {}) => ({ id: 9, kind: 'middleware.create', target: 'strip-api', status: 'succeeded', summary: 'Applied 1 change', requires_restart: false, created_at: 'now', ...extra });
-const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({ id: kind + ':' + name, name, version, origin: 'managed', provider: 'file', status: 'active', read_only: false, live_health: 'unknown', updated_at: '2026-01-01T00:00:00Z', config, ...extra });
+const preview = (extra = {}) => ({
+	changes: [{ action: 'created', id: 'middleware:strip-api', kind: 'middleware', name: 'strip-api', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+m: {}',
+	requires_restart: false,
+	...extra,
+});
+const operation = (extra = {}) => ({
+	id: 9,
+	kind: 'middleware.create',
+	target: 'strip-api',
+	status: 'succeeded',
+	summary: 'Applied 1 change',
+	requires_restart: false,
+	created_at: 'now',
+	...extra,
+});
+const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({
+	id: kind + ':' + name,
+	name,
+	version,
+	origin: 'managed',
+	provider: 'file',
+	status: 'active',
+	read_only: false,
+	live_health: 'unknown',
+	updated_at: '2026-01-01T00:00:00Z',
+	config,
+	...extra,
+});
 const none = { routers: [], chains: [] };
-const middleware = (name: string, type = 'addPrefix', spec: unknown = { prefix: '/api' }, version = 1, used_by: unknown = none) => envelope('middleware', name, { type, spec, used_by }, version);
-const chain = (name: string, members: string[] | null, version = 1, used_by: unknown = none) => envelope('chain', name, { middlewares: members, used_by }, version);
-const usedBy = (routers: string[], chains: [string, string[]][] = []) => ({ routers: routers.map((r) => ({ name: r, rule: 'Host(`' + r + '.example`)', entry_points: ['websecure'], service: r, tls: true, read_only: false })), chains: chains.map(([name, members]) => ({ name, members, read_only: false })) });
+const middleware = (
+	name: string,
+	type = 'addPrefix',
+	spec: unknown = { prefix: '/api' },
+	version = 1,
+	used_by: unknown = none,
+) => envelope('middleware', name, { type, spec, used_by }, version);
+const chain = (name: string, members: string[] | null, version = 1, used_by: unknown = none) =>
+	envelope('chain', name, { middlewares: members, used_by }, version);
+const usedBy = (routers: string[], chains: [string, string[]][] = []) => ({
+	routers: routers.map((r) => ({
+		name: r,
+		rule: 'Host(`' + r + '.example`)',
+		entry_points: ['websecure'],
+		service: r,
+		tls: true,
+		read_only: false,
+	})),
+	chains: chains.map(([name, members]) => ({ name, members, read_only: false })),
+});
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const base = (mws: unknown, chains: unknown = []) => ({
 	'GET /api/v1/middlewares': () => json(mws),
 	'GET /api/v1/chains': () => json(chains),
-	'GET /api/v1/services': () => json([])
+	'GET /api/v1/services': () => json([]),
 });
 
 describe('model helpers', () => {
@@ -50,7 +124,11 @@ describe('model helpers', () => {
 		expect(hasRedacted({ prefix: '/api' })).toBe(false);
 		expect(isSensitiveKey('usersFile')).toBe(true);
 		expect(isSensitiveKey('prefix')).toBe(false);
-		const state = stateFromConfig(nativeSchema.http.basicAuth, { realm: 'r', users: ['[redacted]'], usersFile: '[redacted]' });
+		const state = stateFromConfig(nativeSchema.http.basicAuth, {
+			realm: 'r',
+			users: ['[redacted]'],
+			usersFile: '[redacted]',
+		});
 		expect(serializeConfig(state)).toEqual({ realm: 'r', users: ['[redacted]'], usersFile: '[redacted]' });
 	});
 	it('reads the real type of a Traefik-discovered middleware from its runtime object', () => {
@@ -68,7 +146,10 @@ describe('model helpers', () => {
 describe('lists', () => {
 	it('lists middlewares with the usage core-v2 sends, in one request, and blocks Delete while used', async () => {
 		const navigate = vi.fn();
-		handlers = base([middleware('strip-api', 'addPrefix', { prefix: '/api' }, 1, usedBy(['shop'], [['c1', ['strip-api', 'auth']]])), middleware('headers-1', 'headers', {})]);
+		handlers = base([
+			middleware('strip-api', 'addPrefix', { prefix: '/api' }, 1, usedBy(['shop'], [['c1', ['strip-api', 'auth']]])),
+			middleware('headers-1', 'headers', {}),
+		]);
 		render(MiddlewaresPage, { navigate });
 		await waitFor(() => expect(screen.getAllByText('strip-api')[0]).toBeTruthy());
 		expect(calls.map((c) => c.path)).toEqual(['/api/v1/middlewares']);
@@ -83,7 +164,10 @@ describe('lists', () => {
 		expect(navigate).toHaveBeenCalledWith('/chains/c1');
 	});
 	it('shows the External badge instead of a Source column, and filters by source', async () => {
-		handlers = base([middleware('mine'), { ...middleware('auth@docker', 'basicAuth', {}), origin: 'external', provider: 'docker', read_only: true }]);
+		handlers = base([
+			middleware('mine'),
+			{ ...middleware('auth@docker', 'basicAuth', {}), origin: 'external', provider: 'docker', read_only: true },
+		]);
 		const { container } = render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('mine')[0]).toBeTruthy());
 		const headers = [...container.querySelectorAll('thead th')].map((h) => h.textContent?.trim());
@@ -104,7 +188,10 @@ describe('lists', () => {
 		await waitFor(() => expect(screen.getByText('No middlewares yet')).toBeTruthy());
 	});
 	it('reads each tab once: switching back reuses the list, a change reloads', async () => {
-		handlers = { ...base([middleware('a')], [chain('web', ['a'])]), 'DELETE /api/v1/chains/web': () => json({ operation: operation(), restart_required: false }) };
+		handlers = {
+			...base([middleware('a')], [chain('web', ['a'])]),
+			'DELETE /api/v1/chains/web': () => json({ operation: operation(), restart_required: false }),
+		};
 		const { rerender } = render(MiddlewaresPage, { navigate: () => {}, tab: 'middlewares' });
 		await waitFor(() => expect(screen.getAllByText('a')[0]).toBeTruthy());
 		await rerender({ navigate: () => {}, tab: 'chains' });
@@ -119,10 +206,16 @@ describe('lists', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Confirm deletion' }));
 		await waitFor(() => expect(gets()).toEqual(['/api/v1/middlewares', '/api/v1/chains', '/api/v1/chains']));
 		await rerender({ navigate: () => {}, tab: 'middlewares' });
-		await waitFor(() => expect(gets()).toEqual(['/api/v1/middlewares', '/api/v1/chains', '/api/v1/chains', '/api/v1/middlewares']));
+		await waitFor(() =>
+			expect(gets()).toEqual(['/api/v1/middlewares', '/api/v1/chains', '/api/v1/chains', '/api/v1/middlewares']),
+		);
 	});
 	it('retries a failed list from the Retry button', async () => {
-		handlers = { ...base([]), 'GET /api/v1/middlewares': () => json({ code: 'ERR_INTERNAL', message: 'boom', operation_id: 'o', retryable: true }, 500) };
+		handlers = {
+			...base([]),
+			'GET /api/v1/middlewares': () =>
+				json({ code: 'ERR_INTERNAL', message: 'boom', operation_id: 'o', retryable: true }, 500),
+		};
 		render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('boom').length).toBeGreaterThan(0));
 		handlers['GET /api/v1/middlewares'] = () => json([middleware('back')]);
@@ -148,7 +241,16 @@ describe('lists', () => {
 	it('deletes with the current version and surfaces the server conflict', async () => {
 		handlers = {
 			...base([middleware('free', 'addPrefix', {}, 5)]),
-			'DELETE /api/v1/middlewares/free': () => json({ code: 'ERR_CONFLICT', message: 'middleware cannot be deleted because it is referenced by a router or chain', operation_id: 'o', retryable: false }, 409)
+			'DELETE /api/v1/middlewares/free': () =>
+				json(
+					{
+						code: 'ERR_CONFLICT',
+						message: 'middleware cannot be deleted because it is referenced by a router or chain',
+						operation_id: 'o',
+						retryable: false,
+					},
+					409,
+				),
 		};
 		render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('free')[0]).toBeTruthy());
@@ -170,7 +272,12 @@ describe('middleware create flow', () => {
 		handlers = {
 			...base([]),
 			'PUT /api/v1/middlewares/strip-api?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/middlewares/strip-api': () => json({ operation: operation(), resource: middleware('strip-api', 'addPrefix', { prefix: '/api' }), restart_required: false })
+			'PUT /api/v1/middlewares/strip-api': () =>
+				json({
+					operation: operation(),
+					resource: middleware('strip-api', 'addPrefix', { prefix: '/api' }),
+					restart_required: false,
+				}),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'create' });
 		await openAddPrefix();
@@ -213,8 +320,14 @@ describe('middleware create flow', () => {
 describe('edit flow', () => {
 	it('sends stored secrets back as the redacted marker so the backend keeps them', async () => {
 		handlers = {
-			...base([middleware('auth', 'forwardAuth', { address: 'https://auth.test/verify', authResponseHeaders: ['X-User'], tls: { key: '[redacted]' } })]),
-			'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			...base([
+				middleware('auth', 'forwardAuth', {
+					address: 'https://auth.test/verify',
+					authResponseHeaders: ['X-User'],
+					tls: { key: '[redacted]' },
+				}),
+			]),
+			'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'edit', name: 'auth' });
 		await waitFor(() => expect(screen.getByText(/appear as \[redacted\]/)).toBeTruthy());
@@ -226,7 +339,14 @@ describe('edit flow', () => {
 		expect(put.body.spec.address).toBe('https://auth.test/verify');
 	});
 	it('shows an external middleware read-only', async () => {
-		handlers = base([{ ...middleware('internal-x@docker', 'external', { foo: 1 }), origin: 'external', provider: 'docker', read_only: true }]);
+		handlers = base([
+			{
+				...middleware('internal-x@docker', 'external', { foo: 1 }),
+				origin: 'external',
+				provider: 'docker',
+				read_only: true,
+			},
+		]);
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'view', name: 'internal-x@docker' });
 		await waitFor(() => expect(screen.getAllByText('internal-x@docker').length).toBeGreaterThan(0));
 		expect(screen.queryByRole('menuitem', { name: 'Edit' })).toBeNull();
@@ -237,7 +357,11 @@ describe('edit flow', () => {
 describe('edit, review and failure flows', () => {
 	const openPrefixEdit = async () => {
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'edit', name: 'p' });
-		const input = await waitFor(() => { const el = document.getElementById('mw-prefix') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		const input = await waitFor(() => {
+			const el = document.getElementById('mw-prefix') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 		await fireEvent.input(input, { target: { value: '/changed' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 	};
@@ -246,7 +370,12 @@ describe('edit, review and failure flows', () => {
 		handlers = {
 			...base([middleware('p', 'addPrefix', { prefix: '/a' }, 7)]),
 			'PUT /api/v1/middlewares/p?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/middlewares/p': () => json({ operation: operation(), resource: middleware('p', 'addPrefix', { prefix: '/changed' }, 8), restart_required: false })
+			'PUT /api/v1/middlewares/p': () =>
+				json({
+					operation: operation(),
+					resource: middleware('p', 'addPrefix', { prefix: '/changed' }, 8),
+					restart_required: false,
+				}),
 		};
 		await openPrefixEdit();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Apply changes' }));
@@ -260,7 +389,8 @@ describe('edit, review and failure flows', () => {
 	it('offers to reload when someone else changed the middleware', async () => {
 		handlers = {
 			...base([middleware('p', 'addPrefix', { prefix: '/a' }, 7)]),
-			'PUT /api/v1/middlewares/p?dry_run=true': () => json({ code: 'ERR_VERSION_CONFLICT', message: 'changed', operation_id: 'o', retryable: false }, 412)
+			'PUT /api/v1/middlewares/p?dry_run=true': () =>
+				json({ code: 'ERR_VERSION_CONFLICT', message: 'changed', operation_id: 'o', retryable: false }, 412),
 		};
 		await openPrefixEdit();
 		expect(await screen.findByRole('button', { name: 'Reload latest version' })).toBeTruthy();
@@ -270,7 +400,13 @@ describe('edit, review and failure flows', () => {
 	it('does not let a change with server validation errors be applied', async () => {
 		handlers = {
 			...base([middleware('p', 'addPrefix', { prefix: '/a' })]),
-			'PUT /api/v1/middlewares/p?dry_run=true': () => json({ preview: preview({ validation_errors: [{ item_id: 'middleware:p', field: 'prefix', message: 'Traefik rejects this prefix' }] }), restart_required: false })
+			'PUT /api/v1/middlewares/p?dry_run=true': () =>
+				json({
+					preview: preview({
+						validation_errors: [{ item_id: 'middleware:p', field: 'prefix', message: 'Traefik rejects this prefix' }],
+					}),
+					restart_required: false,
+				}),
 		};
 		await openPrefixEdit();
 		expect(await screen.findByText(/Traefik rejects this prefix/)).toBeTruthy();
@@ -283,7 +419,16 @@ describe('edit, review and failure flows', () => {
 		handlers = {
 			...base([middleware('p', 'addPrefix', { prefix: '/a' })]),
 			'PUT /api/v1/middlewares/p?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/middlewares/p': () => json({ code: 'ERR_DEPLOY_ROLLED_BACK', message: 'The operation could not be completed safely', operation_id: 'o', retryable: false }, 422)
+			'PUT /api/v1/middlewares/p': () =>
+				json(
+					{
+						code: 'ERR_DEPLOY_ROLLED_BACK',
+						message: 'The operation could not be completed safely',
+						operation_id: 'o',
+						retryable: false,
+					},
+					422,
+				),
 		};
 		await openPrefixEdit();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Apply changes' }));
@@ -296,12 +441,21 @@ describe('edit, review and failure flows', () => {
 		handlers = base([middleware('allow', 'ipAllowList', { sourceRange: ['192.168.1.0/24', '172.16.0.0/24'] })]);
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'view', name: 'allow' });
 		await waitFor(() => expect(document.querySelector('.resource-dialog pre')).toBeTruthy());
-		expect(document.querySelector('.resource-dialog pre')!.textContent).toBe('ipAllowList:\n  sourceRange:\n    - 192.168.1.0/24\n    - 172.16.0.0/24\n');
+		expect(document.querySelector('.resource-dialog pre')!.textContent).toBe(
+			'ipAllowList:\n  sourceRange:\n    - 192.168.1.0/24\n    - 172.16.0.0/24\n',
+		);
 		expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
 	});
 
 	it('offers no Edit or Delete for external middlewares in the table', async () => {
-		handlers = base([{ ...middleware('auth@docker', 'external', { basicAuth: {} }), origin: 'external', provider: 'docker', read_only: true }]);
+		handlers = base([
+			{
+				...middleware('auth@docker', 'external', { basicAuth: {} }),
+				origin: 'external',
+				provider: 'docker',
+				read_only: true,
+			},
+		]);
 		render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('auth@docker')[0]).toBeTruthy());
 		// read-only row: a single inline View button, no "More actions" menu
@@ -315,7 +469,7 @@ describe('edit, review and failure flows', () => {
 	it('keeps stored Basic Auth users when the user does not replace them', async () => {
 		handlers = {
 			...base([middleware('auth', 'basicAuth', { usersFile: '[redacted]', realm: 'old' })]),
-			'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'edit', name: 'auth' });
 		await waitFor(() => expect(document.getElementById('middleware-users-mode')).toBeTruthy());
@@ -340,7 +494,10 @@ describe('basic auth users', () => {
 	const type = (id: string, value: string) => fireEvent.input(document.getElementById(id)!, { target: { value } });
 
 	it('asks for user names and passwords and sends them for hashing, never as htpasswd lines', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/middlewares/auth?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		render(MiddlewaresPage, { navigate: () => {}, mode: 'create' });
 		await openBasicAuth();
 		expect((document.getElementById('credential-0-password') as HTMLInputElement).type).toBe('password');
@@ -352,7 +509,10 @@ describe('basic auth users', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
 		const spec = calls.find((c) => c.method === 'PUT')!.body.spec;
-		expect(spec.users_credentials).toEqual([{ username: 'admin', password: 's3cret' }, { username: 'ops', password: 'other' }]);
+		expect(spec.users_credentials).toEqual([
+			{ username: 'admin', password: 's3cret' },
+			{ username: 'ops', password: 'other' },
+		]);
 		expect(spec.users_htpasswd).toBeUndefined();
 		expect(spec.users).toBeUndefined();
 	});
@@ -367,7 +527,9 @@ describe('basic auth users', () => {
 		await type('credential-1-username', 'ops');
 		await type('credential-1-password', 'x'.repeat(73));
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
-		await waitFor(() => expect(document.getElementById('credential-0-username')!.getAttribute('aria-invalid')).toBe('true'));
+		await waitFor(() =>
+			expect(document.getElementById('credential-0-username')!.getAttribute('aria-invalid')).toBe('true'),
+		);
 		expect(document.getElementById('credential-1-password')!.getAttribute('aria-invalid')).toBe('true');
 		expect(screen.getByText('2 fields need your attention.')).toBeTruthy();
 		expect(document.body.textContent).not.toContain('{count}');
@@ -401,7 +563,7 @@ describe('chain flow', () => {
 	it('builds an ordered chain, previews it and sends the members in order', async () => {
 		handlers = {
 			...base([middleware('a'), middleware('b')]),
-			'PUT /api/v1/chains/web?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/chains/web?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, tab: 'chains', mode: 'create' });
 		await waitFor(() => expect(document.getElementById('chain-name')).toBeTruthy());
@@ -413,7 +575,10 @@ describe('chain flow', () => {
 		// A member already in the chain is not offered again.
 		await fireEvent.click(document.getElementById('chain-member-add')!);
 		expect(screen.queryByRole('option', { name: /^a/ })).toBeNull();
-		expect(document.querySelector('[role="listbox"]')?.closest('.searchable, [class*="search"]') ?? document.querySelector('input[type="search"], input[placeholder*="Search"]')).toBeTruthy();
+		expect(
+			document.querySelector('[role="listbox"]')?.closest('.searchable, [class*="search"]') ??
+				document.querySelector('input[type="search"], input[placeholder*="Search"]'),
+		).toBeTruthy();
 		await fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
 		await fireEvent.click(screen.getByRole('button', { name: /Move b up/ }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
@@ -426,7 +591,9 @@ describe('chain flow', () => {
 		handlers = base([middleware('a'), middleware('b')], [chain('web', ['b', 'a@file'])]);
 		render(MiddlewaresPage, { navigate: () => {}, tab: 'chains', mode: 'view', name: 'web' });
 		await waitFor(() => expect(document.querySelector('.resource-dialog pre')).toBeTruthy());
-		expect(document.querySelector('.resource-dialog pre')!.textContent).toBe('chain:\n  middlewares:\n    - b\n    - a@file\n');
+		expect(document.querySelector('.resource-dialog pre')!.textContent).toBe(
+			'chain:\n  middlewares:\n    - b\n    - a@file\n',
+		);
 		expect(document.querySelector('.resource-dialog ol.members')).toBeNull();
 	});
 	it('rejects a chain that references itself without calling the server', async () => {
@@ -441,7 +608,7 @@ describe('chain flow', () => {
 	it('edits a chain with its version: remove and reorder members', async () => {
 		handlers = {
 			...base([middleware('a'), middleware('b'), middleware('c')], [chain('web', ['a', 'b', 'c'], 4)]),
-			'PUT /api/v1/chains/web?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/chains/web?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, tab: 'chains', mode: 'edit', name: 'web' });
 		await waitFor(() => expect(screen.getByRole('button', { name: /Remove b/ })).toBeTruthy());
@@ -456,7 +623,7 @@ describe('chain flow', () => {
 	it('deletes an unused chain with its version, and blocks a used one', async () => {
 		handlers = {
 			...base([], [chain('free', ['a'], 3), chain('busy', ['a'], 1, usedBy(['shop']))]),
-			'DELETE /api/v1/chains/free': () => json({ operation: operation(), restart_required: false })
+			'DELETE /api/v1/chains/free': () => json({ operation: operation(), restart_required: false }),
 		};
 		render(MiddlewaresPage, { navigate: () => {}, tab: 'chains' });
 		await waitFor(() => expect(screen.getAllByText('free')[0]).toBeTruthy());

@@ -13,7 +13,10 @@
 	import { t } from '../localization/i18n';
 	import type { RowAction } from './tableTypes';
 
-	let { actions, label = '' }: {
+	let {
+		actions,
+		label = '',
+	}: {
 		/** falsy entries are skipped so callers can write `cond && {...}` */
 		actions: (RowAction | false | null | undefined)[];
 		/** names the row for the menu's accessible label, e.g. the resource name */
@@ -36,7 +39,10 @@
 		role="menuitem"
 		class:danger={action.variant === 'danger'}
 		disabled={action.disabled}
-		onclick={() => { close(); action.onclick(); }}
+		onclick={() => {
+			close();
+			action.onclick();
+		}}
 	>
 		{action.label}{#if action.context}<span class="sr-only"> {action.context}</span>{/if}
 	</button>
@@ -61,9 +67,24 @@
 </div>
 
 <style>
-	.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; width: 100%; }
-	.separator { height: 1px; margin: 4px 2px; background: var(--border); }
-	.row-actions :global(button[role='menuitem'].danger) { color: var(--danger-text); }
+	.row-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 8px;
+		width: 100%;
+	}
+	.separator {
+		height: 1px;
+		margin: 4px 2px;
+		background: var(--border);
+	}
+	.row-actions :global(button[role='menuitem'].danger) {
+		color: var(--danger-text);
+	}
 	.row-actions :global(button[role='menuitem'].danger:hover),
-	.row-actions :global(button[role='menuitem'].danger:focus-visible) { background: var(--danger-bg); color: var(--danger-text); }
+	.row-actions :global(button[role='menuitem'].danger:focus-visible) {
+		background: var(--danger-bg);
+		color: var(--danger-text);
+	}
 </style>

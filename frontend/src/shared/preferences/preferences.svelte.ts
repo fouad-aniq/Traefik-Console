@@ -12,7 +12,7 @@ import {
 	systemTheme,
 	type Language,
 	type ResolvedTheme,
-	type ThemePreference
+	type ThemePreference,
 } from './preferences';
 
 export type { Language, ResolvedTheme, SystemTheme, ThemePreference } from './preferences';
@@ -33,7 +33,7 @@ export const prefs = $state({
 	themePreference: loadThemePreference() as ThemePreference,
 	system: systemTheme() as ResolvedTheme,
 	language: loadLanguage() as Language,
-	sidebarCollapsed: loadSidebarCollapsed()
+	sidebarCollapsed: loadSidebarCollapsed(),
 });
 
 export function getResolvedTheme(): ResolvedTheme {
@@ -69,4 +69,3 @@ export function initPreferences(): () => void {
 	applyLang(prefs.language);
 	return onSystemThemeChange(setSystemTheme);
 }
-

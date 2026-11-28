@@ -2,17 +2,46 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import CrowdSecPage from '../src/features/crowdsec/CrowdSecPage.svelte';
-import { barWidth, decisionPath, heatLevel, isPrivateAddress, looksLikeIpOrCidr, parseCidrs, type CrowdSecStatus } from '../src/features/crowdsec/models';
+import {
+	barWidth,
+	decisionPath,
+	heatLevel,
+	isPrivateAddress,
+	looksLikeIpOrCidr,
+	parseCidrs,
+	type CrowdSecStatus,
+} from '../src/features/crowdsec/models';
 import { flashes } from '../src/shared/ui/flash.svelte';
 import { navigationGuard } from '../src/lib/stores/navigationGuard';
 
-const preview = (extra = {}) => ({ changes: [{ action: 'updated', id: 'crowdsec:config', kind: 'crowdsec', name: 'config', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+crowdsec', requires_restart: false, ...extra });
-const operation = (extra = {}) => ({ id: 7, kind: 'crowdsec.config', target: 'config', status: 'succeeded', summary: 'done', requires_restart: false, created_at: 'now', ...extra });
-const saved = (enabled: boolean) => ({ operation: operation(), resource: { enabled, version: 2 }, restart_required: false });
+const preview = (extra = {}) => ({
+	changes: [{ action: 'updated', id: 'crowdsec:config', kind: 'crowdsec', name: 'config', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+crowdsec',
+	requires_restart: false,
+	...extra,
+});
+const operation = (extra = {}) => ({
+	id: 7,
+	kind: 'crowdsec.config',
+	target: 'config',
+	status: 'succeeded',
+	summary: 'done',
+	requires_restart: false,
+	created_at: 'now',
+	...extra,
+});
+const saved = (enabled: boolean) => ({
+	operation: operation(),
+	resource: { enabled, version: 2 },
+	restart_required: false,
+});
 const status = (over: Partial<CrowdSecStatus> = {}): CrowdSecStatus => ({
 	engine: { state: 'running', name: 'crowdsec', image: 'crowdsecurity/crowdsec' },
 	plugin: { state: 'missing' },
@@ -22,54 +51,154 @@ const status = (over: Partial<CrowdSecStatus> = {}): CrowdSecStatus => ({
 	bouncers: [],
 	routers: [
 		{ name: 'app', origin: 'managed', protected: false, pending: false },
-		{ name: 'legacy', origin: 'external', protected: false, pending: false }
+		{ name: 'legacy', origin: 'external', protected: false, pending: false },
 	],
-	config: { enabled: false, mode: 'stream', lapi_url: 'http://crowdsec:8080', auto_enroll: false, plugin_version: 'v1.3.5' },
+	config: {
+		enabled: false,
+		mode: 'stream',
+		lapi_url: 'http://crowdsec:8080',
+		auto_enroll: false,
+		plugin_version: 'v1.3.5',
+	},
 	complete: false,
-	...over
+	...over,
 });
-const complete = () => status({
-	plugin: { state: 'installed', alias: 'crowdsec-bouncer', module_name: 'github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin', version: 'v1.8.1', origin: 'managed' },
-	middleware: { state: 'installed', name: 'crowdsec-bouncer', plugin_alias: 'crowdsec-bouncer', origin: 'managed' },
-	key: { present: true }, lapi: { state: 'ok', url: 'http://crowdsec:8080' },
-	routers: [{ name: 'app', origin: 'managed', protected: true, pending: false }],
-	config: { enabled: true, mode: 'stream', lapi_url: 'http://crowdsec:8080', auto_enroll: false, plugin_version: 'v1.8.1' },
-	machine: { state: 'ok', id: 'machine' },
-	ingestion: { state: 'verified' },
-	remediation: { state: 'verified' },
-	capabilities: { auto_enroll: true, alerts: true, decisions: true, decision_create: true, decision_delete: true, allowlist_read: true, allowlist_write: true, appsec: true },
-	complete: true
-});
+const complete = () =>
+	status({
+		plugin: {
+			state: 'installed',
+			alias: 'crowdsec-bouncer',
+			module_name: 'github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin',
+			version: 'v1.8.1',
+			origin: 'managed',
+		},
+		middleware: { state: 'installed', name: 'crowdsec-bouncer', plugin_alias: 'crowdsec-bouncer', origin: 'managed' },
+		key: { present: true },
+		lapi: { state: 'ok', url: 'http://crowdsec:8080' },
+		routers: [{ name: 'app', origin: 'managed', protected: true, pending: false }],
+		config: {
+			enabled: true,
+			mode: 'stream',
+			lapi_url: 'http://crowdsec:8080',
+			auto_enroll: false,
+			plugin_version: 'v1.8.1',
+		},
+		machine: { state: 'ok', id: 'machine' },
+		ingestion: { state: 'verified' },
+		remediation: { state: 'verified' },
+		capabilities: {
+			auto_enroll: true,
+			alerts: true,
+			decisions: true,
+			decision_create: true,
+			decision_delete: true,
+			allowlist_read: true,
+			allowlist_write: true,
+			appsec: true,
+		},
+		complete: true,
+	});
 const stats = (over = {}) => ({
-	available: true, window_hours: 24, generated_at: '2026-11-10T12:00:00Z', alerts: 7, truncated: false, active_decisions: 3,
-	decisions_by_type: [{ key: 'ban', count: 3 }], decisions_by_origin: [{ key: 'crowdsec', count: 3 }],
-	top_countries: [{ key: 'FR', count: 4 }, { key: '??', count: 1 }], top_scenarios: [{ key: 'crowdsecurity/ssh-bf', count: 5 }], top_sources: [{ key: '203.0.113.9', count: 5 }],
-	timeline: [{ start: '2026-11-10T10:00:00Z', count: 2 }, { start: '2026-11-10T11:00:00Z', count: 5 }], bucket_hours: 1,
-	bouncers: [{ name: 'traefik-console-op-1', ip_address: '172.18.0.4', type: 'crowdsec-bouncer-traefik-plugin', version: 'v1.8.1', last_pull: '2026-11-10T11:59:00Z', revoked: false }],
-	partial: [], ...over
+	available: true,
+	window_hours: 24,
+	generated_at: '2026-11-10T12:00:00Z',
+	alerts: 7,
+	truncated: false,
+	active_decisions: 3,
+	decisions_by_type: [{ key: 'ban', count: 3 }],
+	decisions_by_origin: [{ key: 'crowdsec', count: 3 }],
+	top_countries: [
+		{ key: 'FR', count: 4 },
+		{ key: '??', count: 1 },
+	],
+	top_scenarios: [{ key: 'crowdsecurity/ssh-bf', count: 5 }],
+	top_sources: [{ key: '203.0.113.9', count: 5 }],
+	timeline: [
+		{ start: '2026-11-10T10:00:00Z', count: 2 },
+		{ start: '2026-11-10T11:00:00Z', count: 5 },
+	],
+	bucket_hours: 1,
+	bouncers: [
+		{
+			name: 'traefik-console-op-1',
+			ip_address: '172.18.0.4',
+			type: 'crowdsec-bouncer-traefik-plugin',
+			version: 'v1.8.1',
+			last_pull: '2026-11-10T11:59:00Z',
+			revoked: false,
+		},
+	],
+	partial: [],
+	...over,
 });
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, code = 200) => new Response(JSON.stringify(body), { status: code, headers: { 'Content-Type': 'application/json' } });
-const catalog = (versions: string[]) => json({ items: versions.length ? [{ module_name: 'github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin', display_name: 'CrowdSec', summary: '', versions, plugin_type: 'middleware', latest_version: versions[0], snippet_yaml: '', fetched_at: '', install_state: 'not_installed', can_update: false }] : [], total: versions.length ? 1 : 0, limit: 1, offset: 0, last_synced_at: '', inventory_known: true, refresh: { last_success_at: '', last_attempt_at: '', last_attempt_failed: false } });
+const json = (body: unknown, code = 200) =>
+	new Response(JSON.stringify(body), { status: code, headers: { 'Content-Type': 'application/json' } });
+const catalog = (versions: string[]) =>
+	json({
+		items: versions.length
+			? [
+					{
+						module_name: 'github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin',
+						display_name: 'CrowdSec',
+						summary: '',
+						versions,
+						plugin_type: 'middleware',
+						latest_version: versions[0],
+						snippet_yaml: '',
+						fetched_at: '',
+						install_state: 'not_installed',
+						can_update: false,
+					},
+				]
+			: [],
+		total: versions.length ? 1 : 0,
+		limit: 1,
+		offset: 0,
+		last_synced_at: '',
+		inventory_known: true,
+		refresh: { last_success_at: '', last_attempt_at: '', last_attempt_failed: false },
+	});
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; navigationGuard.setDirty(false); navigationGuard.cancelDiscard(); });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+	navigationGuard.setDirty(false);
+	navigationGuard.cancelDiscard();
+});
 
 const enabledButton = async (name: string) => {
 	const button = (await screen.findByRole('button', { name })) as HTMLButtonElement;
@@ -80,13 +209,25 @@ const enabledButton = async (name: string) => {
 const base = (s: CrowdSecStatus, st: unknown = stats()) => ({
 	'GET /api/v1/crowdsec/status': () => json(s),
 	'GET /api/v1/crowdsec/stats?window=24h': () => json(st),
-	'GET /api/v1/crowdsec/config': () => json({ enabled: false, version: 1 })
+	'GET /api/v1/crowdsec/config': () => json({ enabled: false, version: 1 }),
 });
 
 describe('models', () => {
 	it('recognises private sources', () => {
-		for (const v of ['10.1.2.3', '172.20.0.5', '192.168.80.2', '127.0.0.1', '169.254.1.1', '::1', 'fd00::1', 'fe80::1', '10.0.0.0/8']) expect(isPrivateAddress(v)).toBe(true);
-		for (const v of ['203.0.113.9', '172.32.0.1', '8.8.8.8', '2001:db8::1', 'nope']) expect(isPrivateAddress(v)).toBe(false);
+		for (const v of [
+			'10.1.2.3',
+			'172.20.0.5',
+			'192.168.80.2',
+			'127.0.0.1',
+			'169.254.1.1',
+			'::1',
+			'fd00::1',
+			'fe80::1',
+			'10.0.0.0/8',
+		])
+			expect(isPrivateAddress(v)).toBe(true);
+		for (const v of ['203.0.113.9', '172.32.0.1', '8.8.8.8', '2001:db8::1', 'nope'])
+			expect(isPrivateAddress(v)).toBe(false);
 	});
 	it('buckets map counts on a log scale', () => {
 		expect(heatLevel(0, 60)).toBe(0);
@@ -126,7 +267,8 @@ describe('overview', () => {
 	it('shows one status card, the map and only the list tabs once connected', async () => {
 		handlers = base(complete());
 		render(CrowdSecPage, { navigate: () => {} });
-		for (const name of ['Overview', 'Decisions', 'Allowlists']) expect(await screen.findByRole('tab', { name })).toBeTruthy();
+		for (const name of ['Overview', 'Decisions', 'Allowlists'])
+			expect(await screen.findByRole('tab', { name })).toBeTruthy();
 		expect(screen.queryByRole('tab', { name: 'Alerts' })).toBeNull();
 		expect(screen.queryByRole('tab', { name: 'Integration' })).toBeNull();
 		expect(await screen.findByText('Where attacks come from')).toBeTruthy();
@@ -141,7 +283,16 @@ describe('overview', () => {
 		expect(await screen.findByText('No attack detected in this period')).toBeTruthy();
 	});
 	it('explains an empty map when CrowdSec records no country (GeoIP off)', async () => {
-		handlers = base(complete(), stats({ alerts: 5, top_countries: [{ key: '??', count: 4 }, { key: 'LOCAL', count: 1 }] }));
+		handlers = base(
+			complete(),
+			stats({
+				alerts: 5,
+				top_countries: [
+					{ key: '??', count: 4 },
+					{ key: 'LOCAL', count: 1 },
+				],
+			}),
+		);
 		render(CrowdSecPage, { navigate: () => {} });
 		expect(await screen.findByText('No country data')).toBeTruthy();
 	});
@@ -152,14 +303,34 @@ describe('overview', () => {
 		expect(screen.queryByText('No country data')).toBeNull();
 	});
 	it('reads statistics even while protection is off', async () => {
-		handlers = base(status({ key: { present: true }, lapi: { state: 'ok', url: 'http://crowdsec:8080' }, capabilities: { auto_enroll: false, alerts: false, decisions: true, decision_create: false, decision_delete: false, allowlist_read: false, allowlist_write: false, appsec: false, metrics: false, hub_read: false } }));
+		handlers = base(
+			status({
+				key: { present: true },
+				lapi: { state: 'ok', url: 'http://crowdsec:8080' },
+				capabilities: {
+					auto_enroll: false,
+					alerts: false,
+					decisions: true,
+					decision_create: false,
+					decision_delete: false,
+					allowlist_read: false,
+					allowlist_write: false,
+					appsec: false,
+					metrics: false,
+					hub_read: false,
+				},
+			}),
+		);
 		render(CrowdSecPage, { navigate: () => {} });
 		expect(await screen.findByText('Protection off')).toBeTruthy();
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/crowdsec/stats?window=24h')).toBe(true));
 		expect(screen.getByRole('tab', { name: 'Decisions' })).toBeTruthy();
 	});
 	it('marks values that come from the environment', async () => {
-		handlers = base({ ...complete(), environment: [{ name: 'CROWDSEC_LAPI_URL', field: 'lapi_url', secret: false, value: 'http://crowdsec:8080' }] });
+		handlers = base({
+			...complete(),
+			environment: [{ name: 'CROWDSEC_LAPI_URL', field: 'lapi_url', secret: false, value: 'http://crowdsec:8080' }],
+		});
 		render(CrowdSecPage, { navigate: () => {} });
 		expect((await screen.findAllByText('Set by an environment variable')).length).toBe(1);
 	});
@@ -168,15 +339,18 @@ describe('overview', () => {
 describe('settings dialog', () => {
 	const env = [
 		{ name: 'CROWDSEC_LAPI_URL', field: 'lapi_url', secret: false, value: 'http://crowdsec:8080' },
-		{ name: 'CROWDSEC_METRICS_TOKEN', field: 'metrics_token', secret: true }
+		{ name: 'CROWDSEC_METRICS_TOKEN', field: 'metrics_token', secret: true },
 	];
-	const catalogHandler = { 'GET /api/v1/plugins/catalog/page?module=github.com%2Fmaxlerebourg%2Fcrowdsec-bouncer-traefik-plugin&limit=1&offset=0&order=asc': () => catalog(['v1.9.0-rc.1', 'v1.8.2', 'v1.8.1']) };
+	const catalogHandler = {
+		'GET /api/v1/plugins/catalog/page?module=github.com%2Fmaxlerebourg%2Fcrowdsec-bouncer-traefik-plugin&limit=1&offset=0&order=asc':
+			() => catalog(['v1.9.0-rc.1', 'v1.8.2', 'v1.8.1']),
+	};
 	it('generates the key by default, locks environment values, then reviews and applies', async () => {
 		handlers = {
 			...base({ ...status(), environment: env, capabilities: { ...complete().capabilities!, auto_enroll: true } }),
 			...catalogHandler,
 			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
-			'PUT /api/v1/crowdsec/connection': putOK
+			'PUT /api/v1/crowdsec/connection': putOK,
 		};
 		const navigate = vi.fn();
 		render(CrowdSecPage, { navigate, mode: 'settings' });
@@ -189,52 +363,97 @@ describe('settings dialog', () => {
 		expect(key.value).toMatch(/^[0-9a-f]{64}$/);
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Monitoring' }));
 		expect((screen.getByLabelText('Metrics token') as HTMLInputElement).disabled).toBe(true);
-		await fireEvent.input(screen.getByLabelText('Metrics endpoint'), { target: { value: 'http://crowdsec:6060/metrics' } });
+		await fireEvent.input(screen.getByLabelText('Metrics endpoint'), {
+			target: { value: 'http://crowdsec:6060/metrics' },
+		});
 		await fireEvent.click(await enabledButton('Review change'));
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')).toBe(true));
 		const put = calls.find((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')!;
 		expect(put.headers['if-match']).toBe('"1"');
-		expect(put.body).toMatchObject({ generate_key: true, lapi_key: key.value, metrics_url: 'http://crowdsec:6060/metrics', protection: { mode: 'off' } });
+		expect(put.body).toMatchObject({
+			generate_key: true,
+			lapi_key: key.value,
+			metrics_url: 'http://crowdsec:6060/metrics',
+			protection: { mode: 'off' },
+		});
 		expect(put.body.metrics_token).toBeUndefined();
 		expect(put.body.protection.routers).toBeUndefined();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Apply changes' }));
 		await waitFor(() => expect(navigate).toHaveBeenCalledWith('/crowdsec'));
-		expect(calls.filter((c) => c.method === 'PUT').at(-1)!.headers['idempotency-key']).toMatch(/^[A-Za-z0-9_-]{16,128}$/);
+		expect(calls.filter((c) => c.method === 'PUT').at(-1)!.headers['idempotency-key']).toMatch(
+			/^[A-Za-z0-9_-]{16,128}$/,
+		);
 	});
 	it('enables managed protection with the newest stable plugin', async () => {
-		handlers = { ...base({ ...status(), capabilities: { ...complete().capabilities!, auto_enroll: true } }), ...catalogHandler, 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
+		handlers = {
+			...base({ ...status(), capabilities: { ...complete().capabilities!, auto_enroll: true } }),
+			...catalogHandler,
+			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
 		await fireEvent.click(screen.getByRole('combobox', { name: 'Traefik protection' }));
 		await fireEvent.click(await screen.findByRole('option', { name: 'Managed by the Console' }));
-		await waitFor(() => expect(screen.getByRole('combobox', { name: 'Bouncer plugin' }).textContent).toContain('v1.8.2'));
+		await waitFor(() =>
+			expect(screen.getByRole('combobox', { name: 'Bouncer plugin' }).textContent).toContain('v1.8.2'),
+		);
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')).toBe(true));
 		const put = calls.find((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')!;
-		expect(put.body.protection).toMatchObject({ mode: 'managed', bouncer_mode: 'stream', plugin_version: 'v1.8.2', update_max_failure: 0 });
+		expect(put.body.protection).toMatchObject({
+			mode: 'managed',
+			bouncer_mode: 'stream',
+			plugin_version: 'v1.8.2',
+			update_max_failure: 0,
+		});
 	});
 	it('shows in Review, unmasked, the lines to add to a bouncer middleware managed outside the Console', async () => {
-		handlers = { ...base({ ...status(), key: { present: true }, key_file: '/etc/traefik/secrets/crowdsec_lapi_key.secret', config: { ...status().config, integration_mode: 'external' } as any }), 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
+		handlers = {
+			...base({
+				...status(),
+				key: { present: true },
+				key_file: '/etc/traefik/secrets/crowdsec_lapi_key.secret',
+				config: { ...status().config, integration_mode: 'external' } as any,
+			}),
+			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
 		expect(await screen.findByText(/The Review step shows the lines to add/)).toBeTruthy();
 		expect(document.body.textContent).not.toContain('crowdsecLapiKeyFile');
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
-		await waitFor(() => expect(document.body.textContent).toContain('crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret'));
+		await waitFor(() =>
+			expect(document.body.textContent).toContain('crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret'),
+		);
 		expect(document.body.textContent).not.toContain('[redacted]');
 		expect(document.body.textContent).toContain('Your bouncer middleware does not need them');
 	});
 	it('shows the key file in Review before the first key exists, when Console generates it in this save', async () => {
-		handlers = { ...base({ ...status(), key_file: '/etc/traefik/secrets/crowdsec_lapi_key.secret', runtime: { accessible: true, docker_configured: true }, capabilities: { ...complete().capabilities!, auto_enroll: true }, config: { ...status().config, integration_mode: 'external' } as any }), ...catalogHandler, 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
+		handlers = {
+			...base({
+				...status(),
+				key_file: '/etc/traefik/secrets/crowdsec_lapi_key.secret',
+				runtime: { accessible: true, docker_configured: true },
+				capabilities: { ...complete().capabilities!, auto_enroll: true },
+				config: { ...status().config, integration_mode: 'external' } as any,
+			}),
+			...catalogHandler,
+			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		// Review is staged only once the dialog has loaded (catalog included).
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
 		await waitFor(() => expect(calls.some((c) => c.path.startsWith('/api/v1/plugins/catalog'))).toBe(true));
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
-		await waitFor(() => expect(document.body.textContent).toContain('crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret'));
+		await waitFor(() =>
+			expect(document.body.textContent).toContain('crowdsecLapiKeyFile: /etc/traefik/secrets/crowdsec_lapi_key.secret'),
+		);
 	});
 	it('asks for the AppSec endpoint right under the AppSec option', async () => {
-		handlers = { ...base({ ...complete(), runtime: { accessible: true, docker_configured: true } }), 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
+		handlers = {
+			...base({ ...complete(), runtime: { accessible: true, docker_configured: true } }),
+			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Protection' }));
 		expect(screen.queryByLabelText('AppSec endpoint')).toBeNull();
@@ -246,7 +465,10 @@ describe('settings dialog', () => {
 		await fireEvent.input(screen.getByLabelText('AppSec endpoint'), { target: { value: 'http://crowdsec:7422' } });
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')).toBe(true));
-		expect(calls.find((c) => c.method === 'PUT')!.body).toMatchObject({ appsec_url: 'http://crowdsec:7422', protection: { appsec_enabled: true } });
+		expect(calls.find((c) => c.method === 'PUT')!.body).toMatchObject({
+			appsec_url: 'http://crowdsec:7422',
+			protection: { appsec_enabled: true },
+		});
 	});
 	it('shows the cscli command when the key cannot be generated, and blocks a bad address', async () => {
 		handlers = base(status({ lapi: { state: 'unchecked', url: '' }, engine: { state: 'not_configured' } }));
@@ -256,7 +478,9 @@ describe('settings dialog', () => {
 		expect(screen.queryByRole('button', { name: /Create/ })).toBeNull();
 		await fireEvent.input(screen.getByLabelText(/LAPI address/), { target: { value: 'http://crowdsec:8080/v1' } });
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
-		expect(await screen.findByText('Enter an http:// or https:// address without a path, query or credentials.')).toBeTruthy();
+		expect(
+			await screen.findByText('Enter an http:// or https:// address without a path, query or credentials.'),
+		).toBeTruthy();
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
 	});
 	it('steps aside for the unsaved-changes question and closes once discarded', async () => {
@@ -271,7 +495,10 @@ describe('settings dialog', () => {
 		expect(navigate).toHaveBeenCalledWith('/crowdsec');
 	});
 	it('creates the API key and monitoring access through the accessible container', async () => {
-		handlers = { ...base({ ...complete(), runtime: { accessible: true, docker_configured: true, container_id: 'a'.repeat(64) } }), 'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun };
+		handlers = {
+			...base({ ...complete(), runtime: { accessible: true, docker_configured: true, container_id: 'a'.repeat(64) } }),
+			'PUT /api/v1/crowdsec/connection?dry_run=true': dryRun,
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		await screen.findByRole('button', { name: 'Create a new API key' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Create a new API key' }));
@@ -279,7 +506,9 @@ describe('settings dialog', () => {
 		const password = screen.getByLabelText('Password') as HTMLInputElement;
 		expect(password.readOnly).toBe(true);
 		expect(password.value).toMatch(/^[0-9a-f]{64}$/);
-		expect((screen.getByLabelText('Machine ID') as HTMLInputElement).placeholder).toBe('Assigned by the container when you apply');
+		expect((screen.getByLabelText('Machine ID') as HTMLInputElement).placeholder).toBe(
+			'Assigned by the container when you apply',
+		);
 		await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')).toBe(true));
 		const put = calls.find((c) => c.path === '/api/v1/crowdsec/connection?dry_run=true')!;
@@ -311,7 +540,15 @@ describe('settings dialog', () => {
 		expect(group.open).toBe(true);
 	});
 	it('groups private sources apart from real countries', async () => {
-		handlers = base(complete(), stats({ top_countries: [{ key: 'FR', count: 3 }, { key: 'LOCAL', count: 9 }] }));
+		handlers = base(
+			complete(),
+			stats({
+				top_countries: [
+					{ key: 'FR', count: 3 },
+					{ key: 'LOCAL', count: 9 },
+				],
+			}),
+		);
 		render(CrowdSecPage, { navigate: () => {} });
 		expect(await screen.findByText('9 from private networks')).toBeTruthy();
 		expect(screen.getByText('Private network')).toBeTruthy();
@@ -320,22 +557,49 @@ describe('settings dialog', () => {
 	it('tests candidate settings without saving them', async () => {
 		handlers = {
 			...base(status({ lapi: { state: 'unchecked', url: '' } })),
-			'POST /api/v1/crowdsec/connection/test': () => json({ lapi_url: 'http://crowdsec:8080', lapi: 'invalid_key', machine: 'not_configured', appsec: 'not_configured', metrics: 'not_configured', engine: 'running', can_generate_key: true, observed_at: 'now' })
+			'POST /api/v1/crowdsec/connection/test': () =>
+				json({
+					lapi_url: 'http://crowdsec:8080',
+					lapi: 'invalid_key',
+					machine: 'not_configured',
+					appsec: 'not_configured',
+					metrics: 'not_configured',
+					engine: 'running',
+					can_generate_key: true,
+					observed_at: 'now',
+				}),
 		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'settings' });
 		await fireEvent.input(await screen.findByLabelText(/LAPI address/), { target: { value: 'http://crowdsec:8080' } });
 		await fireEvent.input(screen.getByLabelText('Bouncer key'), { target: { value: 'secret' } });
 		await fireEvent.click(await enabledButton('Test connection'));
 		expect(await screen.findByText('Rejected')).toBeTruthy();
-		expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({ lapi_url: 'http://crowdsec:8080', lapi_key: 'secret' });
+		expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({
+			lapi_url: 'http://crowdsec:8080',
+			lapi_key: 'secret',
+		});
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
 	});
 });
 
 describe('decisions', () => {
-	const decisions = [{ id: 1, origin: 'crowdsec', type: 'ban', scope: 'Ip', value: '203.0.113.9', duration: '3h59m', scenario: 'crowdsecurity/ssh-bf' }];
+	const decisions = [
+		{
+			id: 1,
+			origin: 'crowdsec',
+			type: 'ban',
+			scope: 'Ip',
+			value: '203.0.113.9',
+			duration: '3h59m',
+			scenario: 'crowdsecurity/ssh-bf',
+		},
+	];
 	it('lists decisions and unbans one after confirmation', async () => {
-		handlers = { ...base(complete()), 'GET /api/v1/crowdsec/decisions': () => json(decisions), 'DELETE /api/v1/crowdsec/decisions/id/1': () => json({ deleted: true }) };
+		handlers = {
+			...base(complete()),
+			'GET /api/v1/crowdsec/decisions': () => json(decisions),
+			'DELETE /api/v1/crowdsec/decisions/id/1': () => json({ deleted: true }),
+		};
 		render(CrowdSecPage, { navigate: () => {}, tab: 'decisions' });
 		await waitFor(() => expect(screen.getAllByText('203.0.113.9').length).toBeGreaterThan(0));
 		await fireEvent.click(screen.getByRole('button', { name: 'Unban' }));
@@ -343,7 +607,11 @@ describe('decisions', () => {
 		await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
 	});
 	it('validates and posts a ban', async () => {
-		handlers = { ...base(complete()), 'GET /api/v1/crowdsec/decisions': () => json([]), 'POST /api/v1/crowdsec/decisions': () => json({ added: true }, 201) };
+		handlers = {
+			...base(complete()),
+			'GET /api/v1/crowdsec/decisions': () => json([]),
+			'POST /api/v1/crowdsec/decisions': () => json({ added: true }, 201),
+		};
 		render(CrowdSecPage, { navigate: () => {}, mode: 'ban' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Ban' }));
 		expect(await screen.findByText('Enter an address or range.')).toBeTruthy();

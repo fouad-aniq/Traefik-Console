@@ -1,19 +1,38 @@
 import { api } from '../../shared/api/api';
 import { list } from '../../core/types';
 import { encodeName, removeResource, saveResource, type WriteOptions } from '../../core/mutations';
-import { isWeb, kindOf, type EntryPointConfig, type EntryPointForm, type EntryPointResource, type HTTPConfig, type Kind, type TrustMode } from './models';
+import {
+	isWeb,
+	kindOf,
+	type EntryPointConfig,
+	type EntryPointForm,
+	type EntryPointResource,
+	type HTTPConfig,
+	type Kind,
+	type TrustMode,
+} from './models';
 
-interface EntryPointList { entry_points: string[] | null; protocols?: Record<string, string>; items?: EntryPointResource[] | null }
+interface EntryPointList {
+	entry_points: string[] | null;
+	protocols?: Record<string, string>;
+	items?: EntryPointResource[] | null;
+}
 
 /** Every entrypoint: console-managed ones and, read-only, the ones only declared in traefik.yml. */
 export const listEntryPointResources = async (signal?: AbortSignal) =>
 	list((await api.get<EntryPointList>('/api/v1/entrypoints', { signal })).items);
 
 /** One read for the map: the names and protocols every picker uses, plus the full resources. */
-export async function listEntryPointInventory(signal?: AbortSignal): Promise<{ names: string[]; protocols: Record<string, string>; items: EntryPointResource[] }> {
+export async function listEntryPointInventory(
+	signal?: AbortSignal,
+): Promise<{ names: string[]; protocols: Record<string, string>; items: EntryPointResource[] }> {
 	const res = await api.get<EntryPointList>('/api/v1/entrypoints', { signal });
 	const items = list(res.items);
-	return { names: [...new Set([...list(res.entry_points), ...items.map((e) => e.name)])], protocols: res.protocols ?? {}, items };
+	return {
+		names: [...new Set([...list(res.entry_points), ...items.map((e) => e.name)])],
+		protocols: res.protocols ?? {},
+		items,
+	};
 }
 
 export const getEntryPoint = (name: string, signal?: AbortSignal) =>
@@ -27,23 +46,68 @@ export const deleteEntryPoint = (name: string, version: number, opts?: WriteOpti
 
 export function newForm(kind: Kind = 'http'): EntryPointForm {
 	return {
-		name: '', kind, protocol: kind === 'udp' ? 'udp' : 'tcp', port: '', host: '', asDefault: false, reusePort: false, udpTimeout: '',
-		redirect: false, redirectTarget: '', redirectPort: '', redirectScheme: 'https', redirectTemporary: false, redirectPriority: '', allowAcmeBypass: false,
-		certResolver: '', tlsOptions: '', tlsDomains: [], middlewares: [], http3: false, http3Port: '',
-		forwardedMode: 'none', forwardedIPs: [], connectionHeaders: [], notAppendXForwardedFor: false, proxyMode: 'none', proxyIPs: [],
-		readTimeout: '', writeTimeout: '', idleTimeout: '', graceTimeout: '', requestAcceptGraceTimeout: '', keepAliveMaxTime: '', keepAliveMaxRequests: '',
-		maxHeaderBytes: '', deniedCharacters: [], encodeQuerySemicolons: false, disableSanitizePath: false, aliasHeadersStrategy: 'keep',
-		maxConcurrentStreams: '', maxDecoderHeaderTableSize: '', maxEncoderHeaderTableSize: '',
-		accessLogs: true, metrics: true, tracing: true, traceVerbosity: 'minimal'
+		name: '',
+		kind,
+		protocol: kind === 'udp' ? 'udp' : 'tcp',
+		port: '',
+		host: '',
+		asDefault: false,
+		reusePort: false,
+		udpTimeout: '',
+		redirect: false,
+		redirectTarget: '',
+		redirectPort: '',
+		redirectScheme: 'https',
+		redirectTemporary: false,
+		redirectPriority: '',
+		allowAcmeBypass: false,
+		certResolver: '',
+		tlsOptions: '',
+		tlsDomains: [],
+		middlewares: [],
+		http3: false,
+		http3Port: '',
+		forwardedMode: 'none',
+		forwardedIPs: [],
+		connectionHeaders: [],
+		notAppendXForwardedFor: false,
+		proxyMode: 'none',
+		proxyIPs: [],
+		readTimeout: '',
+		writeTimeout: '',
+		idleTimeout: '',
+		graceTimeout: '',
+		requestAcceptGraceTimeout: '',
+		keepAliveMaxTime: '',
+		keepAliveMaxRequests: '',
+		maxHeaderBytes: '',
+		deniedCharacters: [],
+		encodeQuerySemicolons: false,
+		disableSanitizePath: false,
+		aliasHeadersStrategy: 'keep',
+		maxConcurrentStreams: '',
+		maxDecoderHeaderTableSize: '',
+		maxEncoderHeaderTableSize: '',
+		accessLogs: true,
+		metrics: true,
+		tracing: true,
+		traceVerbosity: 'minimal',
 	};
 }
 
 /** The usual name and port of each type, offered while they are still free. */
 const SUGGESTED: Record<Kind, { name: string; port: string }> = {
-	http: { name: 'web', port: '80' }, https: { name: 'websecure', port: '443' }, tcp: { name: '', port: '' }, udp: { name: '', port: '' }
+	http: { name: 'web', port: '80' },
+	https: { name: 'websecure', port: '443' },
+	tcp: { name: '', port: '' },
+	udp: { name: '', port: '' },
 };
-const suggestedNames = Object.values(SUGGESTED).map((s) => s.name).filter(Boolean);
-const suggestedPorts = Object.values(SUGGESTED).map((s) => s.port).filter(Boolean);
+const suggestedNames = Object.values(SUGGESTED)
+	.map((s) => s.name)
+	.filter(Boolean);
+const suggestedPorts = Object.values(SUGGESTED)
+	.map((s) => s.port)
+	.filter(Boolean);
 
 /**
  * Change the type of the entrypoint in the form. The protocol follows the type. While creating,
@@ -52,15 +116,25 @@ const suggestedPorts = Object.values(SUGGESTED).map((s) => s.port).filter(Boolea
  * first secure entrypoint becomes the default. Options the new type does not have stay in the
  * form untouched; `toInput` never sends them.
  */
-export function withKind(form: EntryPointForm, kind: Kind, existing: EntryPointResource[], creating: boolean): EntryPointForm {
+export function withKind(
+	form: EntryPointForm,
+	kind: Kind,
+	existing: EntryPointResource[],
+	creating: boolean,
+): EntryPointForm {
 	const next: EntryPointForm = { ...form, kind, protocol: kind === 'udp' ? 'udp' : 'tcp' };
 	if (!creating) return next;
 	const protocol = next.protocol;
 	const nameFree = (name: string) => !!name && !existing.some((e) => e.name === name);
-	const portFree = (port: string) => !!port && !existing.some((e) => String(e.config.port) === port && (e.config.protocol ?? 'tcp') === protocol);
-	if (!form.name || suggestedNames.includes(form.name)) next.name = nameFree(SUGGESTED[kind].name) ? SUGGESTED[kind].name : '';
-	if (!form.port || suggestedPorts.includes(form.port)) next.port = portFree(SUGGESTED[kind].port) ? SUGGESTED[kind].port : '';
-	const secure = existing.find((e) => kindOf(e.config) === 'https' || ((e.config.protocol ?? 'tcp') === 'tcp' && e.config.port === 443));
+	const portFree = (port: string) =>
+		!!port && !existing.some((e) => String(e.config.port) === port && (e.config.protocol ?? 'tcp') === protocol);
+	if (!form.name || suggestedNames.includes(form.name))
+		next.name = nameFree(SUGGESTED[kind].name) ? SUGGESTED[kind].name : '';
+	if (!form.port || suggestedPorts.includes(form.port))
+		next.port = portFree(SUGGESTED[kind].port) ? SUGGESTED[kind].port : '';
+	const secure = existing.find(
+		(e) => kindOf(e.config) === 'https' || ((e.config.protocol ?? 'tcp') === 'tcp' && e.config.port === 443),
+	);
 	const autoRedirect = form.redirect && !!secure && form.redirectTarget === secure.name && !form.redirectPort;
 	if (kind === 'http' && secure && !form.redirect) {
 		next.redirect = true;
@@ -174,7 +248,9 @@ export function toInput(form: EntryPointForm, adopt = false): EntryPointConfig {
 		http.tls = {};
 		if (form.certResolver) http.tls.cert_resolver = form.certResolver;
 		if (form.tlsOptions.trim()) http.tls.options = form.tlsOptions.trim();
-		const domains = form.tlsDomains.filter((d) => d.main.trim()).map((d) => ({ main: d.main.trim(), ...(d.sans.length && { sans: [...d.sans] }) }));
+		const domains = form.tlsDomains
+			.filter((d) => d.main.trim())
+			.map((d) => ({ main: d.main.trim(), ...(d.sans.length && { sans: [...d.sans] }) }));
 		if (form.certResolver && domains.length) http.tls.domains = domains;
 	}
 	if (web) {
@@ -188,37 +264,49 @@ export function toInput(form: EntryPointForm, adopt = false): EntryPointConfig {
 	}
 	if (compact(http)) input.http = http;
 
-	const forwarded = !web ? {} : {
-		...(form.forwardedMode === 'all' && { insecure: true }),
-		...(form.forwardedMode === 'list' && form.forwardedIPs.length && { trusted_ips: [...form.forwardedIPs] }),
-		...(form.connectionHeaders.length && { connection: [...form.connectionHeaders] }),
-		...(form.notAppendXForwardedFor && { not_append_x_forwarded_for: true })
-	};
+	const forwarded = !web
+		? {}
+		: {
+				...(form.forwardedMode === 'all' && { insecure: true }),
+				...(form.forwardedMode === 'list' && form.forwardedIPs.length && { trusted_ips: [...form.forwardedIPs] }),
+				...(form.connectionHeaders.length && { connection: [...form.connectionHeaders] }),
+				...(form.notAppendXForwardedFor && { not_append_x_forwarded_for: true }),
+			};
 	if (compact(forwarded)) input.forwarded_headers = forwarded;
 	if (form.proxyMode === 'all') input.proxy_protocol = { insecure: true };
-	else if (form.proxyMode === 'list' && form.proxyIPs.length) input.proxy_protocol = { trusted_ips: [...form.proxyIPs] };
+	else if (form.proxyMode === 'list' && form.proxyIPs.length)
+		input.proxy_protocol = { trusted_ips: [...form.proxyIPs] };
 
 	const duration = (value: string) => (value.trim() ? value.trim() : undefined);
-	const transport = Object.fromEntries(Object.entries({
-		read_timeout: duration(form.readTimeout), write_timeout: duration(form.writeTimeout), idle_timeout: duration(form.idleTimeout),
-		grace_timeout: duration(form.graceTimeout), request_accept_grace_timeout: duration(form.requestAcceptGraceTimeout),
-		keep_alive_max_time: duration(form.keepAliveMaxTime),
-		keep_alive_max_requests: form.keepAliveMaxRequests.trim() ? Number(form.keepAliveMaxRequests) : undefined
-	}).filter(([, v]) => v !== undefined && v !== 0));
+	const transport = Object.fromEntries(
+		Object.entries({
+			read_timeout: duration(form.readTimeout),
+			write_timeout: duration(form.writeTimeout),
+			idle_timeout: duration(form.idleTimeout),
+			grace_timeout: duration(form.graceTimeout),
+			request_accept_grace_timeout: duration(form.requestAcceptGraceTimeout),
+			keep_alive_max_time: duration(form.keepAliveMaxTime),
+			keep_alive_max_requests: form.keepAliveMaxRequests.trim() ? Number(form.keepAliveMaxRequests) : undefined,
+		}).filter(([, v]) => v !== undefined && v !== 0),
+	);
 	if (compact(transport)) input.transport = transport;
 
-	const http2 = !web ? {} : Object.fromEntries(Object.entries({
-		max_concurrent_streams: Number(form.maxConcurrentStreams) || 0,
-		max_decoder_header_table_size: Number(form.maxDecoderHeaderTableSize) || 0,
-		max_encoder_header_table_size: Number(form.maxEncoderHeaderTableSize) || 0
-	}).filter(([, v]) => v > 0));
+	const http2 = !web
+		? {}
+		: Object.fromEntries(
+				Object.entries({
+					max_concurrent_streams: Number(form.maxConcurrentStreams) || 0,
+					max_decoder_header_table_size: Number(form.maxDecoderHeaderTableSize) || 0,
+					max_encoder_header_table_size: Number(form.maxEncoderHeaderTableSize) || 0,
+				}).filter(([, v]) => v > 0),
+			);
 	if (compact(http2)) input.http2 = http2;
 
 	const observability = {
 		...(!form.accessLogs && { disable_access_logs: true }),
 		...(!form.metrics && { disable_metrics: true }),
 		...(!form.tracing && { disable_tracing: true }),
-		...(form.tracing && form.traceVerbosity === 'detailed' && { trace_verbosity: 'detailed' as const })
+		...(form.tracing && form.traceVerbosity === 'detailed' && { trace_verbosity: 'detailed' as const }),
 	};
 	if (compact(observability)) input.observability = observability;
 	return input;

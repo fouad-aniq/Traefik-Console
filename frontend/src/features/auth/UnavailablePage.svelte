@@ -6,9 +6,13 @@
 </script>
 
 <AuthLayout title={t('authScreens.unavailable.title')} lead={t('authScreens.unavailable.lead')}>
-	<div class="retry"><Button variant="primary" onclick={() => bootstrap()}>{t('authScreens.unavailable.retry')}</Button></div>
+	<div class="retry">
+		<Button variant="primary" onclick={() => bootstrap()}>{t('authScreens.unavailable.retry')}</Button>
+	</div>
 </AuthLayout>
 
 <style>
-	.retry { margin-top: 24px; }
+	.retry {
+		margin-top: 24px;
+	}
 </style>

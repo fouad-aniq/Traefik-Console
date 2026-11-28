@@ -31,8 +31,15 @@ describe('ReferenceCount', () => {
 
 describe('RelatedItemsList', () => {
 	const items = [
-		{ name: 'portainer', kind: 'route' as const, summary: 'Host(`p.example`)', facts: ['websecure', 'TLS'], path: '/routers/portainer', editPath: '/routers/portainer/edit' },
-		{ name: 'zone', kind: 'domain' as const, summary: 'example.com', path: '/domains/zone' }
+		{
+			name: 'portainer',
+			kind: 'route' as const,
+			summary: 'Host(`p.example`)',
+			facts: ['websecure', 'TLS'],
+			path: '/routers/portainer',
+			editPath: '/routers/portainer/edit',
+		},
+		{ name: 'zone', kind: 'domain' as const, summary: 'example.com', path: '/domains/zone' },
 	];
 	it('renders each item with its kind, summary and facts, without count line or View/Edit buttons', () => {
 		const { container } = render(RelatedItemsList, { items, navigate: () => {} });
@@ -51,7 +58,11 @@ describe('RelatedItemsList', () => {
 		expect(navigate).toHaveBeenCalledWith('/routers/portainer');
 	});
 	it('uses the caller empty text, or the default one', () => {
-		const { container, unmount } = render(RelatedItemsList, { items: [], navigate: () => {}, empty: 'No route uses this.' });
+		const { container, unmount } = render(RelatedItemsList, {
+			items: [],
+			navigate: () => {},
+			empty: 'No route uses this.',
+		});
 		expect(container.textContent).toContain('No route uses this.');
 		unmount();
 		const second = render(RelatedItemsList, { items: [], navigate: () => {} });

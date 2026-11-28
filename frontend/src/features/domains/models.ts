@@ -21,10 +21,34 @@ export interface DomainConfig {
 }
 
 export interface DomainUsage {
-	routers: { name: string; rule?: string; entry_points?: string[] | null; service?: string; tls: boolean; read_only: boolean }[];
-	certificates: { source: 'uploaded' | 'acme'; id: string; name: string; names: string[]; issuer?: string; not_after?: string; validity: string; covers: boolean }[];
+	routers: {
+		name: string;
+		rule?: string;
+		entry_points?: string[] | null;
+		service?: string;
+		tls: boolean;
+		read_only: boolean;
+	}[];
+	certificates: {
+		source: 'uploaded' | 'acme';
+		id: string;
+		name: string;
+		names: string[];
+		issuer?: string;
+		not_after?: string;
+		validity: string;
+		covers: boolean;
+	}[];
 }
-export type CertificateState = 'valid' | 'expiring' | 'expired' | 'not_yet_valid' | 'missingCertificate' | 'notCovered' | 'notObserved' | 'unavailable';
+export type CertificateState =
+	| 'valid'
+	| 'expiring'
+	| 'expired'
+	| 'not_yet_valid'
+	| 'missingCertificate'
+	| 'notCovered'
+	| 'notObserved'
+	| 'unavailable';
 export type DomainResource = Resource<DomainConfig>;
 
 /** Body of PUT /api/v1/domains/{name}; the name comes from the URL, state/used_by are server-owned. */
@@ -65,7 +89,14 @@ export interface DomainForm {
 	method: DomainMethod | '';
 	reference: string;
 }
-export const newForm = (): DomainForm => ({ name: '', nameTouched: false, main: '', sans: '', method: '', reference: '' });
+export const newForm = (): DomainForm => ({
+	name: '',
+	nameTouched: false,
+	main: '',
+	sans: '',
+	method: '',
+	reference: '',
+});
 
 export const NAME_PATTERN = /^[a-z][a-z0-9_-]{0,62}$/;
 export const validName = (name: string) => NAME_PATTERN.test(name);
@@ -77,8 +108,18 @@ export function normalizeDomain(raw: string): string | null {
 	const wild = value.startsWith('*.');
 	if (wild) value = value.slice(2);
 	if (!value || /[\s/:@?#\\*]/.test(value)) return null;
-	try { value = new URL('https://' + value).hostname.toLowerCase(); } catch { return null; }
-	if (value.length > 253 || !value.includes('.') || /^[\d.]+$/.test(value) || value.split('.').some((l) => !l || l.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(l))) return null;
+	try {
+		value = new URL('https://' + value).hostname.toLowerCase();
+	} catch {
+		return null;
+	}
+	if (
+		value.length > 253 ||
+		!value.includes('.') ||
+		/^[\d.]+$/.test(value) ||
+		value.split('.').some((l) => !l || l.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(l))
+	)
+		return null;
 	return (wild ? '*.' : '') + value;
 }
 
@@ -91,7 +132,11 @@ export function domainKey(value: string): string {
 	return slug.slice(0, 54) + '-' + (hash >>> 0).toString(16).padStart(8, '0');
 }
 
-export const parseNames = (text: string) => text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+export const parseNames = (text: string) =>
+	text
+		.split(/[\n,]+/)
+		.map((s) => s.trim())
+		.filter(Boolean);
 export const namesOf = (c: Pick<DomainConfig, 'main' | 'sans'>) => [c.main, ...(c.sans ?? [])];
 
 /** Same rule as core-v2 `NamesCover`: a wildcard host needs the identical wildcard; otherwise one label. */
@@ -108,5 +153,6 @@ export const coversAll = (certNames: string[], hosts: string[]) => hosts.every((
 
 export const hasWildcard = (names: string[]) => names.some((n) => n.trim().startsWith('*.'));
 export const routersOf = (d: DomainResource) => d.config.used_by ?? [];
-export const usageCount = (d: DomainResource) => (d.config.usage ? d.config.usage.routers.length + d.config.usage.certificates.length : 0);
+export const usageCount = (d: DomainResource) =>
+	d.config.usage ? d.config.usage.routers.length + d.config.usage.certificates.length : 0;
 export const referenceOf = (c: DomainConfig) => (c.method === 'resolver' ? c.resolver : c.certificate) ?? '';

@@ -2,50 +2,114 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import ChangesPage from '../src/features/changes/ChangesPage.svelte';
-import { classify, formatBytes, groupChanges, needsAttention, pathFor, pathForItem } from '../src/features/changes/models';
+import {
+	classify,
+	formatBytes,
+	groupChanges,
+	needsAttention,
+	pathFor,
+	pathForItem,
+} from '../src/features/changes/models';
 import { ApiError } from '../src/shared/api/client';
 
 const snap = (id: number, extra = {}) => ({
-	id, name: `snap-${id}`, description: '', origin: 'manual', pinned: false, known_good: false, item_count: 3, size_bytes: 2048,
-	static_hash: 's', dynamic_hash: 'd', domains_hash: 'm', state_hash: 'x', created_at: '2026-01-0' + id + 'T00:00:00Z', ...extra
+	id,
+	name: `snap-${id}`,
+	description: '',
+	origin: 'manual',
+	pinned: false,
+	known_good: false,
+	item_count: 3,
+	size_bytes: 2048,
+	static_hash: 's',
+	dynamic_hash: 'd',
+	domains_hash: 'm',
+	state_hash: 'x',
+	created_at: '2026-01-0' + id + 'T00:00:00Z',
+	...extra,
 });
-const op = (id: number, extra = {}) => ({ id, kind: 'router.update', target: 'shop', status: 'succeeded', summary: `Changed ${id}`, requires_restart: false, created_at: '2026-01-0' + id + 'T00:00:00Z', ...extra });
+const op = (id: number, extra = {}) => ({
+	id,
+	kind: 'router.update',
+	target: 'shop',
+	status: 'succeeded',
+	summary: `Changed ${id}`,
+	requires_restart: false,
+	created_at: '2026-01-0' + id + 'T00:00:00Z',
+	...extra,
+});
 const page = (items: unknown[], next = 0) => ({ items, next_cursor: next });
-const preview = (extra = {}) => ({ changes: [{ action: 'updated', id: 'router:shop', kind: 'router', name: 'shop', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+router: {}', requires_restart: false, restore_token: 'tok-1', ...extra });
-const err = (code: string, status: number, message = 'm') => json({ code, message, operation_id: 'op', retryable: false }, status);
+const preview = (extra = {}) => ({
+	changes: [{ action: 'updated', id: 'router:shop', kind: 'router', name: 'shop', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+router: {}',
+	requires_restart: false,
+	restore_token: 'tok-1',
+	...extra,
+});
+const err = (code: string, status: number, message = 'm') =>
+	json({ code, message, operation_id: 'op', retryable: false }, status);
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return err('ERR_NOT_FOUND', 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const lists = (snaps: unknown[] = [], ops: unknown[] = [], snapNext = 0) => ({
 	'GET /api/v1/snapshots?limit=25': () => json(page(snaps, snapNext)),
-	'GET /api/v1/operations?limit=25': () => json(page(ops))
+	'GET /api/v1/operations?limit=25': () => json(page(ops)),
 });
 
 describe('model', () => {
 	it('groups changes by kind in a stable order and links to the edit page', () => {
-		const c = (kind: string, name: string) => ({ action: 'created', id: `${kind}:${name}`, kind, name, scope: 'dynamic' as const });
+		const c = (kind: string, name: string) => ({
+			action: 'created',
+			id: `${kind}:${name}`,
+			kind,
+			name,
+			scope: 'dynamic' as const,
+		});
 		const groups = groupChanges([c('service', 'b'), c('router', 'z'), c('router', 'a'), c('widget', 'w')]);
 		expect(groups.map((g) => g.kind)).toEqual(['router', 'service', 'widget']);
 		expect(groups[0].items.map((i) => i.name)).toEqual(['a', 'z']);
@@ -80,7 +144,10 @@ describe('model', () => {
 
 describe('snapshots tab', () => {
 	it('lists restore points with origin, pin and known-good badges', async () => {
-		handlers = lists([snap(2, { pinned: true, known_good: true, origin: 'pre_restore' }), snap(1, { description: 'before upgrade' })]);
+		handlers = lists([
+			snap(2, { pinned: true, known_good: true, origin: 'pre_restore' }),
+			snap(1, { description: 'before upgrade' }),
+		]);
 		render(ChangesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('#2 · snap-2')[0]).toBeTruthy());
 		expect(screen.getAllByText('#1 · snap-1')[0]).toBeTruthy();
@@ -120,7 +187,10 @@ describe('snapshots tab', () => {
 		expect(calls.find((c) => c.method === 'PATCH')!.body).toEqual({ pinned: true });
 	});
 	it('forces the delete of a pinned snapshot after confirmation', async () => {
-		handlers = { ...lists([snap(1, { pinned: true })]), 'DELETE /api/v1/snapshots/1?force=true': () => json({ deleted: true }) };
+		handlers = {
+			...lists([snap(1, { pinned: true })]),
+			'DELETE /api/v1/snapshots/1?force=true': () => json({ deleted: true }),
+		};
 		render(ChangesPage, { navigate: () => {} });
 		await fireEvent.click(await screen.findByRole('menuitem', { name: /^Delete/ }));
 		await fireEvent.click(await screen.findByRole('button', { name: 'Delete anyway' }));
@@ -165,9 +235,17 @@ describe('create dialog', () => {
 });
 
 describe('restore', () => {
-	const detail = () => ({ 'GET /api/v1/snapshots/1': () => json(snap(1)), 'GET /api/v1/snapshots/1/restore-preview': () => json(preview()) });
+	const detail = () => ({
+		'GET /api/v1/snapshots/1': () => json(snap(1)),
+		'GET /api/v1/snapshots/1/restore-preview': () => json(preview()),
+	});
 	it('previews, then restores with the token and a stable idempotency key', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'POST /api/v1/snapshots/1/restore': () => json({ operation: op(9, { kind: 'restore', summary: 'Restored snapshot 1' }), backup_snapshot_id: 8 }) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'POST /api/v1/snapshots/1/restore': () =>
+				json({ operation: op(9, { kind: 'restore', summary: 'Restored snapshot 1' }), backup_snapshot_id: 8 }),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await waitFor(() => expect(screen.getByText('Routers')).toBeTruthy());
 		expect(screen.getByText('This replaces your current configuration')).toBeTruthy();
@@ -180,7 +258,11 @@ describe('restore', () => {
 		expect(screen.getByRole('button', { name: 'View backup #8' })).toBeTruthy();
 	});
 	it('can skip the pre-restore backup', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'POST /api/v1/snapshots/1/restore': () => json({ operation: op(9) }) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'POST /api/v1/snapshots/1/restore': () => json({ operation: op(9) }),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await fireEvent.click(await screen.findByLabelText(/Do not back up the current configuration first/));
 		await fireEvent.click(screen.getByRole('button', { name: 'Restore snapshot' }));
@@ -190,9 +272,11 @@ describe('restore', () => {
 	it('reloads the preview after a stale token and uses the new one', async () => {
 		let previews = 0;
 		handlers = {
-			...lists([snap(1)]), ...detail(),
-			'GET /api/v1/snapshots/1/restore-preview': () => json(preview({ restore_token: ++previews === 1 ? 'tok-1' : 'tok-2' })),
-			'POST /api/v1/snapshots/1/restore': () => err('ERR_RESTORE_STALE', 409)
+			...lists([snap(1)]),
+			...detail(),
+			'GET /api/v1/snapshots/1/restore-preview': () =>
+				json(preview({ restore_token: ++previews === 1 ? 'tok-1' : 'tok-2' })),
+			'POST /api/v1/snapshots/1/restore': () => err('ERR_RESTORE_STALE', 409),
 		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Restore snapshot' }));
@@ -204,7 +288,14 @@ describe('restore', () => {
 	});
 	it('retries an unknown outcome with the very same key', async () => {
 		let n = 0;
-		handlers = { ...lists([snap(1)]), ...detail(), 'POST /api/v1/snapshots/1/restore': () => { if (++n === 1) throw new TypeError('network down'); return json({ operation: op(9) }); } };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'POST /api/v1/snapshots/1/restore': () => {
+				if (++n === 1) throw new TypeError('network down');
+				return json({ operation: op(9) });
+			},
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Restore snapshot' }));
 		await waitFor(() => expect(screen.getByText(/not known whether the restore ran/)).toBeTruthy());
@@ -215,13 +306,22 @@ describe('restore', () => {
 		expect(posts[1].body.idempotency_key).toBe(posts[0].body.idempotency_key);
 	});
 	it('blocks restore while the preview has validation errors', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'GET /api/v1/snapshots/1/restore-preview': () => json(preview({ validation_errors: [{ field: 'rule', item_id: 'router:shop', message: 'bad rule' }] })) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'GET /api/v1/snapshots/1/restore-preview': () =>
+				json(preview({ validation_errors: [{ field: 'rule', item_id: 'router:shop', message: 'bad rule' }] })),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await waitFor(() => expect(screen.getByText(/bad rule/)).toBeTruthy());
 		expect((screen.getByRole('button', { name: 'Restore snapshot' }) as HTMLButtonElement).disabled).toBe(true);
 	});
 	it('says recovery is required instead of previewing', async () => {
-		handlers = { ...lists([snap(1)]), 'GET /api/v1/snapshots/1': () => json(snap(1)), 'GET /api/v1/snapshots/1/restore-preview': () => err('ERR_OPERATION_RECOVERY_REQUIRED', 423) };
+		handlers = {
+			...lists([snap(1)]),
+			'GET /api/v1/snapshots/1': () => json(snap(1)),
+			'GET /api/v1/snapshots/1/restore-preview': () => err('ERR_OPERATION_RECOVERY_REQUIRED', 423),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await waitFor(() => expect(screen.getByText('Recovery required')).toBeTruthy());
 	});
@@ -231,7 +331,18 @@ describe('restore', () => {
 		await waitFor(() => expect(screen.getByText('This snapshot was not found.')).toBeTruthy());
 	});
 	it('warns when a manual Traefik restart is needed after the restore', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'POST /api/v1/snapshots/1/restore': () => json({ operation: op(9, { status: 'restart_required' }), error: { code: 'ERR_MANUAL_RESTART_REQUIRED', message: 'restart it' } }, 202) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'POST /api/v1/snapshots/1/restore': () =>
+				json(
+					{
+						operation: op(9, { status: 'restart_required' }),
+						error: { code: 'ERR_MANUAL_RESTART_REQUIRED', message: 'restart it' },
+					},
+					202,
+				),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'restore', id: '1' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Restore snapshot' }));
 		await waitFor(() => expect(screen.getByText('Restart Traefik manually')).toBeTruthy());
@@ -242,19 +353,39 @@ describe('snapshot details', () => {
 	const detail = (extra = {}) => ({
 		'GET /api/v1/snapshots/1': () => json(snap(1, extra)),
 		'GET /api/v1/snapshots/1/resources': () => json([{ kind: 'router', name: 'shop' }]),
-		'GET /api/v1/snapshots/1/config': () => json({ id: 1, static_yaml: 'entryPoints: {}\n', dynamic_yaml: 'http: {}\n', domains_yaml: '' }),
-		'GET /api/v1/snapshots?limit=100': () => json(page([snap(2)]))
+		'GET /api/v1/snapshots/1/config': () =>
+			json({ id: 1, static_yaml: 'entryPoints: {}\n', dynamic_yaml: 'http: {}\n', domains_yaml: '' }),
+		'GET /api/v1/snapshots?limit=100': () => json(page([snap(2)])),
 	});
 	it('shows the resources it holds and renames it', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'PATCH /api/v1/snapshots/1': () => json(snap(1, { name: 'renamed' })) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'PATCH /api/v1/snapshots/1': () => json(snap(1, { name: 'renamed' })),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'view', id: '1' });
 		await waitFor(() => expect(screen.getByText('shop')).toBeTruthy());
 		await fireEvent.input(document.querySelector('dialog input') as HTMLInputElement, { target: { value: 'renamed' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-		await waitFor(() => expect(calls.find((c) => c.method === 'PATCH')!.body).toEqual({ name: 'renamed', description: '' }));
+		await waitFor(() =>
+			expect(calls.find((c) => c.method === 'PATCH')!.body).toEqual({ name: 'renamed', description: '' }),
+		);
 	});
 	it('compares with another snapshot', async () => {
-		handlers = { ...lists([snap(1)]), ...detail(), 'GET /api/v1/snapshots/compare/2/1': () => json({ added: [{ kind: 'router', name: 'new' }], changed: null, removed: null, changes: [], static_diff: '', dynamic_diff: '+x', requires_restart: false }) };
+		handlers = {
+			...lists([snap(1)]),
+			...detail(),
+			'GET /api/v1/snapshots/compare/2/1': () =>
+				json({
+					added: [{ kind: 'router', name: 'new' }],
+					changed: null,
+					removed: null,
+					changes: [],
+					static_diff: '',
+					dynamic_diff: '+x',
+					requires_restart: false,
+				}),
+		};
 		render(ChangesPage, { navigate: () => {}, mode: 'view', id: '1' });
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Compare' }));
 		await fireEvent.click(await waitFor(() => document.querySelector('dialog .dialog-content [role="combobox"]')!));
@@ -273,7 +404,11 @@ describe('history tab', () => {
 		expect(screen.getAllByText('Changed 1').length).toBeGreaterThan(0);
 	});
 	it('recovers a stuck operation', async () => {
-		handlers = { ...lists([], [op(2, { status: 'recovery_required' })]), 'GET /api/v1/operations/2': () => json(op(2, { status: 'recovery_required', error_log: 'publish failed' })), 'POST /api/v1/operations/2/recover': () => json(op(2, { status: 'rolled_back', summary: 'Recovered' })) };
+		handlers = {
+			...lists([], [op(2, { status: 'recovery_required' })]),
+			'GET /api/v1/operations/2': () => json(op(2, { status: 'recovery_required', error_log: 'publish failed' })),
+			'POST /api/v1/operations/2/recover': () => json(op(2, { status: 'rolled_back', summary: 'Recovered' })),
+		};
 		render(ChangesPage, { navigate: () => {}, tab: 'history', mode: 'operation', id: '2' });
 		await waitFor(() => expect(screen.getByText('This operation is blocking changes')).toBeTruthy());
 		await fireEvent.click(screen.getByRole('button', { name: 'Recover' }));
@@ -281,14 +416,21 @@ describe('history tab', () => {
 		expect(calls.some((c) => c.method === 'POST' && c.path === '/api/v1/operations/2/recover')).toBe(true);
 	});
 	it('abandons a stuck operation after confirmation', async () => {
-		handlers = { ...lists([], [op(2, { status: 'recovery_required' })]), 'GET /api/v1/operations/2': () => json(op(2, { status: 'recovery_required' })), 'POST /api/v1/operations/2/abandon': () => json(op(2, { status: 'abandoned', summary: 'Abandoned' })) };
+		handlers = {
+			...lists([], [op(2, { status: 'recovery_required' })]),
+			'GET /api/v1/operations/2': () => json(op(2, { status: 'recovery_required' })),
+			'POST /api/v1/operations/2/abandon': () => json(op(2, { status: 'abandoned', summary: 'Abandoned' })),
+		};
 		render(ChangesPage, { navigate: () => {}, tab: 'history', mode: 'operation', id: '2' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Abandon' }));
 		await fireEvent.click(lastButton('Abandon'));
 		await waitFor(() => expect(calls.some((c) => c.path === '/api/v1/operations/2/abandon')).toBe(true));
 	});
 	it('tells the user to restart Traefik by hand when the operation needs it', async () => {
-		handlers = { ...lists([], [op(3, { status: 'restart_required', requires_restart: true })]), 'GET /api/v1/operations/3': () => json(op(3, { status: 'restart_required', requires_restart: true })) };
+		handlers = {
+			...lists([], [op(3, { status: 'restart_required', requires_restart: true })]),
+			'GET /api/v1/operations/3': () => json(op(3, { status: 'restart_required', requires_restart: true })),
+		};
 		render(ChangesPage, { navigate: () => {}, tab: 'history', mode: 'operation', id: '3' });
 		await waitFor(() => expect(screen.getByText('Restart Traefik manually')).toBeTruthy());
 	});

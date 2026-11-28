@@ -152,16 +152,12 @@ async function readResponseText(response: Response, signal: AbortSignal): Promis
 					signal.removeEventListener('abort', onAbort);
 					reject(new NetworkError(err));
 				}
-			}
+			},
 		);
 	});
 }
 
-async function decodeError(
-	response: Response,
-	signal: AbortSignal,
-	lang: 'en' | 'fr'
-): Promise<ApiErrorShape> {
+async function decodeError(response: Response, signal: AbortSignal, lang: 'en' | 'fr'): Promise<ApiErrorShape> {
 	let code = 'INTERNAL_ERROR';
 	let message = lang === 'fr' ? 'Échec de la requête.' : 'Request failed.';
 	let fieldErrors: Record<string, string> | undefined;
@@ -201,7 +197,15 @@ async function decodeError(
 			}
 		}
 	}
-	return { code, message, field_errors: fieldErrors, operation_id: operationId, retryable, status: response.status, retryAfter };
+	return {
+		code,
+		message,
+		field_errors: fieldErrors,
+		operation_id: operationId,
+		retryable,
+		status: response.status,
+		retryAfter,
+	};
 }
 
 export class ApiClient {
@@ -211,7 +215,7 @@ export class ApiClient {
 
 	constructor(
 		private readonly language: () => 'en' | 'fr',
-		fetchImpl: typeof fetch = fetch
+		fetchImpl: typeof fetch = fetch,
 	) {
 		this.fetchImpl = typeof fetchImpl?.bind === 'function' ? fetchImpl.bind(globalThis) : fetchImpl;
 	}
@@ -251,7 +255,7 @@ export class ApiClient {
 				headers,
 				credentials: 'same-origin',
 				body: options.body === undefined ? undefined : JSON.stringify(options.body),
-				signal
+				signal,
 			});
 
 			if (!response.ok) {
@@ -272,11 +276,12 @@ export class ApiClient {
 				// 2xx with a non-JSON body is unexpected; surface a safe error.
 				throw new ApiError({
 					code: 'UNEXPECTED_RESPONSE',
-					message: lang === 'fr'
-						? 'Le serveur a renvoyé un format de réponse inattendu.'
-						: 'The server returned an unexpected response format.',
+					message:
+						lang === 'fr'
+							? 'Le serveur a renvoyé un format de réponse inattendu.'
+							: 'The server returned an unexpected response format.',
 					status: response.status,
-					retryable: false
+					retryable: false,
 				});
 			}
 		} catch (cause) {

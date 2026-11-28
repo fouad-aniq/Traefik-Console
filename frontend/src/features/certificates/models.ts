@@ -64,16 +64,20 @@ export const MAX_PEM_BYTES = 1024 * 1024;
 export const bytes = (text: string) => new TextEncoder().encode(text).length;
 
 export const validityOf = (status: string): Validity =>
-	status === 'expiring_soon' || status === 'expiring' ? 'expiring'
-		: status === 'expired' ? 'expired'
-		: status === 'not_yet_valid' ? 'not_yet_valid'
-		: 'valid';
+	status === 'expiring_soon' || status === 'expiring'
+		? 'expiring'
+		: status === 'expired'
+			? 'expired'
+			: status === 'not_yet_valid'
+				? 'not_yet_valid'
+				: 'valid';
 
 export const validityTone = (v: Validity) =>
-	({ valid: 'success', expiring: 'warning', expired: 'danger', not_yet_valid: 'warning' } as const)[v];
+	(({ valid: 'success', expiring: 'warning', expired: 'danger', not_yet_valid: 'warning' }) as const)[v];
 
 /** Stable identity of an automatic certificate (the API has no name for them). */
-export const acmeKey = (c: AcmeCertificate) => c.fingerprint || `${c.resolver_name}:${c.main_domain}:${c.serial_number}`;
+export const acmeKey = (c: AcmeCertificate) =>
+	c.fingerprint || `${c.resolver_name}:${c.main_domain}:${c.serial_number}`;
 
 /** Names an automatic certificate covers: main domain first, then SANs without duplicates. */
 export const acmeNames = (c: AcmeCertificate) => [...new Set([c.main_domain, ...(c.sans ?? [])].filter(Boolean))];
@@ -81,13 +85,32 @@ export const acmeNames = (c: AcmeCertificate) => [...new Set([c.main_domain, ...
 /** What references a certificate, computed by core-v2 (`used_by`). Absent when usage is unknown. */
 export interface CertificateUsage {
 	domains: { name: string; main: string; sans?: string[] | null; source?: string; read_only: boolean }[];
-	routers: { name: string; rule?: string; entry_points?: string[] | null; service?: string; tls: boolean; read_only: boolean }[];
+	routers: {
+		name: string;
+		rule?: string;
+		entry_points?: string[] | null;
+		service?: string;
+		tls: boolean;
+		read_only: boolean;
+	}[];
 }
 
 /** The usage as "used by" list items: domains first, then routes. */
 export const usageItems = (u: CertificateUsage | null | undefined): RelatedItem[] => [
-	...(u?.domains ?? []).map((d) => domainItem({ name: d.name, read_only: d.read_only, config: { main: d.main, sans: d.sans, method: 'resolver', resolver: d.source } })),
-	...(u?.routers ?? []).map((r) => routeItem({ name: r.name, read_only: r.read_only, config: { rule: r.rule, entry_points: r.entry_points, service: r.service, tls: r.tls || undefined } }))
+	...(u?.domains ?? []).map((d) =>
+		domainItem({
+			name: d.name,
+			read_only: d.read_only,
+			config: { main: d.main, sans: d.sans, method: 'resolver', resolver: d.source },
+		}),
+	),
+	...(u?.routers ?? []).map((r) =>
+		routeItem({
+			name: r.name,
+			read_only: r.read_only,
+			config: { rule: r.rule, entry_points: r.entry_points, service: r.service, tls: r.tls || undefined },
+		}),
+	),
 ];
-export const usageCount = (u: CertificateUsage | null | undefined) => (u?.domains.length ?? 0) + (u?.routers.length ?? 0);
-
+export const usageCount = (u: CertificateUsage | null | undefined) =>
+	(u?.domains.length ?? 0) + (u?.routers.length ?? 0);

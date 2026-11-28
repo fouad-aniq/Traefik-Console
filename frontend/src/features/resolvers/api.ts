@@ -9,7 +9,7 @@ import {
 	type ResolverConfig,
 	type ResolverForm,
 	type ResolverResource,
-	isMasked
+	isMasked,
 } from './models';
 
 export const listResolvers = async (signal?: AbortSignal) =>
@@ -26,9 +26,9 @@ export async function listProviders(signal?: AbortSignal): Promise<ProviderDisco
 /** Registered entrypoint names (static configuration; no Traefik runtime needed). */
 export async function listEntryPoints(signal?: AbortSignal): Promise<string[]> {
 	const result = await api.get<{ entry_points: unknown[] | null }>('/api/v1/entrypoints', { signal });
-	return list(result.entry_points).map((entry) =>
-		typeof entry === 'string' ? entry : String((entry as { name?: unknown })?.name ?? '')
-	).filter(Boolean);
+	return list(result.entry_points)
+		.map((entry) => (typeof entry === 'string' ? entry : String((entry as { name?: unknown })?.name ?? '')))
+		.filter(Boolean);
 }
 
 export const putResolver = (name: string, input: ResolverConfig, version: number, opts?: WriteOptions) =>
@@ -54,7 +54,7 @@ export function newForm(): ResolverForm {
 		nameservers: [],
 		delay: '',
 		propagation: { requireAllRNS: false, disableANSChecks: false, disableChecks: false },
-		customYaml: ''
+		customYaml: '',
 	};
 }
 
@@ -78,7 +78,7 @@ export function formFrom(resource: ResolverResource): ResolverForm {
 	form.propagation = {
 		requireAllRNS: !!c.propagation?.requireAllRNS,
 		disableANSChecks: !!c.propagation?.disableANSChecks,
-		disableChecks: !!c.propagation?.disableChecks
+		disableChecks: !!c.propagation?.disableChecks,
 	};
 	form.customYaml = c.custom_yaml ?? '';
 	return form;
@@ -98,7 +98,7 @@ export function toInput(form: ResolverForm): ResolverConfig {
 		type: 'acme',
 		environment: form.environment,
 		email: form.email.trim(),
-		challenge: form.challenge
+		challenge: form.challenge,
 	};
 	if (form.environment === 'custom') input.ca_url = form.caUrl.trim();
 	if (form.keyType) input.key_type = form.keyType;
@@ -109,9 +109,7 @@ export function toInput(form: ResolverForm): ResolverConfig {
 			input.external_credentials = true; // values are ignored by the server in this mode
 		} else {
 			input.alternative = form.alternative;
-			const values = Object.fromEntries(
-				Object.entries(form.values).filter(([, v]) => v !== '' && v != null)
-			);
+			const values = Object.fromEntries(Object.entries(form.values).filter(([, v]) => v !== '' && v != null));
 			if (Object.keys(values).length) input.values = values;
 		}
 		if (form.nameservers.length) input.nameservers = [...form.nameservers];
@@ -121,7 +119,7 @@ export function toInput(form: ResolverForm): ResolverConfig {
 			input.propagation = {
 				...(p.requireAllRNS && { requireAllRNS: true }),
 				...(p.disableANSChecks && { disableANSChecks: true }),
-				...(p.disableChecks && { disableChecks: true })
+				...(p.disableChecks && { disableChecks: true }),
 			};
 		}
 	}

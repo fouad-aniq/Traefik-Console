@@ -17,7 +17,11 @@
 	import { t } from '../../shared/localization/i18n';
 	import type { SortState } from '../../shared/ui/tableTypes';
 
-	let { navigate, mode = 'list', name = '' }: { navigate: (p: string) => void; mode?: string; name?: string } = $props();
+	let {
+		navigate,
+		mode = 'list',
+		name = '',
+	}: { navigate: (p: string) => void; mode?: string; name?: string } = $props();
 
 	const c = (key: string, args?: Record<string, string | number>) => t('resolverUI.' + key, args);
 	const v2 = (key: string, args?: Record<string, string | number>) => t('resolverV2.' + key, args);
@@ -47,36 +51,73 @@
 		{ id: 'challenge', label: c('challengeColumn'), sortable: true, width: '132px' },
 		{ id: 'provider', label: c('provider'), sortable: true, width: '190px' },
 		{ id: 'environment', label: c('environment'), sortable: true, width: '190px' },
-		{ id: 'actions', label: c('actions'), hideLabel: true, width: '172px' }
+		{ id: 'actions', label: c('actions'), hideLabel: true, width: '172px' },
 	]);
 
 	const filters = $derived([
-		{ id: 'origin', label: c('ownership'), options: [{ value: '', label: c('all') }, { value: 'managed', label: c('managed') }, { value: 'external', label: c('external') }] },
-		{ id: 'challenge', label: c('challenge'), options: [{ value: '', label: c('all') }, ...['dns01', 'http01', 'tlsalpn01'].map((value) => ({ value, label: c(value) }))] },
-		{ id: 'environment', label: c('environment'), options: [{ value: '', label: c('all') }, { value: 'production', label: c('production') }, { value: 'staging', label: c('staging') }, { value: 'custom', label: c('customCA') }] },
+		{
+			id: 'origin',
+			label: c('ownership'),
+			options: [
+				{ value: '', label: c('all') },
+				{ value: 'managed', label: c('managed') },
+				{ value: 'external', label: c('external') },
+			],
+		},
+		{
+			id: 'challenge',
+			label: c('challenge'),
+			options: [
+				{ value: '', label: c('all') },
+				...['dns01', 'http01', 'tlsalpn01'].map((value) => ({ value, label: c(value) })),
+			],
+		},
+		{
+			id: 'environment',
+			label: c('environment'),
+			options: [
+				{ value: '', label: c('all') },
+				{ value: 'production', label: c('production') },
+				{ value: 'staging', label: c('staging') },
+				{ value: 'custom', label: c('customCA') },
+			],
+		},
 	]);
 
 	const providerName = (code = '') => providers.find((p) => p.provider_code === code)?.display_name || code;
 	const sortValue = (row: ResolverResource, column: string) => {
 		switch (column) {
-			case 'name': return row.name;
-			case 'challenge': return row.config.challenge ?? '';
-			case 'provider': return providerName(row.config.provider);
-			case 'environment': return row.config.environment ?? '';
-			case 'state': return row.status;
-			default: return '';
+			case 'name':
+				return row.name;
+			case 'challenge':
+				return row.config.challenge ?? '';
+			case 'provider':
+				return providerName(row.config.provider);
+			case 'environment':
+				return row.config.environment ?? '';
+			case 'state':
+				return row.status;
+			default:
+				return '';
 		}
 	};
 
 	const filtered = $derived.by(() => {
 		const q = search.trim().toLowerCase();
-		const items = rows.filter((row) =>
-			(!origin || row.origin === origin) &&
-			(!challenge || row.config.challenge === challenge) &&
-			(!environment || row.config.environment === environment) &&
-			(!q || `${row.name} ${providerName(row.config.provider)} ${row.config.environment ?? ''} ${row.config.challenge ?? ''}`.toLowerCase().includes(q))
+		const items = rows.filter(
+			(row) =>
+				(!origin || row.origin === origin) &&
+				(!challenge || row.config.challenge === challenge) &&
+				(!environment || row.config.environment === environment) &&
+				(!q ||
+					`${row.name} ${providerName(row.config.provider)} ${row.config.environment ?? ''} ${row.config.challenge ?? ''}`
+						.toLowerCase()
+						.includes(q)),
 		);
-		return items.toSorted((a, b) => sortValue(a, sort.column).localeCompare(sortValue(b, sort.column)) * (sort.direction === 'desc' ? -1 : 1));
+		return items.toSorted(
+			(a, b) =>
+				sortValue(a, sort.column).localeCompare(sortValue(b, sort.column)) * (sort.direction === 'desc' ? -1 : 1),
+		);
 	});
 	const pageRows = $derived(filtered.slice((page - 1) * pageSize, page * pageSize));
 	const hasFilters = $derived(!!(search || origin || challenge || environment));
@@ -102,12 +143,23 @@
 
 	onMount(() => {
 		void load();
-		void listProviders(controller.signal).then((v) => { if (!disposed) providers = v.providers; }).catch(() => {});
+		void listProviders(controller.signal)
+			.then((v) => {
+				if (!disposed) providers = v.providers;
+			})
+			.catch(() => {});
 	});
-	onDestroy(() => { disposed = true; controller.abort(); });
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
 
 	function clearFilters() {
-		search = ''; origin = ''; challenge = ''; environment = ''; page = 1;
+		search = '';
+		origin = '';
+		challenge = '';
+		environment = '';
+		page = 1;
 	}
 
 	async function confirmDelete() {
@@ -123,21 +175,26 @@
 			await load();
 		} catch (e) {
 			pendingDelete = null;
-			actionError = e instanceof ApiError && e.status === 409
-				? v2('conflict') + (e.message ? ' ' + e.message : '')
-				: errorMessage(e, v2('deleteFailed'));
+			actionError =
+				e instanceof ApiError && e.status === 409
+					? v2('conflict') + (e.message ? ' ' + e.message : '')
+					: errorMessage(e, v2('deleteFailed'));
 		} finally {
 			deleting = false;
 		}
 	}
-
 </script>
 
 <PageHeader title={c('title')} subtitle={c('subtitle')} />
 
 <div class="notices">
 	{#if actionError}<Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} />{/if}
-	{#if restartNotice}<Notice tone="warning" message={t('writeV2.manualRestart')} dismissible onDismiss={() => (restartNotice = false)} />{/if}
+	{#if restartNotice}<Notice
+			tone="warning"
+			message={t('writeV2.manualRestart')}
+			dismissible
+			onDismiss={() => (restartNotice = false)}
+		/>{/if}
 	{#if error}<Notice tone="error" message={error} />{/if}
 </div>
 
@@ -146,21 +203,32 @@
 	rows={pageRows}
 	getRowId={(r: ResolverResource) => r.name}
 	searchValue={search}
-	onsearch={(v: string) => { search = v; page = 1; }}
+	onsearch={(v: string) => {
+		search = v;
+		page = 1;
+	}}
 	searchPlaceholder={c('search')}
 	{filters}
 	filterValues={{ origin, challenge, environment }}
 	onfilterchange={(id: string, v: string) => {
-		if (id === 'origin') origin = v; else if (id === 'challenge') challenge = v; else if (id === 'environment') environment = v;
+		if (id === 'origin') origin = v;
+		else if (id === 'challenge') challenge = v;
+		else if (id === 'environment') environment = v;
 		page = 1;
 	}}
 	{sort}
-	onsort={(column: string) => { sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' }; page = 1; }}
+	onsort={(column: string) => {
+		sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' };
+		page = 1;
+	}}
 	{page}
 	{pageSize}
 	total={filtered.length}
 	onpage={(v: number) => (page = v)}
-	onpagesize={(v: number) => { pageSize = v; page = 1; }}
+	onpagesize={(v: number) => {
+		pageSize = v;
+		page = 1;
+	}}
 	{loading}
 	error={!!error}
 	onretry={load}
@@ -175,39 +243,68 @@
 		<td>
 			<div class="identity">
 				<span class="name">
-					<ValueTooltip text={row.name} truncate onactivate={() => navigate('/resolvers/' + encodeURIComponent(row.name))}><strong>{row.name}</strong></ValueTooltip>
+					<ValueTooltip
+						text={row.name}
+						truncate
+						onactivate={() => navigate('/resolvers/' + encodeURIComponent(row.name))}
+					>
+						<strong>{row.name}</strong>
+					</ValueTooltip>
 				</span>
 				{#if row.origin === 'external'}<StatusBadge size="sm" tone="info" text={c('externalShort')} />{/if}
 			</div>
 		</td>
 		<td>
-			<StatusBadge size="sm" tone={row.config.challenge ? 'connection' : 'neutral'} text={row.config.challenge ? c(row.config.challenge) : row.config.type === 'custom' ? c('custom') : c('notReported')} />
+			<StatusBadge
+				size="sm"
+				tone={row.config.challenge ? 'connection' : 'neutral'}
+				text={row.config.challenge
+					? c(row.config.challenge)
+					: row.config.type === 'custom'
+						? c('custom')
+						: c('notReported')}
+			/>
 		</td>
 		<td>
 			{#if providerName(row.config.provider)}
-				<ValueTooltip text={providerName(row.config.provider)} truncate>{providerName(row.config.provider)}</ValueTooltip>
+				<ValueTooltip text={providerName(row.config.provider)} truncate>
+					{providerName(row.config.provider)}
+				</ValueTooltip>
 			{:else}
 				<span class="muted" aria-label={c('notReported')}>—</span>
 			{/if}
 		</td>
 		<td>
-			<StatusBadge size="sm" tone={row.config.environment === 'staging' ? 'warning' : 'neutral'} text={row.config.environment ? c(row.config.environment === 'custom' ? 'customCA' : row.config.environment) : c('notReported')} />
+			<StatusBadge
+				size="sm"
+				tone={row.config.environment === 'staging' ? 'warning' : 'neutral'}
+				text={row.config.environment
+					? c(row.config.environment === 'custom' ? 'customCA' : row.config.environment)
+					: c('notReported')}
+			/>
 		</td>
 		<td>
-			<RowActions label={row.name} actions={[
-				{ label: c(row.read_only ? 'view' : 'editAction'), onclick: () => navigate('/resolvers/' + encodeURIComponent(row.name) + (row.read_only ? '' : '/edit')) },
-				!row.read_only && { label: v2('delete.action'), variant: 'danger', onclick: () => (pendingDelete = row) }
-			]} />
+			<RowActions
+				label={row.name}
+				actions={[
+					{
+						label: c(row.read_only ? 'view' : 'editAction'),
+						onclick: () => navigate('/resolvers/' + encodeURIComponent(row.name) + (row.read_only ? '' : '/edit')),
+					},
+					!row.read_only && { label: v2('delete.action'), variant: 'danger', onclick: () => (pendingDelete = row) },
+				]}
+			/>
 		</td>
 	{/snippet}
 
 	{#snippet emptyState()}
 		<h2>{c(hasFilters ? 'noMatches' : 'empty')}</h2>
 		<p>{c(hasFilters ? 'adjustFilters' : 'emptyHelp')}</p>
-		<Button onclick={() => (hasFilters ? clearFilters() : navigate('/resolvers/new'))}>{c(hasFilters ? 'clearFilters' : 'create')}</Button>
+		<Button onclick={() => (hasFilters ? clearFilters() : navigate('/resolvers/new'))}>
+			{c(hasFilters ? 'clearFilters' : 'create')}
+		</Button>
 	{/snippet}
 </DataTable>
-
 
 <ConfirmDialog
 	open={!!pendingDelete}
@@ -216,7 +313,9 @@
 	message={pendingDelete ? v2('delete.message', { name: pendingDelete.name }) : ''}
 	cancelLabel={t('common.cancel')}
 	confirmLabel={v2('delete.confirm')}
-	oncancel={() => { if (!deleting) pendingDelete = null; }}
+	oncancel={() => {
+		if (!deleting) pendingDelete = null;
+	}}
 	onconfirm={confirmDelete}
 />
 
@@ -227,11 +326,32 @@
 {/if}
 
 <style>
-	.notices { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
-	.notices:empty { display: none; }
+	.notices {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-bottom: 24px;
+	}
+	.notices:empty {
+		display: none;
+	}
 	/* The name trigger bleeds 10px past its box on hover: keep 8px of visible space. */
-	.identity { display: flex; align-items: center; gap: 18px; min-width: 0; }
-	.name { display: block; min-width: 0; flex: 1; max-width: 100%; }
-	.name strong { font-weight: 600; }
-	.muted { color: var(--text-muted); }
+	.identity {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		min-width: 0;
+	}
+	.name {
+		display: block;
+		min-width: 0;
+		flex: 1;
+		max-width: 100%;
+	}
+	.name strong {
+		font-weight: 600;
+	}
+	.muted {
+		color: var(--text-muted);
+	}
 </style>

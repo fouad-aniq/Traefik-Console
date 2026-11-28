@@ -14,7 +14,7 @@
 		danger = false,
 		oncancel,
 		onconfirm,
-		children
+		children,
 	}: {
 		open: boolean;
 		title: string;
@@ -51,7 +51,7 @@
 		}
 		if (e.key !== 'Tab' || !panel) return;
 		const focusables = panel.querySelectorAll<HTMLElement>(
-			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
 		);
 		if (focusables.length === 0) return;
 		const first = focusables[0];
@@ -71,20 +71,9 @@
 {#if open}
 	<!-- Backdrop is a button on purpose: pointer dismissal only; keyboard
 	     dismissal is Escape and the Cancel control. -->
-	<button
-		type="button"
-		class="backdrop dialog-backdrop"
-		aria-label={cancelLabel}
-		tabindex="-1"
-		onclick={oncancel}
+	<button type="button" class="backdrop dialog-backdrop" aria-label={cancelLabel} tabindex="-1" onclick={oncancel}
 	></button>
-	<div
-		class="panel dialog-panel"
-		role="dialog"
-		aria-modal="true"
-		aria-label={title}
-		bind:this={panel}
-	>
+	<div class="panel dialog-panel" role="dialog" aria-modal="true" aria-label={title} bind:this={panel}>
 		<h2 class="title">{title}</h2>
 		<div class="body">
 			{#if children}

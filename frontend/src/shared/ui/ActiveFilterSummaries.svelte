@@ -14,7 +14,7 @@
 	let {
 		filters,
 		onremove,
-		onclear
+		onclear,
 	}: {
 		filters: ActiveFilter[];
 		onremove: (id: string) => void;

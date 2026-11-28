@@ -11,7 +11,7 @@ describe('ApiClient', () => {
 			capturedHeaders = init?.headers as Headers;
 			return new Response(JSON.stringify({ ok: true }), {
 				status: 200,
-				headers: { 'Content-Type': 'application/json' }
+				headers: { 'Content-Type': 'application/json' },
 			});
 		});
 
@@ -46,9 +46,7 @@ describe('ApiClient', () => {
 		const controller = new AbortController();
 		controller.abort();
 
-		await expect(
-			client.get('/api/v1/domains', { signal: controller.signal })
-		).rejects.toThrow(NetworkError);
+		await expect(client.get('/api/v1/domains', { signal: controller.signal })).rejects.toThrow(NetworkError);
 	});
 
 	it('decodes structured backend API errors into ApiError', async () => {
@@ -57,12 +55,12 @@ describe('ApiClient', () => {
 			message: 'Domain name is invalid.',
 			field_errors: { name: 'must be fully qualified' },
 			operation_id: 'op-987654',
-			retryable: false
+			retryable: false,
 		};
 		const mockFetch = vi.fn().mockImplementation(async () => {
 			return new Response(JSON.stringify(errorBody), {
 				status: 400,
-				headers: { 'Content-Type': 'application/json' }
+				headers: { 'Content-Type': 'application/json' },
 			});
 		});
 
@@ -87,7 +85,7 @@ describe('ApiClient', () => {
 		const mockFetch = vi.fn().mockImplementation(async () => {
 			return new Response('<html>502 Bad Gateway</html>', {
 				status: 502,
-				headers: { 'Content-Type': 'text/html' }
+				headers: { 'Content-Type': 'text/html' },
 			});
 		});
 
@@ -155,13 +153,17 @@ describe('ApiClient', () => {
 
 		const client = new ApiClient(() => 'en', mockFetch as unknown as typeof fetch);
 
-		await client.put('/api/v1/drafts/current', { some: 'payload' }, {
-			headers: {
-				'If-Match': '"rev-104"',
-				'Idempotency-Key': 'client-uuid-123',
-				'X-CSRF-Token': 'csrf-token-abc'
-			}
-		});
+		await client.put(
+			'/api/v1/drafts/current',
+			{ some: 'payload' },
+			{
+				headers: {
+					'If-Match': '"rev-104"',
+					'Idempotency-Key': 'client-uuid-123',
+					'X-CSRF-Token': 'csrf-token-abc',
+				},
+			},
+		);
 
 		expect(capturedHeaders?.get('If-Match')).toBe('"rev-104"');
 		expect(capturedHeaders?.get('Idempotency-Key')).toBe('client-uuid-123');
@@ -174,7 +176,7 @@ describe('ApiClient', () => {
 		const mockFetch = vi.fn().mockImplementation(async () => {
 			calls++;
 			return new Response(JSON.stringify({ code: 'CONFLICT', message: 'Version mismatch' }), {
-				status: 409
+				status: 409,
 			});
 		});
 
@@ -195,7 +197,7 @@ describe('ApiClient', () => {
 			'/api/v1\\..\\broker',
 			'/api/v1/%2e%2e%2fbroker',
 			'http://external.invalid/api/v1/health',
-			'//external.invalid/api/v1/health'
+			'//external.invalid/api/v1/health',
 		];
 
 		for (const path of traversalPaths) {
@@ -215,9 +217,9 @@ describe('ApiClient', () => {
 							controller.enqueue(new TextEncoder().encode('{"delayed": true}'));
 							controller.close();
 						}, 100);
-					}
+					},
 				}),
-				{ status: 200 }
+				{ status: 200 },
 			);
 		});
 
@@ -233,19 +235,35 @@ describe('ApiClient', () => {
 		const post = vi.spyOn(api, 'post').mockResolvedValue({});
 		try {
 			await saveResource('/api/v1/crowdsec/config', { enabled: true }, 1, { idempotencyKey: 'client-uuid-123' });
-			expect(put).toHaveBeenLastCalledWith('/api/v1/crowdsec/config', { enabled: true }, expect.objectContaining({
-				timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS,
-				signal: undefined
-			}));
+			expect(put).toHaveBeenLastCalledWith(
+				'/api/v1/crowdsec/config',
+				{ enabled: true },
+				expect.objectContaining({
+					timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS,
+					signal: undefined,
+				}),
+			);
 
 			await saveResource('/api/v1/crowdsec/config', { enabled: true }, 1, { dryRun: true });
-			expect(put).toHaveBeenLastCalledWith('/api/v1/crowdsec/config?dry_run=true', { enabled: true }, expect.objectContaining({ timeoutMs: 30_000 }));
+			expect(put).toHaveBeenLastCalledWith(
+				'/api/v1/crowdsec/config?dry_run=true',
+				{ enabled: true },
+				expect.objectContaining({ timeoutMs: 30_000 }),
+			);
 
 			await restoreSnapshot(22, { restore_token: 'token', idempotency_key: 'client-uuid-456' });
-			expect(post).toHaveBeenLastCalledWith('/api/v1/snapshots/22/restore', expect.anything(), expect.objectContaining({ timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS }));
+			expect(post).toHaveBeenLastCalledWith(
+				'/api/v1/snapshots/22/restore',
+				expect.anything(),
+				expect.objectContaining({ timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS }),
+			);
 
 			await recoverOperation(22);
-			expect(post).toHaveBeenLastCalledWith('/api/v1/operations/22/recover', undefined, expect.objectContaining({ timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS }));
+			expect(post).toHaveBeenLastCalledWith(
+				'/api/v1/operations/22/recover',
+				undefined,
+				expect.objectContaining({ timeoutMs: MUTATION_RESPONSE_TIMEOUT_MS }),
+			);
 		} finally {
 			put.mockRestore();
 			post.mockRestore();

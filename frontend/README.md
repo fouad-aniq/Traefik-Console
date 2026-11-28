@@ -4,6 +4,7 @@ Svelte 5 / TypeScript SPA for the Go backend in `../backend`. Direct-write proto
 See `docs/CORE-V2-API-ANALYSIS.md`.
 
 Status:
+
 - `src/core/`: core-v2 types and the shared direct-write helpers (`saveResource`/`deleteResource`: preview with `?dry_run=true`, then the same request with a stable `Idempotency-Key`; `If-Match "<version>"` to change, `If-None-Match: *` to create).
 - `src/features/resolvers/`: **Resolvers page + create/edit/view dialog** (done).
 - `src/features/certificates/`: **Certificates page** (automatic + uploaded) with upload/replace/delete dialogs (done).

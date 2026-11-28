@@ -16,8 +16,8 @@ describe('Shared UI Components', () => {
 				props: {
 					variant: 'primary',
 					onclick: handleClick,
-					label: 'Click Me'
-				}
+					label: 'Click Me',
+				},
 			});
 
 			const btn = container.querySelector('button');
@@ -33,8 +33,8 @@ describe('Shared UI Components', () => {
 			const { container } = render(Button, {
 				props: {
 					disabled: true,
-					label: 'Disabled'
-				}
+					label: 'Disabled',
+				},
 			});
 
 			const btn = container.querySelector('button');
@@ -47,8 +47,8 @@ describe('Shared UI Components', () => {
 			const { container } = render(StatusBadge, {
 				props: {
 					tone: 'success',
-					text: 'Loaded Active'
-				}
+					text: 'Loaded Active',
+				},
 			});
 
 			const badge = container.querySelector('.badge');
@@ -61,8 +61,8 @@ describe('Shared UI Components', () => {
 			const { container } = render(StatusBadge, {
 				props: {
 					tone: 'warning',
-					text: 'Expiring Soon'
-				}
+					text: 'Expiring Soon',
+				},
 			});
 
 			const badge = container.querySelector('.badge');
@@ -73,8 +73,8 @@ describe('Shared UI Components', () => {
 			const { container } = render(StatusBadge, {
 				props: {
 					tone: 'danger',
-					text: 'Failed'
-				}
+					text: 'Failed',
+				},
 			});
 
 			const badge = container.querySelector('.badge');
@@ -88,8 +88,8 @@ describe('Shared UI Components', () => {
 				props: {
 					type: 'warning',
 					title: 'Warning Notice',
-					message: 'Pay attention to this detail.'
-				}
+					message: 'Pay attention to this detail.',
+				},
 			});
 
 			const notice = container.querySelector('.notice');
@@ -103,8 +103,8 @@ describe('Shared UI Components', () => {
 			const { container } = render(Notice, {
 				props: {
 					type: 'danger',
-					message: 'Critical error occurred.'
-				}
+					message: 'Critical error occurred.',
+				},
 			});
 
 			const notice = container.querySelector('.notice');
@@ -118,8 +118,8 @@ describe('Shared UI Components', () => {
 					type: 'info',
 					message: 'Dismissible info',
 					dismissible: true,
-					ondismiss: handleDismiss
-				}
+					ondismiss: handleDismiss,
+				},
 			});
 
 			const dismissBtn = container.querySelector('button.dismiss-btn');
@@ -138,11 +138,11 @@ describe('Shared UI Components', () => {
 				props: {
 					filters: [
 						{ id: 'protocol', label: 'Protocol: HTTP' },
-						{ id: 'provider', label: 'Provider: Cloudflare' }
+						{ id: 'provider', label: 'Provider: Cloudflare' },
 					],
 					onremove: handleRemove,
-					onclear: handleClear
-				}
+					onclear: handleClear,
+				},
 			});
 
 			const chips = container.querySelectorAll('.chip');
@@ -164,8 +164,8 @@ describe('Shared UI Components', () => {
 		it('renders nothing when filters list is empty', () => {
 			const { container } = render(ActiveFilterSummaries, {
 				props: {
-					filters: []
-				}
+					filters: [],
+				},
 			});
 
 			expect(container.querySelector('.summaries')).toBeNull();
@@ -183,21 +183,24 @@ describe('Shared UI Components', () => {
 					pageSize: 25,
 					total: 60,
 					onpage: handlePage,
-					onpagesize: handlePageSize
-				}
+					onpagesize: handlePageSize,
+				},
 			});
 
 			expect(container.textContent).toContain('1–25 of 60');
 
-   const prev = container.querySelector<HTMLButtonElement>('button[aria-label="Previous page"]')!;
-   const next = container.querySelector<HTMLButtonElement>('button[aria-label="Next page"]')!;
-   expect(prev.disabled).toBe(true); expect(next.disabled).toBe(false);
-   await fireEvent.click(next);expect(handlePage).toHaveBeenCalledWith(2);
-   const select = container.querySelector('[role="combobox"]');expect(select?.textContent).toContain('25');
-   // Real popover, keyboard and pointer behaviour is checked in the browser suite.
-   const option = [...container.querySelectorAll('[role="option"]')].find(e=>e.textContent?.trim()==='50')!;
-   await fireEvent.click(option);expect(handlePageSize).toHaveBeenCalledWith(50);
-
+			const prev = container.querySelector<HTMLButtonElement>('button[aria-label="Previous page"]')!;
+			const next = container.querySelector<HTMLButtonElement>('button[aria-label="Next page"]')!;
+			expect(prev.disabled).toBe(true);
+			expect(next.disabled).toBe(false);
+			await fireEvent.click(next);
+			expect(handlePage).toHaveBeenCalledWith(2);
+			const select = container.querySelector('[role="combobox"]');
+			expect(select?.textContent).toContain('25');
+			// Real popover, keyboard and pointer behaviour is checked in the browser suite.
+			const option = [...container.querySelectorAll('[role="option"]')].find((e) => e.textContent?.trim() === '50')!;
+			await fireEvent.click(option);
+			expect(handlePageSize).toHaveBeenCalledWith(50);
 		});
 	});
 
@@ -212,8 +215,8 @@ describe('Shared UI Components', () => {
 					title: 'Confirm Action',
 					message: 'Are you sure?',
 					oncancel: handleCancel,
-					onconfirm: handleConfirm
-				}
+					onconfirm: handleConfirm,
+				},
 			});
 
 			const dialog = container.querySelector('[role="dialog"]');
@@ -240,8 +243,8 @@ describe('Shared UI Components', () => {
 					open: false,
 					title: 'Hidden Dialog',
 					oncancel: () => {},
-					onconfirm: () => {}
-				}
+					onconfirm: () => {},
+				},
 			});
 
 			expect(container.querySelector('[role="dialog"]')).toBeNull();
@@ -254,7 +257,7 @@ describe('Shared UI Components', () => {
 			const tabsData = [
 				{ id: 'overview', label: 'Overview' },
 				{ id: 'details', label: 'Details' },
-				{ id: 'logs', label: 'Logs' }
+				{ id: 'logs', label: 'Logs' },
 			];
 
 			const { container } = render(Tabs, {
@@ -262,8 +265,8 @@ describe('Shared UI Components', () => {
 					tabs: tabsData,
 					selected: 'overview',
 					onselect: handleSelect,
-					label: 'Demo tabs'
-				}
+					label: 'Demo tabs',
+				},
 			});
 
 			const tabButtons = container.querySelectorAll('[role="tab"]');
@@ -320,9 +323,9 @@ describe('Shared UI Components', () => {
 					steps: [
 						{ label: 'Entrypoint', value: 'websecure (:443)' },
 						{ label: 'Router', value: 'api@docker' },
-						{ label: 'Service', value: 'api-service@docker' }
-					]
-				}
+						{ label: 'Service', value: 'api-service@docker' },
+					],
+				},
 			});
 
 			expect(container.textContent).toContain('Routing relationship');
@@ -338,4 +341,3 @@ describe('Shared UI Components', () => {
 		});
 	});
 });
-

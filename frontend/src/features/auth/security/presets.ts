@@ -20,19 +20,63 @@ export interface PresetDefaults {
 }
 
 export const PRESETS: Record<Preset, PresetDefaults> = {
-	oidc: { kind: 'oidc', display_name: '', issuer: '', authorize_url: '', token_url: '', userinfo_url: '', scopes: ['openid', 'email', 'profile'], identity_claim: 'email' },
-	google: { kind: 'oidc', display_name: 'Google', issuer: 'https://accounts.google.com', authorize_url: '', token_url: '', userinfo_url: '', scopes: ['openid', 'email', 'profile'], identity_claim: 'email' },
-	github: {
-		kind: 'oauth2', display_name: 'GitHub', issuer: '',
-		authorize_url: 'https://github.com/login/oauth/authorize', token_url: 'https://github.com/login/oauth/access_token', userinfo_url: 'https://api.github.com/user',
-		scopes: ['read:user'], identity_claim: 'login'
+	oidc: {
+		kind: 'oidc',
+		display_name: '',
+		issuer: '',
+		authorize_url: '',
+		token_url: '',
+		userinfo_url: '',
+		scopes: ['openid', 'email', 'profile'],
+		identity_claim: 'email',
 	},
-	okta: { kind: 'oidc', display_name: 'Okta', issuer: '', authorize_url: '', token_url: '', userinfo_url: '', scopes: ['openid', 'email', 'profile'], identity_claim: 'email', issuerPlaceholder: 'https://your-org.okta.com/oauth2/default' },
-	oauth2: { kind: 'oauth2', display_name: '', issuer: '', authorize_url: '', token_url: '', userinfo_url: '', scopes: [], identity_claim: '' }
+	google: {
+		kind: 'oidc',
+		display_name: 'Google',
+		issuer: 'https://accounts.google.com',
+		authorize_url: '',
+		token_url: '',
+		userinfo_url: '',
+		scopes: ['openid', 'email', 'profile'],
+		identity_claim: 'email',
+	},
+	github: {
+		kind: 'oauth2',
+		display_name: 'GitHub',
+		issuer: '',
+		authorize_url: 'https://github.com/login/oauth/authorize',
+		token_url: 'https://github.com/login/oauth/access_token',
+		userinfo_url: 'https://api.github.com/user',
+		scopes: ['read:user'],
+		identity_claim: 'login',
+	},
+	okta: {
+		kind: 'oidc',
+		display_name: 'Okta',
+		issuer: '',
+		authorize_url: '',
+		token_url: '',
+		userinfo_url: '',
+		scopes: ['openid', 'email', 'profile'],
+		identity_claim: 'email',
+		issuerPlaceholder: 'https://your-org.okta.com/oauth2/default',
+	},
+	oauth2: {
+		kind: 'oauth2',
+		display_name: '',
+		issuer: '',
+		authorize_url: '',
+		token_url: '',
+		userinfo_url: '',
+		scopes: [],
+		identity_claim: '',
+	},
 };
 
 /** Which template a saved provider matches (for the type column and the edit form). */
-export function presetOf(p: Pick<ProviderSettings, 'kind' | 'issuer' | 'authorize_url' | 'token_url' | 'userinfo_url'>): Preset {
+export function presetOf(
+	p: Pick<ProviderSettings, 'kind' | 'issuer' | 'authorize_url' | 'token_url' | 'userinfo_url'>,
+): Preset {
 	if (p.kind === 'oidc') {
 		if (p.issuer === PRESETS.google.issuer) return 'google';
 		try {
@@ -43,5 +87,7 @@ export function presetOf(p: Pick<ProviderSettings, 'kind' | 'issuer' | 'authoriz
 		return 'oidc';
 	}
 	const gh = PRESETS.github;
-	return p.authorize_url === gh.authorize_url && p.token_url === gh.token_url && p.userinfo_url === gh.userinfo_url ? 'github' : 'oauth2';
+	return p.authorize_url === gh.authorize_url && p.token_url === gh.token_url && p.userinfo_url === gh.userinfo_url
+		? 'github'
+		: 'oauth2';
 }

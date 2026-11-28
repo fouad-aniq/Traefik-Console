@@ -9,7 +9,8 @@ export const getStatus = (signal?: AbortSignal) => api.get<AuthStatus>(`${AUTH}/
 export const setupAdmin = (body: { setup_token: string; username: string; password: string }) =>
 	api.post<AuthSession>(`${AUTH}/setup`, body, SLOW);
 
-export const signIn = (body: { username: string; password: string }) => api.post<AuthSession>(`${AUTH}/login`, body, SLOW);
+export const signIn = (body: { username: string; password: string }) =>
+	api.post<AuthSession>(`${AUTH}/login`, body, SLOW);
 
 export const signOut = () => api.post<{ signed_out: boolean }>(`${AUTH}/logout`);
 
@@ -18,7 +19,8 @@ export const changePassword = (body: { current_password: string; new_password: s
 
 export const listSessions = () => api.get<{ items: SessionInfo[] }>(`${AUTH}/sessions`);
 
-export const revokeSession = (id: string) => api.post<{ revoked: boolean }>(`${AUTH}/sessions/${encodeURIComponent(id)}/revoke`);
+export const revokeSession = (id: string) =>
+	api.post<{ revoked: boolean }>(`${AUTH}/sessions/${encodeURIComponent(id)}/revoke`);
 
 export const revokeOtherSessions = () => api.post<{ revoked: number }>(`${AUTH}/sessions/revoke-others`);
 

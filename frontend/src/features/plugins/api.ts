@@ -17,15 +17,23 @@ export const deletePlugin = (alias: string, version: number, opts?: WriteOptions
 
 /** Cached catalog; an empty cache is normal until the first sync. */
 export const searchCatalog = async (query = '', signal?: AbortSignal) =>
-	list(await api.get<CatalogPlugin[] | null>('/api/v1/plugins/catalog' + (query.trim() ? '?q=' + encodeURIComponent(query.trim()) : ''), { signal }));
+	list(
+		await api.get<CatalogPlugin[] | null>(
+			'/api/v1/plugins/catalog' + (query.trim() ? '?q=' + encodeURIComponent(query.trim()) : ''),
+			{ signal },
+		),
+	);
 
 /** One server-side page of the cached catalog; the server also reports each entry's install state. */
-export const readCatalogPage = (options: { q?: string; module?: string; limit: number; offset: number; order?: 'asc' | 'desc'; available?: boolean }, signal?: AbortSignal) => {
+export const readCatalogPage = (
+	options: { q?: string; module?: string; limit: number; offset: number; order?: 'asc' | 'desc'; available?: boolean },
+	signal?: AbortSignal,
+) => {
 	const params = new URLSearchParams();
 	if (options.module) params.set('module', options.module);
 	else if (options.q?.trim()) params.set('q', options.q.trim());
-	if(options.available) params.set('availability','available');
- params.set('limit', String(Math.min(100, Math.max(1, options.limit))));
+	if (options.available) params.set('availability', 'available');
+	params.set('limit', String(Math.min(100, Math.max(1, options.limit))));
 	params.set('offset', String(options.offset));
 	params.set('order', options.order ?? 'asc');
 	return api.get<CatalogPage>('/api/v1/plugins/catalog/page?' + params.toString(), { signal });
@@ -38,7 +46,13 @@ export const updatePlugin = (alias: string, version: string, current: number, op
 export const syncCatalog = (signal?: AbortSignal) =>
 	api.post<{ synced_count: number }>('/api/v1/plugins/catalog/sync', undefined, { signal, timeoutMs: 30_000 });
 
-export interface MiddlewareRef { name: string; status: string; read_only?: boolean; origin?: string; config: { type?: string; plugin_name?: string } }
+export interface MiddlewareRef {
+	name: string;
+	status: string;
+	read_only?: boolean;
+	origin?: string;
+	config: { type?: string; plugin_name?: string };
+}
 export const listMiddlewareRefs = async (signal?: AbortSignal) =>
 	list(await api.get<MiddlewareRef[] | null>('/api/v1/middlewares', { signal }));
 

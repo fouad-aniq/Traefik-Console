@@ -9,20 +9,20 @@
 
 	let {
 		tone = 'neutral',
-  size = 'md',
+		size = 'md',
 		icon = '',
 		text = '',
-		children
+		children,
 	}: {
 		tone?: Tone;
-  size?: 'sm' | 'md';
+		size?: 'sm' | 'md';
 		icon?: string;
 		text?: string;
 		children?: Snippet;
 	} = $props();
 </script>
 
-<span class="badge status-badge tone-{tone}" class:compact={size==='sm'}>
+<span class="badge status-badge tone-{tone}" class:compact={size === 'sm'}>
 	{#if icon}<span class="icon" aria-hidden="true">{icon}</span>{/if}
 	<span>
 		{#if children}
@@ -47,8 +47,17 @@
 		color: var(--text);
 		white-space: nowrap;
 	}
-	.compact { font-size:12px;line-height:18px;padding:1px 7px;border-radius:4px; }
- .tone-connection { color:var(--connection);background:var(--connection-soft);border-color:color-mix(in srgb,var(--connection) 35%,transparent); }
+	.compact {
+		font-size: 12px;
+		line-height: 18px;
+		padding: 1px 7px;
+		border-radius: 4px;
+	}
+	.tone-connection {
+		color: var(--connection);
+		background: var(--connection-soft);
+		border-color: color-mix(in srgb, var(--connection) 35%, transparent);
+	}
 	.tone-success {
 		background: var(--success-bg);
 		color: var(--success-text);

@@ -20,7 +20,17 @@
 	import SummaryList from '../../shared/ui/SummaryList.svelte';
 	import CodePreview from '../../shared/ui/CodePreview.svelte';
 	import RelativeTime from '../../shared/ui/RelativeTime.svelte';
-	import { compareSnapshots, getRestorePreview, getSnapshot, getSnapshotConfig, getSnapshotResources, listSnapshots, patchSnapshot, restoreSnapshot, type SnapshotConfig } from './api';
+	import {
+		compareSnapshots,
+		getRestorePreview,
+		getSnapshot,
+		getSnapshotConfig,
+		getSnapshotResources,
+		listSnapshots,
+		patchSnapshot,
+		restoreSnapshot,
+		type SnapshotConfig,
+	} from './api';
 	import { classify, formatBytes, groupChanges, originTone, pathForItem, snapshotLabel, type Outcome } from './models';
 	import { needsManualRestart, newIdempotencyKey } from '../../core/mutations';
 	import type { OperationPreview, RestoreResult, Snapshot, SnapshotResource } from '../../core/types';
@@ -28,7 +38,19 @@
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { t } from '../../shared/localization/i18n';
 
-	let { mode = 'view', id = '', navigate, onchanged, onclose }: { mode?: string; id?: string; navigate: (p: string) => void; onchanged?: () => void; onclose: () => void } = $props();
+	let {
+		mode = 'view',
+		id = '',
+		navigate,
+		onchanged,
+		onclose,
+	}: {
+		mode?: string;
+		id?: string;
+		navigate: (p: string) => void;
+		onchanged?: () => void;
+		onclose: () => void;
+	} = $props();
 
 	const c = (key: string, args?: Record<string, string | number>) => t('changesV2.' + key, args);
 
@@ -73,19 +95,37 @@
 	const blocked = $derived(errors.length > 0 || missingEnv.length > 0);
 	const hasDiff = $derived(!!(preview?.static_diff || preview?.dynamic_diff || preview?.domain_diff));
 	const groups = $derived(groupChanges(preview?.changes));
-	const dirty = $derived(!!snapshot && (editName.trim() !== snapshot.name || editDescription.trim() !== snapshot.description));
+	const dirty = $derived(
+		!!snapshot && (editName.trim() !== snapshot.name || editDescription.trim() !== snapshot.description),
+	);
 
-	onMount(() => { void load(); });
-	onDestroy(() => { disposed = true; controller.abort(); });
+	onMount(() => {
+		void load();
+	});
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
 
 	async function load() {
-		loading = true; loadError = ''; previewProblem = null; preview = null; problem = null; viewProblem = '';
+		loading = true;
+		loadError = '';
+		previewProblem = null;
+		preview = null;
+		problem = null;
+		viewProblem = '';
 		try {
-			if (!Number.isInteger(snapshotId) || snapshotId < 1) { loadError = c('notFound'); return; }
+			if (!Number.isInteger(snapshotId) || snapshotId < 1) {
+				loadError = c('notFound');
+				return;
+			}
 			const snap = await getSnapshot(snapshotId, controller.signal);
 			if (disposed) return;
-			snapshot = snap; editName = snap.name; editDescription = snap.description;
-			if (restoring) await loadPreview(); else await loadView();
+			snapshot = snap;
+			editName = snap.name;
+			editDescription = snap.description;
+			if (restoring) await loadPreview();
+			else await loadView();
 		} catch (e) {
 			if (!disposed) loadError = classify(e) === 'notFound' ? c('notFound') : errorMessage(e, c('snapshotFailed'));
 		} finally {
@@ -98,16 +138,30 @@
 		try {
 			const fresh = await getRestorePreview(snapshotId, controller.signal);
 			if (disposed) return;
-			preview = fresh; key = newIdempotencyKey(); uncertain = false;
+			preview = fresh;
+			key = newIdempotencyKey();
+			uncertain = false;
 		} catch (e) {
 			if (disposed) return;
 			const outcome = classify(e);
-			previewProblem = { outcome, text: outcome === 'recovery' ? c('recoveryHelp') : outcome === 'drift' ? c('driftHelp') : errorMessage(e, c('previewFailed')) };
+			previewProblem = {
+				outcome,
+				text:
+					outcome === 'recovery'
+						? c('recoveryHelp')
+						: outcome === 'drift'
+							? c('driftHelp')
+							: errorMessage(e, c('previewFailed')),
+			};
 		}
 	}
 
 	async function loadView() {
-		const [r, cfg, list] = await Promise.allSettled([getSnapshotResources(snapshotId, controller.signal), getSnapshotConfig(snapshotId, controller.signal), listSnapshots(100, 0, controller.signal)]);
+		const [r, cfg, list] = await Promise.allSettled([
+			getSnapshotResources(snapshotId, controller.signal),
+			getSnapshotConfig(snapshotId, controller.signal),
+			listSnapshots(100, 0, controller.signal),
+		]);
 		if (disposed) return;
 		resources = r.status === 'fulfilled' ? (r.value ?? []) : null;
 		config = cfg.status === 'fulfilled' ? cfg.value : null;
@@ -118,12 +172,18 @@
 	async function save() {
 		if (!snapshot || saving || !dirty) return;
 		const name = editName.trim();
-		if (!name) { saveProblem = c('nameRequired'); return; }
-		saving = true; saveProblem = '';
+		if (!name) {
+			saveProblem = c('nameRequired');
+			return;
+		}
+		saving = true;
+		saveProblem = '';
 		try {
 			const updated = await patchSnapshot(snapshot.id, { name, description: editDescription.trim() });
 			if (disposed) return;
-			snapshot = updated; editName = updated.name; editDescription = updated.description;
+			snapshot = updated;
+			editName = updated.name;
+			editDescription = updated.description;
 			onchanged?.();
 		} catch (e) {
 			if (!disposed) saveProblem = errorMessage(e, c('saveFailed'));
@@ -134,7 +194,8 @@
 
 	async function togglePin() {
 		if (!snapshot || saving) return;
-		saving = true; saveProblem = '';
+		saving = true;
+		saveProblem = '';
 		try {
 			const updated = await patchSnapshot(snapshot.id, { pinned: !snapshot.pinned });
 			if (disposed) return;
@@ -150,7 +211,9 @@
 	async function compare() {
 		const other = Number(compareWith);
 		if (!other || comparing) return;
-		comparing = true; compareProblem = ''; comparison = null;
+		comparing = true;
+		compareProblem = '';
+		comparison = null;
 		try {
 			// from = the other snapshot, to = this one: what changes when going from `other` to this snapshot.
 			const result = await compareSnapshots(other, snapshotId, controller.signal);
@@ -164,11 +227,18 @@
 
 	async function restore() {
 		if (!preview?.restore_token || busy || blocked) return;
-		busy = true; problem = null;
+		busy = true;
+		problem = null;
 		try {
-			const res = await restoreSnapshot(snapshotId, { restore_token: preview.restore_token, idempotency_key: key, skip_backup: skipBackup || undefined }, controller.signal);
+			const res = await restoreSnapshot(
+				snapshotId,
+				{ restore_token: preview.restore_token, idempotency_key: key, skip_backup: skipBackup || undefined },
+				controller.signal,
+			);
 			if (disposed) return;
-			result = res; uncertain = false; preview = null;
+			result = res;
+			uncertain = false;
+			preview = null;
 			onchanged?.();
 		} catch (e) {
 			if (disposed) return;
@@ -178,29 +248,59 @@
 				problem = { outcome: 'other', text: c('restoreUncertain') };
 			} else {
 				const outcome = classify(e);
-				problem = { outcome, text: ({
-					recovery: c('recoveryHelp'), restoreStale: c('restoreStale'), drift: c('driftHelp'), versionConflict: c('restoreStale'),
-					conflict: c('busyHelp'), quota: c('quotaHelp'), rolledBack: c('rolledBackHelp'), pinned: c('pinnedHelp'),
-					notFound: c('notFound'), validation: errorMessage(e, c('restoreFailed')), other: errorMessage(e, c('restoreFailed'))
-				} as Record<Outcome, string>)[outcome] };
+				problem = {
+					outcome,
+					text: (
+						{
+							recovery: c('recoveryHelp'),
+							restoreStale: c('restoreStale'),
+							drift: c('driftHelp'),
+							versionConflict: c('restoreStale'),
+							conflict: c('busyHelp'),
+							quota: c('quotaHelp'),
+							rolledBack: c('rolledBackHelp'),
+							pinned: c('pinnedHelp'),
+							notFound: c('notFound'),
+							validation: errorMessage(e, c('restoreFailed')),
+							other: errorMessage(e, c('restoreFailed')),
+						} as Record<Outcome, string>
+					)[outcome],
+				};
 				// A definite refusal invalidates the preview: read it again before another attempt.
-				preview = null; key = ''; uncertain = false;
-				if (outcome === 'restoreStale' || outcome === 'versionConflict' || outcome === 'conflict' || outcome === 'rolledBack') { onchanged?.(); await loadPreview(); }
+				preview = null;
+				key = '';
+				uncertain = false;
+				if (
+					outcome === 'restoreStale' ||
+					outcome === 'versionConflict' ||
+					outcome === 'conflict' ||
+					outcome === 'rolledBack'
+				) {
+					onchanged?.();
+					await loadPreview();
+				}
 			}
 		} finally {
 			if (!disposed) busy = false;
 		}
 	}
 
-	const close = () => { if (!busy) onclose(); };
+	const close = () => {
+		if (!busy) onclose();
+	};
 	const viewTabs = $derived([
 		{ id: 'resources', label: c('tabResources') },
 		{ id: 'config', label: c('tabConfig') },
-		{ id: 'compare', label: c('tabCompare') }
+		{ id: 'compare', label: c('tabCompare') },
 	]);
 </script>
 
-<ResourceDialog title={restoring ? c('restoreTitle') : c('detailsTitle')} description={restoring ? c('restoreDescription') : c('detailsDescription')} closeLabel={t('common.close')} onclose={close}>
+<ResourceDialog
+	title={restoring ? c('restoreTitle') : c('detailsTitle')}
+	description={restoring ? c('restoreDescription') : c('detailsDescription')}
+	closeLabel={t('common.close')}
+	onclose={close}
+>
 	{#snippet icon()}<History size={32} aria-hidden="true" />{/snippet}
 
 	{#if loading}
@@ -213,80 +313,201 @@
 	{:else if snapshot}
 		<div class="stack">
 			<SummaryList>
-				<div><dt>{c('snapshot')}</dt><dd>{snapshotLabel(snapshot)}</dd></div>
-				<div><dt>{c('origin')}</dt><dd><StatusBadge size="sm" tone={originTone(snapshot.origin)} text={c('originLabel.' + snapshot.origin)} />{#if snapshot.pinned} <StatusBadge size="sm" tone="info" text={c('pinned')} />{/if}{#if snapshot.known_good} <StatusBadge size="sm" tone="success" text={c('knownGood')} />{/if}</dd></div>
-				<div><dt>{c('when')}</dt><dd><RelativeTime value={snapshot.created_at} /></dd></div>
-				<div><dt>{c('items')}</dt><dd>{snapshot.item_count} · {formatBytes(snapshot.size_bytes)}</dd></div>
-				{#if snapshot.description}<div><dt>{c('description')}</dt><dd>{snapshot.description}</dd></div>{/if}
-				{#if snapshot.source_operation_id}<div><dt>{c('sourceOperation')}</dt><dd><button type="button" class="link" onclick={() => navigate('/changes/history/' + snapshot!.source_operation_id)}>#{snapshot.source_operation_id}</button></dd></div>{/if}
+				<div>
+					<dt>{c('snapshot')}</dt>
+					<dd>{snapshotLabel(snapshot)}</dd>
+				</div>
+				<div>
+					<dt>{c('origin')}</dt>
+					<dd>
+						<StatusBadge
+							size="sm"
+							tone={originTone(snapshot.origin)}
+							text={c('originLabel.' + snapshot.origin)}
+						/>{#if snapshot.pinned}
+							<StatusBadge size="sm" tone="info" text={c('pinned')} />{/if}{#if snapshot.known_good}
+							<StatusBadge size="sm" tone="success" text={c('knownGood')} />{/if}
+					</dd>
+				</div>
+				<div>
+					<dt>{c('when')}</dt>
+					<dd><RelativeTime value={snapshot.created_at} /></dd>
+				</div>
+				<div>
+					<dt>{c('items')}</dt>
+					<dd>{snapshot.item_count} · {formatBytes(snapshot.size_bytes)}</dd>
+				</div>
+				{#if snapshot.description}<div>
+						<dt>{c('description')}</dt>
+						<dd>{snapshot.description}</dd>
+					</div>{/if}
+				{#if snapshot.source_operation_id}<div>
+						<dt>{c('sourceOperation')}</dt>
+						<dd>
+							<button
+								type="button"
+								class="link"
+								onclick={() => navigate('/changes/history/' + snapshot!.source_operation_id)}
+							>
+								#{snapshot.source_operation_id}
+							</button>
+						</dd>
+					</div>{/if}
 			</SummaryList>
 
 			{#if restoring}
 				{#if result}
-					<Notice tone={needsManualRestart(result) ? 'warning' : 'info'} title={needsManualRestart(result) ? c('manualRestartTitle') : c('restoredTitle')} message={needsManualRestart(result) ? c('manualRestartHelp') : result.operation.summary || c('restoredHint')}>
+					<Notice
+						tone={needsManualRestart(result) ? 'warning' : 'info'}
+						title={needsManualRestart(result) ? c('manualRestartTitle') : c('restoredTitle')}
+						message={needsManualRestart(result)
+							? c('manualRestartHelp')
+							: result.operation.summary || c('restoredHint')}
+					>
 						{#if result.backup_snapshot_id}
-							<Button size="sm" onclick={() => navigate('/changes/snapshots/' + result!.backup_snapshot_id)}>{c('viewBackup', { id: result.backup_snapshot_id })}</Button>
+							<Button size="sm" onclick={() => navigate('/changes/snapshots/' + result!.backup_snapshot_id)}>
+								{c('viewBackup', { id: result.backup_snapshot_id })}
+							</Button>
 						{/if}
 					</Notice>
 					{#if result.warnings?.length}
-						<Notice tone="warning" title={c('warningsTitle')}><ul class="reasons">{#each result.warnings as w}<li>{w.item_id}{w.field ? ' · ' + w.field : ''}: {w.message}</li>{/each}</ul></Notice>
+						<Notice tone="warning" title={c('warningsTitle')}>
+							<ul class="reasons">
+								{#each result.warnings as w}<li>{w.item_id}{w.field ? ' · ' + w.field : ''}: {w.message}</li>{/each}
+							</ul>
+						</Notice>
 					{/if}
 				{:else}
-					<Notice tone="warning" title={c('restoreWarningTitle')} message={skipBackup ? c('restoreWarningNoBackup') : c('restoreWarning')} />
+					<Notice
+						tone="warning"
+						title={c('restoreWarningTitle')}
+						message={skipBackup ? c('restoreWarningNoBackup') : c('restoreWarning')}
+					/>
 					{#if previewProblem}
-						<Notice tone="error" title={previewProblem.outcome === 'recovery' ? c('recoveryTitle') : undefined} message={previewProblem.text}>
-							{#if previewProblem.outcome !== 'recovery' && previewProblem.outcome !== 'drift'}<Button size="sm" onclick={loadPreview}>{t('common.retry')}</Button>{/if}
+						<Notice
+							tone="error"
+							title={previewProblem.outcome === 'recovery' ? c('recoveryTitle') : undefined}
+							message={previewProblem.text}
+						>
+							{#if previewProblem.outcome !== 'recovery' && previewProblem.outcome !== 'drift'}<Button
+									size="sm"
+									onclick={loadPreview}
+								>
+									{t('common.retry')}
+								</Button>{/if}
 						</Notice>
 					{:else if preview}
 						{#if errors.length}
 							<Notice tone="error" title={c('errorsTitle')}>
-								<ul class="reasons">{#each errors as ve}{@const path = pathForItem(ve.item_id)}<li>{#if path}<button type="button" class="link" onclick={() => navigate(path)}>{ve.item_id}</button>{:else}{ve.item_id}{/if}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}</ul>
+								<ul class="reasons">
+									{#each errors as ve}{@const path = pathForItem(ve.item_id)}
+										<li>
+											{#if path}<button type="button" class="link" onclick={() => navigate(path)}>
+													{ve.item_id}
+												</button>{:else}{ve.item_id}{/if}{ve.field ? ' · ' + ve.field : ''}: {ve.message}
+										</li>{/each}
+								</ul>
 							</Notice>
 						{/if}
 						{#if missingEnv.length}
 							<Notice tone="error" title={c('envTitle')} message={c('envHelp')}>
-								<ul class="reasons">{#each missingEnv as e}<li><code>{e.env_var_name}</code> → <code>{e.file_path}</code></li>{/each}</ul>
+								<ul class="reasons">
+									{#each missingEnv as e}<li><code>{e.env_var_name}</code> → <code>{e.file_path}</code></li>{/each}
+								</ul>
 							</Notice>
 						{/if}
 						{#if warnings.length}
-							<Notice tone="warning" title={c('warningsTitle')}><ul class="reasons">{#each warnings as w}<li>{w.item_id}{w.field ? ' · ' + w.field : ''}: {w.message}</li>{/each}</ul></Notice>
+							<Notice tone="warning" title={c('warningsTitle')}>
+								<ul class="reasons">
+									{#each warnings as w}<li>{w.item_id}{w.field ? ' · ' + w.field : ''}: {w.message}</li>{/each}
+								</ul>
+							</Notice>
 						{/if}
 						{#if preview.requires_restart}
 							<Notice tone="info" title={c('restartTitle')} message={c('restartHelp')}>
-								{#if preview.restart_reasons?.length}<ul class="reasons">{#each preview.restart_reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+								{#if preview.restart_reasons?.length}<ul class="reasons">
+										{#each preview.restart_reasons as reason}<li>{reason}</li>{/each}
+									</ul>{/if}
 							</Notice>
 						{/if}
 						{#each groups as group (group.kind)}
 							<section aria-labelledby={'g-' + group.kind}>
-								<h3 id={'g-' + group.kind}>{c('group.' + group.kind)} <span class="count">{group.items.length}</span></h3>
-								<ul class="changes">{#each group.items as item (item.id)}<li><span class="item-name">{item.name}</span><StatusBadge size="sm" tone={item.action === 'deleted' ? 'danger' : item.action === 'created' ? 'info' : 'warning'} text={c('action.' + item.action)} /><span class="muted">{c('scope.' + item.scope)}</span></li>{/each}</ul>
+								<h3 id={'g-' + group.kind}>
+									{c('group.' + group.kind)} <span class="count">{group.items.length}</span>
+								</h3>
+								<ul class="changes">
+									{#each group.items as item (item.id)}<li>
+											<span class="item-name">{item.name}</span><StatusBadge
+												size="sm"
+												tone={item.action === 'deleted' ? 'danger' : item.action === 'created' ? 'info' : 'warning'}
+												text={c('action.' + item.action)}
+											/><span class="muted">{c('scope.' + item.scope)}</span>
+										</li>{/each}
+								</ul>
 							</section>
 						{/each}
 						{#if hasDiff}
 							<details class="diff">
 								<summary>{c('showDiff')}</summary>
 								<div class="stack">
-									{#if preview.static_diff}<CodePreview label={c('diffStatic')} code={preview.static_diff} language="diff" />{/if}
-									{#if preview.dynamic_diff}<CodePreview label={c('diffDynamic')} code={preview.dynamic_diff} language="diff" />{/if}
-									{#if preview.domain_diff}<CodePreview label={c('diffDomains')} code={preview.domain_diff} language="diff" />{/if}
+									{#if preview.static_diff}<CodePreview
+											label={c('diffStatic')}
+											code={preview.static_diff}
+											language="diff"
+										/>{/if}
+									{#if preview.dynamic_diff}<CodePreview
+											label={c('diffDynamic')}
+											code={preview.dynamic_diff}
+											language="diff"
+										/>{/if}
+									{#if preview.domain_diff}<CodePreview
+											label={c('diffDomains')}
+											code={preview.domain_diff}
+											language="diff"
+										/>{/if}
 								</div>
 							</details>
 						{:else if !groups.length}
 							<Notice tone="info" message={c('identical')} />
 						{/if}
-						<Checkbox checked={skipBackup} label={c('skipBackup')} help={c('skipBackupHelp')} disabled={busy} onchange={(v) => (skipBackup = v)} />
+						<Checkbox
+							checked={skipBackup}
+							label={c('skipBackup')}
+							help={c('skipBackupHelp')}
+							disabled={busy}
+							onchange={(v) => (skipBackup = v)}
+						/>
 					{:else}
 						<p role="status">{c('loadingPreview')}</p>
 					{/if}
-					{#if problem}<Notice tone={problem.outcome === 'rolledBack' || problem.outcome === 'restoreStale' ? 'warning' : 'error'} title={problem.outcome === 'recovery' ? c('recoveryTitle') : undefined} message={problem.text} />{/if}
+					{#if problem}<Notice
+							tone={problem.outcome === 'rolledBack' || problem.outcome === 'restoreStale' ? 'warning' : 'error'}
+							title={problem.outcome === 'recovery' ? c('recoveryTitle') : undefined}
+							message={problem.text}
+						/>{/if}
 				{/if}
 			{:else}
-				<form class="edit" onsubmit={(e) => { e.preventDefault(); void save(); }}>
+				<form
+					class="edit"
+					onsubmit={(e) => {
+						e.preventDefault();
+						void save();
+					}}
+				>
 					<Field label={c('name')} error={saveProblem && !editName.trim() ? saveProblem : ''}>
-						{#snippet children(f)}<input id={f.id} bind:value={editName} maxlength="100" autocomplete="off" disabled={saving} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} />{/snippet}
+						{#snippet children(f)}<input
+								id={f.id}
+								bind:value={editName}
+								maxlength="100"
+								autocomplete="off"
+								disabled={saving}
+								aria-invalid={f.invalid || undefined}
+								aria-describedby={f.describedBy}
+							/>{/snippet}
 					</Field>
 					<Field label={c('description')}>
-						{#snippet children(f)}<textarea id={f.id} bind:value={editDescription} rows="2" disabled={saving}></textarea>{/snippet}
+						{#snippet children(f)}<textarea id={f.id} bind:value={editDescription} rows="2" disabled={saving}
+							></textarea>{/snippet}
 					</Field>
 					<div class="edit-actions">
 						<Button type="submit" size="sm" disabled={!dirty || saving} pending={saving}>{c('save')}</Button>
@@ -302,7 +523,11 @@
 						{#if resources === null}<Notice tone="error" message={c('resourcesFailed')} />
 						{:else if resources.length === 0}<p class="muted">{c('resourcesEmpty')}</p>
 						{:else}
-							<ul class="changes">{#each resources as r (r.kind + ':' + r.name)}<li><span class="item-name">{r.name}</span><span class="muted">{c('group.' + r.kind)}</span></li>{/each}</ul>
+							<ul class="changes">
+								{#each resources as r (r.kind + ':' + r.name)}<li>
+										<span class="item-name">{r.name}</span><span class="muted">{c('group.' + r.kind)}</span>
+									</li>{/each}
+							</ul>
 						{/if}
 					</div>
 				{:else if view === 'config'}
@@ -321,10 +546,26 @@
 						{:else}
 							<Field label={c('compareWith')} help={c('compareHelp', { id: snapshot.id })}>
 								{#snippet children(f)}
-									<SearchableSelect id={f.id} value={compareWith} options={others.map((o) => ({ value: String(o.id), label: snapshotLabel(o) }))} placeholder={c('choose')} searchPlaceholder={c('choose')} onchange={(v) => { compareWith = v; comparison = null; compareProblem = ''; }} ariaDescribedby={f.describedBy} />
+									<SearchableSelect
+										id={f.id}
+										value={compareWith}
+										options={others.map((o) => ({ value: String(o.id), label: snapshotLabel(o) }))}
+										placeholder={c('choose')}
+										searchPlaceholder={c('choose')}
+										onchange={(v) => {
+											compareWith = v;
+											comparison = null;
+											compareProblem = '';
+										}}
+										ariaDescribedby={f.describedBy}
+									/>
 								{/snippet}
 							</Field>
-							<div><Button size="sm" onclick={compare} disabled={!compareWith || comparing} pending={comparing}>{c('compare')}</Button></div>
+							<div>
+								<Button size="sm" onclick={compare} disabled={!compareWith || comparing} pending={comparing}>
+									{c('compare')}
+								</Button>
+							</div>
 							{#if compareProblem}<Notice tone="error" message={compareProblem} />{/if}
 							{#if comparison}
 								{#if comparison.changes?.length || comparison.added?.length || comparison.removed?.length || comparison.changed?.length}
@@ -332,13 +573,29 @@
 										{#if part.list?.length}
 											<section>
 												<h3>{c('compare_' + part.key)} <span class="count">{part.list.length}</span></h3>
-												<ul class="changes">{#each part.list as r (r.kind + ':' + r.name)}<li><span class="item-name">{r.name}</span><span class="muted">{c('group.' + r.kind)}</span></li>{/each}</ul>
+												<ul class="changes">
+													{#each part.list as r (r.kind + ':' + r.name)}<li>
+															<span class="item-name">{r.name}</span><span class="muted">{c('group.' + r.kind)}</span>
+														</li>{/each}
+												</ul>
 											</section>
 										{/if}
 									{/each}
-									{#if comparison.static_diff}<CodePreview label={c('diffStatic')} code={comparison.static_diff} language="diff" />{/if}
-									{#if comparison.dynamic_diff}<CodePreview label={c('diffDynamic')} code={comparison.dynamic_diff} language="diff" />{/if}
-									{#if comparison.domain_diff}<CodePreview label={c('diffDomains')} code={comparison.domain_diff} language="diff" />{/if}
+									{#if comparison.static_diff}<CodePreview
+											label={c('diffStatic')}
+											code={comparison.static_diff}
+											language="diff"
+										/>{/if}
+									{#if comparison.dynamic_diff}<CodePreview
+											label={c('diffDynamic')}
+											code={comparison.dynamic_diff}
+											language="diff"
+										/>{/if}
+									{#if comparison.domain_diff}<CodePreview
+											label={c('diffDomains')}
+											code={comparison.domain_diff}
+											language="diff"
+										/>{/if}
 								{:else}
 									<Notice tone="info" message={c('compareIdentical')} />
 								{/if}
@@ -354,29 +611,105 @@
 		<Button onclick={close} disabled={busy}>{t('common.close')}</Button>
 		{#if !loading && !loadError && snapshot && !result}
 			{#if !restoring}
-				<Button variant="primary" onclick={() => navigate('/changes/snapshots/' + snapshot!.id + '/restore')}>{c('restore')}</Button>
+				<Button variant="primary" onclick={() => navigate('/changes/snapshots/' + snapshot!.id + '/restore')}>
+					{c('restore')}
+				</Button>
 			{:else if preview}
-				<Button variant="danger" onclick={restore} pending={busy} disabled={busy || blocked}>{busy ? c('restoring') : uncertain ? c('retryRestore') : c('restoreConfirm')}</Button>
+				<Button variant="danger" onclick={restore} pending={busy} disabled={busy || blocked}>
+					{busy ? c('restoring') : uncertain ? c('retryRestore') : c('restoreConfirm')}
+				</Button>
 			{/if}
 		{/if}
 	{/snippet}
 </ResourceDialog>
 
 <style>
-	.stack { display: flex; flex-direction: column; gap: 20px; }
-	.edit { display: flex; flex-direction: column; gap: 12px; }
-	.edit-actions { display: flex; gap: 8px; }
-	.muted { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 21px; }
-	.reasons { margin: 8px 0 0; padding-left: 20px; font-size: 14px; line-height: 22px; }
-	code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; overflow-wrap: anywhere; }
-	h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 600; }
-	.count { color: var(--text-muted); font-weight: 400; }
-	.changes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-	.changes li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface-muted); }
-	.item-name { font-weight: 600; overflow-wrap: anywhere; }
-	.changes .muted { margin-left: auto; font-size: 13px; }
-	.diff summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 4px 0; }
-	.diff .stack { margin-top: 12px; }
-	.link { border: 0; background: transparent; padding: 0; color: var(--connection); font: inherit; cursor: pointer; }
-	.link:hover { text-decoration: underline; }
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+	.edit {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.edit-actions {
+		display: flex;
+		gap: 8px;
+	}
+	.muted {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 21px;
+	}
+	.reasons {
+		margin: 8px 0 0;
+		padding-left: 20px;
+		font-size: 14px;
+		line-height: 22px;
+	}
+	code {
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 13px;
+		overflow-wrap: anywhere;
+	}
+	h3 {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 8px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.count {
+		color: var(--text-muted);
+		font-weight: 400;
+	}
+	.changes {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.changes li {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface-muted);
+	}
+	.item-name {
+		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+	.changes .muted {
+		margin-left: auto;
+		font-size: 13px;
+	}
+	.diff summary {
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 600;
+		padding: 4px 0;
+	}
+	.diff .stack {
+		margin-top: 12px;
+	}
+	.link {
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: var(--connection);
+		font: inherit;
+		cursor: pointer;
+	}
+	.link:hover {
+		text-decoration: underline;
+	}
 </style>

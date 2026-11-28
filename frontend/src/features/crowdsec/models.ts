@@ -46,8 +46,19 @@ export interface CrowdSecConfig {
 	version: number;
 }
 
-export interface Bouncer { name: string; ip_address: string; type: string; version: string; last_pull: string; revoked: boolean }
-export interface RouterProtection { name: string; origin: 'managed' | 'external'; protected: boolean }
+export interface Bouncer {
+	name: string;
+	ip_address: string;
+	type: string;
+	version: string;
+	last_pull: string;
+	revoked: boolean;
+}
+export interface RouterProtection {
+	name: string;
+	origin: 'managed' | 'external';
+	protected: boolean;
+}
 
 export interface CrowdSecCapabilities {
 	auto_enroll: boolean;
@@ -99,10 +110,20 @@ export interface CrowdSecSources {
 export type SettingSource = 'environment' | 'saved' | 'none';
 
 /** A CROWDSEC_* variable set at startup. Its Console setting is read-only; secrets carry no value. */
-export interface EnvVariable { name: string; field: string; secret: boolean; value?: string }
+export interface EnvVariable {
+	name: string;
+	field: string;
+	secret: boolean;
+	value?: string;
+}
 
 /** The container registration the Console started with (DOCKER_HOST, CROWDSEC_CONTAINER). */
-export interface RuntimeRegistration { accessible?: boolean; docker_configured: boolean; container_id?: string; compose_service?: string }
+export interface RuntimeRegistration {
+	accessible?: boolean;
+	docker_configured: boolean;
+	container_id?: string;
+	compose_service?: string;
+}
 
 /** PUT /crowdsec/connection and POST /crowdsec/connection/test body. Locked fields are ignored by the server. */
 export interface ConnectionSettings {
@@ -152,7 +173,8 @@ export interface ConnectionTest {
 }
 
 /** The environment variable that locks a Console setting, if any. */
-export const lockedBy = (environment: EnvVariable[] | null | undefined, field: string) => (environment ?? []).find((v) => v.field === field);
+export const lockedBy = (environment: EnvVariable[] | null | undefined, field: string) =>
+	(environment ?? []).find((v) => v.field === field);
 
 export interface CrowdSecStatus {
 	engine: { state: EngineState; name?: string; image?: string };
@@ -216,7 +238,10 @@ export interface CrowdSecAllowlist {
 	console_managed: boolean;
 }
 
-export interface CountItem { key: string; count: number }
+export interface CountItem {
+	key: string;
+	count: number;
+}
 export interface CrowdSecStats {
 	available: boolean;
 	window_hours: number;
@@ -236,19 +261,35 @@ export interface CrowdSecStats {
 	partial: string[] | null;
 }
 
-export interface CrowdSecDecision { id: number; origin: string; type: string; scope: string; value: string; duration: string; scenario: string }
+export interface CrowdSecDecision {
+	id: number;
+	origin: string;
+	type: string;
+	scope: string;
+	value: string;
+	duration: string;
+	scenario: string;
+}
 
 export type StatsWindow = '1h' | '24h' | '7d' | '30d';
 export const STATS_WINDOWS: StatsWindow[] = ['1h', '24h', '7d', '30d'];
 
 export type StepTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
-export const decisionPath = (value: string) => '/api/v1/crowdsec/decisions/' + value.split('/').map(encodeURIComponent).join('/');
+export const decisionPath = (value: string) =>
+	'/api/v1/crowdsec/decisions/' + value.split('/').map(encodeURIComponent).join('/');
 export const decisionIDPath = (id: number) => `/api/v1/crowdsec/decisions/id/${id}`;
 
 /** Normalises a textarea of CIDRs / IPs (one per line or comma separated). */
 export function parseCidrs(text: string): string[] {
-	return [...new Set(text.split(/[\s,]+/).map((v) => v.trim()).filter(Boolean))];
+	return [
+		...new Set(
+			text
+				.split(/[\s,]+/)
+				.map((v) => v.trim())
+				.filter(Boolean),
+		),
+	];
 }
 
 function validIPv4(value: string): boolean {
@@ -260,7 +301,7 @@ function validIPv6(value: string): boolean {
 	if (!/^[0-9a-fA-F:.]+$/.test(value)) return false;
 	const halves = value.split('::');
 	if (halves.length > 2) return false;
-	const groups = (side: string) => side ? side.split(':') : [];
+	const groups = (side: string) => (side ? side.split(':') : []);
 	const left = groups(halves[0]);
 	const right = halves.length === 2 ? groups(halves[1]) : [];
 	if ([...left, ...right].some((part) => !part)) return false;
@@ -274,7 +315,8 @@ function validIPv6(value: string): boolean {
 export const looksLikeIpOrCidr = (value: string) => {
 	const [address, prefix, extra] = value.split('/');
 	if (extra !== undefined || !address) return false;
-	if (prefix !== undefined && (!/^\d{1,3}$/.test(prefix) || Number(prefix) > (address.includes(':') ? 128 : 32))) return false;
+	if (prefix !== undefined && (!/^\d{1,3}$/.test(prefix) || Number(prefix) > (address.includes(':') ? 128 : 32)))
+		return false;
 	return address.includes(':') ? validIPv6(address) : validIPv4(address);
 };
 
@@ -288,14 +330,22 @@ export const countryName = (code: string, language: string) => {
 };
 
 /** Bar width in percent relative to the largest value; never below a visible sliver for non-zero counts. */
-export const barWidth = (count: number, max: number) => (max > 0 && count > 0 ? Math.max(2, Math.round((count / max) * 100)) : 0);
+export const barWidth = (count: number, max: number) =>
+	max > 0 && count > 0 ? Math.max(2, Math.round((count / max) * 100)) : 0;
 
 /** Tone for a connection-test result; neutral when the part is not configured. */
 export const testTone = (state: string): StepTone =>
-	state === 'ok' || state === 'available' || state === 'reachable' ? 'success' : state === 'not_configured' ? 'neutral' : state === 'invalid_key' || state === 'authentication_rejected' ? 'danger' : 'warning';
+	state === 'ok' || state === 'available' || state === 'reachable'
+		? 'success'
+		: state === 'not_configured'
+			? 'neutral'
+			: state === 'invalid_key' || state === 'authentication_rejected'
+				? 'danger'
+				: 'warning';
 
 /** Shell command that registers a bouncer key by hand (shown when the Console cannot generate one). */
-const containerRef = (runtime: RuntimeRegistration | undefined) => (runtime?.container_id ? runtime.container_id.slice(0, 12) : 'crowdsec');
+const containerRef = (runtime: RuntimeRegistration | undefined) =>
+	runtime?.container_id ? runtime.container_id.slice(0, 12) : 'crowdsec';
 export const bouncerCommand = (runtime: RuntimeRegistration | undefined) =>
 	`docker exec ${containerRef(runtime)} cscli bouncers add traefik-console`;
 
@@ -316,5 +366,7 @@ export const isPrivateAddress = (value: string) => {
 	const parts = address.split('.').map(Number);
 	if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return false;
 	const [a, b] = parts;
-	return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+	return (
+		a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)
+	);
 };

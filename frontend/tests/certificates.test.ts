@@ -19,7 +19,16 @@ describe('certificate models', () => {
 		expect(validityOf('valid')).toBe('valid');
 	});
 	it('lists covered names once, main domain first, tolerating null SANs', () => {
-		const base = { resolver_name: 'le', issuer: '', serial_number: '', fingerprint: 'f', not_before: '', expires_at: '', days_left: 1, status: 'valid' };
+		const base = {
+			resolver_name: 'le',
+			issuer: '',
+			serial_number: '',
+			fingerprint: 'f',
+			not_before: '',
+			expires_at: '',
+			days_left: 1,
+			status: 'valid',
+		};
 		expect(acmeNames({ ...base, main_domain: 'a.test', sans: ['b.test', 'a.test'] })).toEqual(['a.test', 'b.test']);
 		expect(acmeNames({ ...base, main_domain: 'a.test', sans: null })).toEqual(['a.test']);
 	});
@@ -31,7 +40,11 @@ describe('certificate validation', () => {
 		expect(certificateErrors(ok, { creating: true, existingNames: [] }, m)).toEqual({});
 	});
 	it('requires name, chain and key, and rejects a taken name only when creating', () => {
-		expect(certificateErrors(newForm(), { creating: true, existingNames: [] }, m)).toEqual({ name: 'name', certPem: 'chain', keyPem: 'key' });
+		expect(certificateErrors(newForm(), { creating: true, existingNames: [] }, m)).toEqual({
+			name: 'name',
+			certPem: 'chain',
+			keyPem: 'key',
+		});
 		expect(certificateErrors(ok, { creating: true, existingNames: ['shop'] }, m).name).toBe('taken');
 		expect(certificateErrors(ok, { creating: false, existingNames: ['shop'] }, m).name).toBeUndefined();
 	});
@@ -47,12 +60,21 @@ describe('certificate usage from core-v2', () => {
 	it('turns used_by into "used by" items, domains first, names linking to the view', () => {
 		const used_by = {
 			domains: [{ name: 'domain-aniqhomelab-ovh', main: 'aniqhomelab.ovh', source: 'claudflare', read_only: false }],
-			routers: [{ name: 'portainer', rule: 'Host(`portainer.aniqhomelab.ovh`)', entry_points: ['websecure'], service: 'portainer', tls: true, read_only: false }]
+			routers: [
+				{
+					name: 'portainer',
+					rule: 'Host(`portainer.aniqhomelab.ovh`)',
+					entry_points: ['websecure'],
+					service: 'portainer',
+					tls: true,
+					read_only: false,
+				},
+			],
 		};
 		const items = usageItems(used_by);
 		expect(items.map((i) => [i.kind, i.name, i.path])).toEqual([
 			['domain', 'domain-aniqhomelab-ovh', '/domains/domain-aniqhomelab-ovh'],
-			['route', 'portainer', '/routers/portainer']
+			['route', 'portainer', '/routers/portainer'],
 		]);
 		expect(items[0].summary).toBe('aniqhomelab.ovh');
 		expect(items[0].facts).toEqual(['claudflare']);

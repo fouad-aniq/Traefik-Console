@@ -14,10 +14,12 @@ describe('EN/FR catalog parity', () => {
 		const catalogs = rawCatalogs();
 		for (const lang of Object.keys(catalogs)) {
 			for (const key of catalogKeys(catalogs[lang])) {
-				const value = key.split('.').reduce<unknown>(
-					(node, part) => (node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined),
-					catalogs[lang]
-				);
+				const value = key
+					.split('.')
+					.reduce<unknown>(
+						(node, part) => (node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined),
+						catalogs[lang],
+					);
 				expect(typeof value, `${lang}:${key}`).toBe('string');
 				expect(value as string, `${lang}:${key}`).not.toHaveLength(0);
 			}
@@ -28,14 +30,12 @@ describe('EN/FR catalog parity', () => {
 		const catalogs = rawCatalogs();
 		const argsOf = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 		for (const key of catalogKeys(catalogs.en)) {
-			const en = String(key.split('.').reduce<unknown>(
-				(node, part) => (node as Record<string, unknown>)[part],
-				catalogs.en
-			));
-			const fr = String(key.split('.').reduce<unknown>(
-				(node, part) => (node as Record<string, unknown>)[part],
-				catalogs.fr
-			));
+			const en = String(
+				key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], catalogs.en),
+			);
+			const fr = String(
+				key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], catalogs.fr),
+			);
 			expect(argsOf(fr), `fr:${key}`).toEqual(argsOf(en));
 		}
 	});

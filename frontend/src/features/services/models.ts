@@ -13,9 +13,22 @@ export const PROTOCOLS: ServiceProtocol[] = ['http', 'tcp', 'udp'];
 export const BASE: Record<ServiceProtocol, string> = { http: '/services', tcp: '/tcp-services', udp: '/udp-services' };
 
 /** An HTTP backend has a URL; a TCP or UDP backend has a host:port address. */
-export interface ServerEndpoint { url?: string; address?: string }
-export interface ServiceHealthCheck { path: string; interval?: string; timeout?: string }
-export interface TCPHealthCheck { interval?: string; timeout?: string; port?: number; send?: string; expect?: string }
+export interface ServerEndpoint {
+	url?: string;
+	address?: string;
+}
+export interface ServiceHealthCheck {
+	path: string;
+	interval?: string;
+	timeout?: string;
+}
+export interface TCPHealthCheck {
+	interval?: string;
+	timeout?: string;
+	port?: number;
+	send?: string;
+	expect?: string;
+}
 export interface TCPOptions {
 	tls?: boolean;
 	server_name?: string;
@@ -36,7 +49,14 @@ export interface ServiceConfig {
 }
 /** Only what the "Used by" dialog shows about each router. */
 export interface ServiceUsage {
-	routers: { name: string; rule?: string; entry_points?: string[] | null; service?: string; tls: boolean; read_only: boolean }[];
+	routers: {
+		name: string;
+		rule?: string;
+		entry_points?: string[] | null;
+		service?: string;
+		tls: boolean;
+		read_only: boolean;
+	}[];
 }
 export type ServiceResource = Resource<ServiceConfig>;
 
@@ -87,11 +107,27 @@ export const NAME_PATTERN = /^[a-z][a-z0-9_-]{0,62}$/;
 export const MAX_SERVERS = 64;
 export const SCHEMES = ['http', 'https', 'h2c'] as const;
 
-export const protocolOf = (c: ServiceConfig | null | undefined): ServiceProtocol => (c?.protocol ?? 'http') as ServiceProtocol;
+export const protocolOf = (c: ServiceConfig | null | undefined): ServiceProtocol =>
+	(c?.protocol ?? 'http') as ServiceProtocol;
 
 export const newForm = (protocol: ServiceProtocol = 'http'): ServiceForm => ({
-	name: '', protocol, passHost: 'default', servers: [''], healthEnabled: false, healthPath: '/', healthInterval: '', healthTimeout: '', insecureSkipVerify: false,
-	tls: false, serverName: '', proxyProtocol: '0', dialTimeout: '', terminationDelay: '', healthPort: '', healthSend: '', healthExpect: ''
+	name: '',
+	protocol,
+	passHost: 'default',
+	servers: [''],
+	healthEnabled: false,
+	healthPath: '/',
+	healthInterval: '',
+	healthTimeout: '',
+	insecureSkipVerify: false,
+	tls: false,
+	serverName: '',
+	proxyProtocol: '0',
+	dialTimeout: '',
+	terminationDelay: '',
+	healthPort: '',
+	healthSend: '',
+	healthExpect: '',
 });
 
 export function formFrom(name: string, c: ServiceConfig): ServiceForm {
@@ -116,49 +152,81 @@ export function formFrom(name: string, c: ServiceConfig): ServiceForm {
 		terminationDelay: t.termination_delay ?? '',
 		healthPort: th?.port ? String(th.port) : '',
 		healthSend: th?.send ?? '',
-		healthExpect: th?.expect ?? ''
+		healthExpect: th?.expect ?? '',
 	};
 }
 
-const set = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v !== undefined && v !== false && v !== 0)) as Partial<T>;
+const set = <T extends Record<string, unknown>>(o: T) =>
+	Object.fromEntries(
+		Object.entries(o).filter(([, v]) => v !== '' && v !== undefined && v !== false && v !== 0),
+	) as Partial<T>;
 
 /** Strict payload: optional blocks are omitted when unset (PUT replaces the whole definition). */
 export function toInput(f: ServiceForm): ServiceInput {
 	if (f.protocol === 'udp') return { protocol: 'udp', servers: f.servers.map((a) => ({ address: a.trim() })) };
 	if (f.protocol === 'tcp') {
-		const health = f.healthEnabled ? set({ interval: f.healthInterval.trim(), timeout: f.healthTimeout.trim(), port: f.healthPort.trim() ? Number(f.healthPort) : 0, send: f.healthSend, expect: f.healthSend ? f.healthExpect : '' }) : undefined;
+		const health = f.healthEnabled
+			? set({
+					interval: f.healthInterval.trim(),
+					timeout: f.healthTimeout.trim(),
+					port: f.healthPort.trim() ? Number(f.healthPort) : 0,
+					send: f.healthSend,
+					expect: f.healthSend ? f.healthExpect : '',
+				})
+			: undefined;
 		const tcp: TCPOptions = {
-			...set({ tls: f.tls, server_name: f.tls ? f.serverName.trim() : '', proxy_protocol: Number(f.proxyProtocol), dial_timeout: f.dialTimeout.trim(), termination_delay: f.terminationDelay.trim() }),
-			...(health ? { health_check: health } : {})
+			...set({
+				tls: f.tls,
+				server_name: f.tls ? f.serverName.trim() : '',
+				proxy_protocol: Number(f.proxyProtocol),
+				dial_timeout: f.dialTimeout.trim(),
+				termination_delay: f.terminationDelay.trim(),
+			}),
+			...(health ? { health_check: health } : {}),
 		};
 		return {
 			protocol: 'tcp',
 			servers: f.servers.map((a) => ({ address: a.trim() })),
 			...(f.tls && f.insecureSkipVerify ? { insecure_skip_verify: true } : {}),
-			...(Object.keys(tcp).length ? { tcp } : {})
+			...(Object.keys(tcp).length ? { tcp } : {}),
 		};
 	}
 	return {
 		protocol: 'http',
 		servers: f.servers.map((u) => ({ url: u.trim() })),
 		...(f.passHost === 'default' ? {} : { pass_host_header: f.passHost === 'yes' }),
-		...(f.healthEnabled ? { health_check: { path: f.healthPath.trim() || '/', ...(f.healthInterval.trim() ? { interval: f.healthInterval.trim() } : {}), ...(f.healthTimeout.trim() ? { timeout: f.healthTimeout.trim() } : {}) } } : {}),
-		...(f.insecureSkipVerify ? { insecure_skip_verify: true } : {})
+		...(f.healthEnabled
+			? {
+					health_check: {
+						path: f.healthPath.trim() || '/',
+						...(f.healthInterval.trim() ? { interval: f.healthInterval.trim() } : {}),
+						...(f.healthTimeout.trim() ? { timeout: f.healthTimeout.trim() } : {}),
+					},
+				}
+			: {}),
+		...(f.insecureSkipVerify ? { insecure_skip_verify: true } : {}),
 	};
 }
 
-export const serversOf = (c: ServiceConfig | null | undefined) => (c?.servers ?? []).map((s) => s.url ?? s.address ?? '').filter(Boolean);
+export const serversOf = (c: ServiceConfig | null | undefined) =>
+	(c?.servers ?? []).map((s) => s.url ?? s.address ?? '').filter(Boolean);
 
 /** The serversTransport the console creates next to a service, if its options need one. */
-export function transportOf(name: string, c: ServiceConfig): { name: string; definition: Record<string, unknown> } | null {
-	if (protocolOf(c) === 'http') return c.insecure_skip_verify ? { name: `${name}-insecure-transport`, definition: { insecureSkipVerify: true } } : null;
+export function transportOf(
+	name: string,
+	c: ServiceConfig,
+): { name: string; definition: Record<string, unknown> } | null {
+	if (protocolOf(c) === 'http')
+		return c.insecure_skip_verify
+			? { name: `${name}-insecure-transport`, definition: { insecureSkipVerify: true } }
+			: null;
 	if (protocolOf(c) !== 'tcp' || !c.tcp) return null;
 	const t = c.tcp;
 	const tls = t.tls ? set({ serverName: t.server_name ?? '', insecureSkipVerify: !!c.insecure_skip_verify }) : {};
 	const definition = {
 		...(t.proxy_protocol ? { proxyProtocol: { version: t.proxy_protocol } } : {}),
 		...set({ dialTimeout: t.dial_timeout ?? '', terminationDelay: t.termination_delay ?? '' }),
-		...(Object.keys(tls).length ? { tls } : {})
+		...(Object.keys(tls).length ? { tls } : {}),
 	};
 	return Object.keys(definition).length ? { name: `${name}-tcp-transport`, definition } : null;
 }
@@ -176,20 +244,35 @@ export function serviceDefinition(name: string, c: ServiceConfig): Record<string
 		const h = c.tcp?.health_check;
 		return {
 			loadBalancer: {
-				servers: servers.map((s) => ({ address: s.address, ...(protocol === 'tcp' && c.tcp?.tls ? { tls: true } : {}) })),
-				...(h ? { healthCheck: set({ interval: h.interval ?? '', timeout: h.timeout ?? '', port: h.port ?? 0, send: h.send ?? '', expect: h.expect ?? '' }) } : {}),
-				...(transport ? { serversTransport: transport.name } : {})
-			}
+				servers: servers.map((s) => ({
+					address: s.address,
+					...(protocol === 'tcp' && c.tcp?.tls ? { tls: true } : {}),
+				})),
+				...(h
+					? {
+							healthCheck: set({
+								interval: h.interval ?? '',
+								timeout: h.timeout ?? '',
+								port: h.port ?? 0,
+								send: h.send ?? '',
+								expect: h.expect ?? '',
+							}),
+						}
+					: {}),
+				...(transport ? { serversTransport: transport.name } : {}),
+			},
 		};
 	}
 	if (!servers.length && c.pass_host_header == null && !c.health_check) return {};
-	const health = c.health_check ? set({ path: c.health_check.path, interval: c.health_check.interval ?? '', timeout: c.health_check.timeout ?? '' }) : undefined;
+	const health = c.health_check
+		? set({ path: c.health_check.path, interval: c.health_check.interval ?? '', timeout: c.health_check.timeout ?? '' })
+		: undefined;
 	return {
 		loadBalancer: {
 			servers: servers.map((s) => ({ url: s.url })),
 			...(c.pass_host_header == null ? {} : { passHostHeader: c.pass_host_header }),
 			...(health ? { healthCheck: health } : {}),
-			...(transport ? { serversTransport: transport.name } : {})
-		}
+			...(transport ? { serversTransport: transport.name } : {}),
+		},
 	};
 }

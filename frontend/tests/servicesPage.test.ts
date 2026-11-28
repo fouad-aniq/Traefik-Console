@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import ServicesPage from '../src/features/services/ServicesPage.svelte';
@@ -11,46 +13,143 @@ import { addressError, backendError, durationError } from '../src/features/servi
 import { carriesMore, joinAddress, joinUrl, parseAddress, parseUrl } from '../src/features/services/backendParts';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
-const preview = (extra = {}) => ({ changes: [{ action: 'created', id: 'service:my-app', kind: 'service', name: 'my-app', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+s: {}', requires_restart: false, ...extra });
-const operation = (extra = {}) => ({ id: 5, kind: 'service.create', target: 'my-app', status: 'succeeded', summary: 'Applied 1 change', requires_restart: false, created_at: 'now', ...extra });
+const preview = (extra = {}) => ({
+	changes: [{ action: 'created', id: 'service:my-app', kind: 'service', name: 'my-app', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+s: {}',
+	requires_restart: false,
+	...extra,
+});
+const operation = (extra = {}) => ({
+	id: 5,
+	kind: 'service.create',
+	target: 'my-app',
+	status: 'succeeded',
+	summary: 'Applied 1 change',
+	requires_restart: false,
+	created_at: 'now',
+	...extra,
+});
 const none = { routers: [] };
-const service = (name: string, config: Record<string, unknown> = { servers: [{ url: 'http://app:8080' }] }, version = 1, extra = {}) => ({ id: 'service:' + name, name, version, origin: 'managed', provider: 'file', status: 'active', read_only: false, live_health: 'loaded', updated_at: '2026-01-01T00:00:00Z', config: { used_by: none, ...config }, ...extra });
+const service = (
+	name: string,
+	config: Record<string, unknown> = { servers: [{ url: 'http://app:8080' }] },
+	version = 1,
+	extra = {},
+) => ({
+	id: 'service:' + name,
+	name,
+	version,
+	origin: 'managed',
+	provider: 'file',
+	status: 'active',
+	read_only: false,
+	live_health: 'loaded',
+	updated_at: '2026-01-01T00:00:00Z',
+	config: { used_by: none, ...config },
+	...extra,
+});
 /** A router as the server sends it in `used_by`: only what the dialog shows. */
-const usedBy = (...names: string[]) => ({ routers: names.map((name) => ({ name, rule: `Host(\`${name}.example\`)`, entry_points: ['websecure'], service: 'x', tls: true, read_only: false })) });
+const usedBy = (...names: string[]) => ({
+	routers: names.map((name) => ({
+		name,
+		rule: `Host(\`${name}.example\`)`,
+		entry_points: ['websecure'],
+		service: 'x',
+		tls: true,
+		read_only: false,
+	})),
+});
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const base = (list: unknown) => ({ 'GET /api/v1/services': () => json(list) });
 
 describe('model and validation', () => {
-	const m = { invalidName: 'n', nameTaken: 't', invalidUrl: 'u', urlQuery: 'q', urlScheme: 's', serverCount: 'c', duplicateUrl: 'd', invalidPath: 'p', invalidDuration: 'dur' };
+	const m = {
+		invalidName: 'n',
+		nameTaken: 't',
+		invalidUrl: 'u',
+		urlQuery: 'q',
+		urlScheme: 's',
+		serverCount: 'c',
+		duplicateUrl: 'd',
+		invalidPath: 'p',
+		invalidDuration: 'dur',
+	};
 	it('omits unset optional blocks and sends only what is configured', () => {
-		expect(toInput({ ...newForm(), name: 'a', servers: [' http://app:80 '] })).toEqual({ protocol: 'http', servers: [{ url: 'http://app:80' }] });
-		expect(toInput({ ...newForm(), name: 'a', servers: ['h2c://app:80'], passHost: 'no', healthEnabled: true, healthPath: '/up', healthInterval: '10s', insecureSkipVerify: true }))
-			.toEqual({ protocol: 'http', servers: [{ url: 'h2c://app:80' }], pass_host_header: false, health_check: { path: '/up', interval: '10s' }, insecure_skip_verify: true });
+		expect(toInput({ ...newForm(), name: 'a', servers: [' http://app:80 '] })).toEqual({
+			protocol: 'http',
+			servers: [{ url: 'http://app:80' }],
+		});
+		expect(
+			toInput({
+				...newForm(),
+				name: 'a',
+				servers: ['h2c://app:80'],
+				passHost: 'no',
+				healthEnabled: true,
+				healthPath: '/up',
+				healthInterval: '10s',
+				insecureSkipVerify: true,
+			}),
+		).toEqual({
+			protocol: 'http',
+			servers: [{ url: 'h2c://app:80' }],
+			pass_host_header: false,
+			health_check: { path: '/up', interval: '10s' },
+			insecure_skip_verify: true,
+		});
 	});
 	it('loads an existing service back into the form', () => {
 		const f = formFrom('a', { servers: null, pass_host_header: true, health_check: { path: '/h', timeout: '2s' } });
-		expect(f).toMatchObject({ name: 'a', passHost: 'yes', servers: [''], healthEnabled: true, healthPath: '/h', healthTimeout: '2s' });
+		expect(f).toMatchObject({
+			name: 'a',
+			passHost: 'yes',
+			servers: [''],
+			healthEnabled: true,
+			healthPath: '/h',
+			healthTimeout: '2s',
+		});
 	});
 	it('mirrors the backend URL rules', () => {
 		expect(backendError('http://app:8080/api', m)).toBe('');
@@ -73,7 +172,10 @@ describe('model and validation', () => {
 
 describe('list', () => {
 	it('reads usage from the services list alone and blocks Delete while used', async () => {
-		handlers = base([service('web', { servers: [{ url: 'http://app:8080' }], used_by: usedBy('shop') }), service('api', { servers: [{ url: 'http://a:1' }, { url: 'http://b:2' }] })]);
+		handlers = base([
+			service('web', { servers: [{ url: 'http://app:8080' }], used_by: usedBy('shop') }),
+			service('api', { servers: [{ url: 'http://a:1' }, { url: 'http://b:2' }] }),
+		]);
 		render(ServicesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('web')[0]).toBeTruthy());
 		expect(calls.map((c) => c.path)).toEqual(['/api/v1/services']); // no /routers request
@@ -99,7 +201,14 @@ describe('list', () => {
 		expect((screen.getByRole('menuitem', { name: 'Delete' }) as HTMLButtonElement).disabled).toBe(false);
 	});
 	it('marks external services with a badge instead of a Source column, and filters by ownership', async () => {
-		handlers = base([service('web'), service('whoami@docker', { servers: [{ url: 'http://c:3' }] }, 1, { origin: 'external', provider: 'docker', read_only: true })]);
+		handlers = base([
+			service('web'),
+			service('whoami@docker', { servers: [{ url: 'http://c:3' }] }, 1, {
+				origin: 'external',
+				provider: 'docker',
+				read_only: true,
+			}),
+		]);
 		render(ServicesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('whoami@docker')[0]).toBeTruthy());
 		expect(screen.queryByRole('columnheader', { name: 'Source' })).toBeNull();
@@ -117,18 +226,28 @@ describe('list', () => {
 		expect(screen.queryByText(/^\+\d/)).toBeNull();
 	});
 	it('shows the first backend, +N and every server with its protocol on hover', async () => {
-		handlers = base([service('api', { servers: [{ url: 'http://a:1' }, { url: 'https://b:2/x' }, { url: 'h2c://c:3' }] })]);
+		handlers = base([
+			service('api', { servers: [{ url: 'http://a:1' }, { url: 'https://b:2/x' }, { url: 'h2c://c:3' }] }),
+		]);
 		render(ServicesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getByText('+2')).toBeTruthy());
 		expect(screen.getByText('http://a:1')).toBeTruthy();
 		const trigger = screen.getByRole('button', { name: 'Backend servers: 3 backend servers' });
 		expect(trigger).toBeTruthy();
-		const panel = document.getElementById(trigger.getAttribute('aria-describedby') ?? '') ?? document.querySelector('.value-tooltip.rich')!;
+		const panel =
+			document.getElementById(trigger.getAttribute('aria-describedby') ?? '') ??
+			document.querySelector('.value-tooltip.rich')!;
 		expect(panel.textContent).toContain('3 backend servers');
 		for (const text of ['http', 'a:1', 'https', 'b:2/x', 'h2c', 'c:3']) expect(panel.textContent).toContain(text);
 	});
 	it('shows external services read-only', async () => {
-		handlers = base([service('ext@docker', { servers: [{ url: 'http://c:3' }] }, 1, { origin: 'external', provider: 'docker', read_only: true })]);
+		handlers = base([
+			service('ext@docker', { servers: [{ url: 'http://c:3' }] }, 1, {
+				origin: 'external',
+				provider: 'docker',
+				read_only: true,
+			}),
+		]);
 		render(ServicesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('ext@docker')[0]).toBeTruthy());
 		expect(screen.queryByRole('menuitem', { name: 'Edit' })).toBeNull();
@@ -144,7 +263,11 @@ describe('list', () => {
 	it('deletes with the current version and surfaces the server conflict', async () => {
 		handlers = {
 			...base([service('free', { servers: [{ url: 'http://app:8080' }] }, 7)]),
-			'DELETE /api/v1/services/free': () => json({ code: 'ERR_CONFLICT', message: 'service is used by router r1', operation_id: 'o', retryable: false }, 409)
+			'DELETE /api/v1/services/free': () =>
+				json(
+					{ code: 'ERR_CONFLICT', message: 'service is used by router r1', operation_id: 'o', retryable: false },
+					409,
+				),
 		};
 		render(ServicesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('free')[0]).toBeTruthy());
@@ -164,12 +287,15 @@ describe('create flow', () => {
 		handlers = {
 			...base([]),
 			'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/services/my-app': () => json({ operation: operation(), resource: service('my-app'), restart_required: false })
+			'PUT /api/v1/services/my-app': () =>
+				json({ operation: operation(), resource: service('my-app'), restart_required: false }),
 		};
 		render(ServicesPage, { navigate: () => {}, mode: 'create' });
 		await fillName('my-app');
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), { target: { value: 'http://app:8080' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), {
+			target: { value: 'http://app:8080' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await screen.findByRole('button', { name: 'Apply changes' });
 
@@ -186,18 +312,30 @@ describe('create flow', () => {
 		expect(calls.some((c) => c.path.includes('/draft'))).toBe(false);
 	});
 	it('includes the optional health check and TLS option when chosen', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		render(ServicesPage, { navigate: () => {}, mode: 'create' });
 		await fillName('my-app');
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), { target: { value: 'https://app:8443' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), {
+			target: { value: 'https://app:8443' },
+		});
 		await fireEvent.click(screen.getByLabelText(/Enable health check/));
-		await fireEvent.input(await waitFor(() => document.getElementById('service-health-path')!), { target: { value: '/up' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('service-health-path')!), {
+			target: { value: '/up' },
+		});
 		await fireEvent.input(document.getElementById('service-health-interval')!, { target: { value: '10s' } });
 		await fireEvent.click(screen.getByLabelText(/Do not verify backend TLS/));
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
-		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({ protocol: 'http', servers: [{ url: 'https://app:8443' }], health_check: { path: '/up', interval: '10s' }, insecure_skip_verify: true });
+		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({
+			protocol: 'http',
+			servers: [{ url: 'https://app:8443' }],
+			health_check: { path: '/up', interval: '10s' },
+			insecure_skip_verify: true,
+		});
 	});
 	it('rejects a query string and a bad name without calling the server', async () => {
 		handlers = base([]);
@@ -207,7 +345,9 @@ describe('create flow', () => {
 		await waitFor(() => expect(document.getElementById('service-name')!.getAttribute('aria-invalid')).toBe('true'));
 		await fireEvent.input(document.getElementById('service-name')!, { target: { value: 'ok' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), { target: { value: 'http://app:8080/x?y=1' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('service-url-0')!), {
+			target: { value: 'http://app:8080/x?y=1' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(screen.getAllByText(/query string/).length).toBeGreaterThan(0));
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
@@ -223,13 +363,20 @@ describe('create flow', () => {
 });
 
 describe('backend servers editor', () => {
-	const dry = () => ({ ...base([]), 'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }) });
+	const dry = () => ({
+		...base([]),
+		'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+	});
 	async function openBackends() {
 		render(ServicesPage, { navigate: () => {}, mode: 'create' });
 		await waitFor(() => expect(document.getElementById('service-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('service-name')!, { target: { value: 'my-app' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		return waitFor(() => { const el = document.getElementById('service-url-0') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		return waitFor(() => {
+			const el = document.getElementById('service-url-0') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 	}
 	const review = async () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
@@ -237,7 +384,8 @@ describe('backend servers editor', () => {
 		return calls.find((c) => c.method === 'PUT')!.body.servers;
 	};
 	/** The protocol menu's listbox (SelectMenu links it with aria-controls). */
-	const schemeList = (index: number) => document.getElementById(document.getElementById(`service-url-${index}-scheme`)!.getAttribute('aria-controls')!)!;
+	const schemeList = (index: number) =>
+		document.getElementById(document.getElementById(`service-url-${index}-scheme`)!.getAttribute('aria-controls')!)!;
 	const pickScheme = async (index: number, scheme: string) => {
 		await fireEvent.click(document.getElementById(`service-url-${index}-scheme`)!);
 		await fireEvent.click(await within(schemeList(index)).findByRole('option', { name: scheme }));
@@ -247,7 +395,11 @@ describe('backend servers editor', () => {
 		handlers = dry();
 		await openBackends();
 		await fireEvent.click(document.getElementById('service-url-0-scheme')!);
-		expect(within(schemeList(0)).getAllByRole('option').map((o) => o.textContent?.trim())).toEqual(['http', 'https', 'h2c']);
+		expect(
+			within(schemeList(0))
+				.getAllByRole('option')
+				.map((o) => o.textContent?.trim()),
+		).toEqual(['http', 'https', 'h2c']);
 	});
 	it('joins the chosen protocol with the address, path included, in one input', async () => {
 		handlers = dry();
@@ -306,10 +458,14 @@ describe('backend servers editor', () => {
 	it('loads an existing service into protocol and address, and edits it with its version', async () => {
 		handlers = {
 			...base([service('web', { servers: [{ url: 'https://app:8443/base' }, { url: 'h2c://grpc:50051' }] }, 4)]),
-			'PUT /api/v1/services/web?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/services/web?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(ServicesPage, { navigate: () => {}, mode: 'edit', name: 'web' });
-		const first = await waitFor(() => { const el = document.getElementById('service-url-0') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		const first = await waitFor(() => {
+			const el = document.getElementById('service-url-0') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 		expect(first.value).toBe('app');
 		expect((document.getElementById('service-url-0-port') as HTMLInputElement).value).toBe('8443');
 		// A stored path opens the path field; a backend without one keeps it closed.
@@ -328,25 +484,48 @@ describe('backend servers editor', () => {
 
 describe('view and runtime check', () => {
 	it('shows the service as Traefik declares it', async () => {
-		handlers = base([service('web', { servers: [{ url: 'http://a:1' }, { url: 'https://b:2' }], pass_host_header: false, health_check: { path: '/up', interval: '10s' }, insecure_skip_verify: true, used_by: usedBy('shop') })]);
+		handlers = base([
+			service('web', {
+				servers: [{ url: 'http://a:1' }, { url: 'https://b:2' }],
+				pass_host_header: false,
+				health_check: { path: '/up', interval: '10s' },
+				insecure_skip_verify: true,
+				used_by: usedBy('shop'),
+			}),
+		]);
 		render(ServicesPage, { navigate: () => {}, mode: 'view', name: 'web' });
 		const dialog = await screen.findByRole('dialog');
 		await waitFor(() => expect(dialog.textContent).toContain('loadBalancer:'));
 		const yaml = dialog.querySelector('pre, code')!.textContent!;
-		expect(yaml).toBe('loadBalancer:\n  servers:\n    - url: http://a:1\n    - url: https://b:2\n  passHostHeader: false\n  healthCheck:\n    path: /up\n    interval: 10s\n  serversTransport: web-insecure-transport\n');
+		expect(yaml).toBe(
+			'loadBalancer:\n  servers:\n    - url: http://a:1\n    - url: https://b:2\n  passHostHeader: false\n  healthCheck:\n    path: /up\n    interval: 10s\n  serversTransport: web-insecure-transport\n',
+		);
 		expect(yaml).not.toContain('used_by');
 		expect(yaml).not.toContain('shop');
 	});
 	it('explains a service with no definition (Traefik internal)', async () => {
-		handlers = base([service('api@internal', { servers: null }, 1, { origin: 'external', provider: 'internal', read_only: true })]);
+		handlers = base([
+			service('api@internal', { servers: null }, 1, { origin: 'external', provider: 'internal', read_only: true }),
+		]);
 		render(ServicesPage, { navigate: () => {}, mode: 'view', name: 'api@internal' });
 		await waitFor(() => expect(screen.getByText(/declares this service internally/)).toBeTruthy());
 		expect(screen.queryByRole('button', { name: 'Edit service' })).toBeNull();
 	});
 	it('checks an external service in Traefik by its qualified name', async () => {
 		handlers = {
-			...base([service('api@internal', { servers: null }, 1, { origin: 'external', provider: 'internal', read_only: true })]),
-			'GET /api/v1/services/api%40internal/diagnostics': () => json({ protocol: 'http', name: 'api@internal', observed: true, runtimeStatus: 'enabled', healthStatus: 'unknown', routers: [{ name: 'dashboard@internal', status: 'enabled', entryPoints: ['traefik'] }], observedAt: '2026-01-01T00:00:00Z' })
+			...base([
+				service('api@internal', { servers: null }, 1, { origin: 'external', provider: 'internal', read_only: true }),
+			]),
+			'GET /api/v1/services/api%40internal/diagnostics': () =>
+				json({
+					protocol: 'http',
+					name: 'api@internal',
+					observed: true,
+					runtimeStatus: 'enabled',
+					healthStatus: 'unknown',
+					routers: [{ name: 'dashboard@internal', status: 'enabled', entryPoints: ['traefik'] }],
+					observedAt: '2026-01-01T00:00:00Z',
+				}),
 		};
 		render(ServicesPage, { navigate: () => {}, mode: 'view', name: 'api@internal' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Check in Traefik' }));
@@ -356,7 +535,16 @@ describe('view and runtime check', () => {
 	it('reports a failed runtime check without breaking the dialog', async () => {
 		handlers = {
 			...base([service('web')]),
-			'GET /api/v1/services/web/diagnostics': () => json({ code: 'ERR_TRAEFIK_UNAVAILABLE', message: 'Traefik runtime observation is unavailable.', operation_id: 'o', retryable: true }, 502)
+			'GET /api/v1/services/web/diagnostics': () =>
+				json(
+					{
+						code: 'ERR_TRAEFIK_UNAVAILABLE',
+						message: 'Traefik runtime observation is unavailable.',
+						operation_id: 'o',
+						retryable: true,
+					},
+					502,
+				),
 		};
 		render(ServicesPage, { navigate: () => {}, mode: 'view', name: 'web' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Check in Traefik' }));
@@ -366,7 +554,17 @@ describe('view and runtime check', () => {
 	it('reads the runtime snapshot from the diagnostics endpoint on demand', async () => {
 		handlers = {
 			...base([service('web')]),
-			'GET /api/v1/services/web/diagnostics': () => json({ protocol: 'http', name: 'web', observed: true, runtimeStatus: 'enabled', healthStatus: 'mixed', serverStatus: { UP: 1, DOWN: 1 }, routers: [{ name: 'shop', status: 'enabled', entryPoints: ['websecure'] }], observedAt: '2026-01-01T00:00:00Z' })
+			'GET /api/v1/services/web/diagnostics': () =>
+				json({
+					protocol: 'http',
+					name: 'web',
+					observed: true,
+					runtimeStatus: 'enabled',
+					healthStatus: 'mixed',
+					serverStatus: { UP: 1, DOWN: 1 },
+					routers: [{ name: 'shop', status: 'enabled', entryPoints: ['websecure'] }],
+					observedAt: '2026-01-01T00:00:00Z',
+				}),
 		};
 		render(ServicesPage, { navigate: () => {}, mode: 'view', name: 'web' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Check in Traefik' }));
@@ -378,7 +576,12 @@ describe('view and runtime check', () => {
 
 describe('backend fields', () => {
 	it('splits and joins URLs, keeping what was typed', () => {
-		expect(parseUrl('https://app.internal:8443/api/v1')).toEqual({ scheme: 'https', host: 'app.internal', port: '8443', path: '/api/v1' });
+		expect(parseUrl('https://app.internal:8443/api/v1')).toEqual({
+			scheme: 'https',
+			host: 'app.internal',
+			port: '8443',
+			path: '/api/v1',
+		});
 		expect(parseUrl('http://[fd00::5]:8080/x')).toEqual({ scheme: 'http', host: 'fd00::5', port: '8080', path: '/x' });
 		expect(parseUrl('app:80/base', 'h2c')).toEqual({ scheme: 'h2c', host: 'app', port: '80', path: '/base' });
 		expect(parseUrl('tcp://db:5432').host).toBe('tcp://db:5432'); // shown as typed, validation names it
@@ -398,7 +601,19 @@ describe('backend fields', () => {
 		expect(carriesMore('fd00::5')).toBe(false);
 	});
 	it('mirrors the core-v2 address rules', () => {
-		const m = { invalidName: 'n', nameTaken: 't', invalidUrl: 'u', urlQuery: 'q', urlScheme: 's', serverCount: 'c', duplicateUrl: 'd', invalidPath: 'p', invalidDuration: 'dur', invalidAddress: 'a', invalidPort: 'port' };
+		const m = {
+			invalidName: 'n',
+			nameTaken: 't',
+			invalidUrl: 'u',
+			urlQuery: 'q',
+			urlScheme: 's',
+			serverCount: 'c',
+			duplicateUrl: 'd',
+			invalidPath: 'p',
+			invalidDuration: 'dur',
+			invalidAddress: 'a',
+			invalidPort: 'port',
+		};
 		expect(addressError('db:5432', m)).toBe('');
 		expect(addressError('[fd00::5]:53', m)).toBe('');
 		expect(addressError('db', m)).toBe('a');
@@ -413,13 +628,20 @@ describe('backend fields', () => {
 });
 
 describe('backend server row', () => {
-	const dry = () => ({ ...base([]), 'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }) });
+	const dry = () => ({
+		...base([]),
+		'PUT /api/v1/services/my-app?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+	});
 	async function openBackends() {
 		render(ServicesPage, { navigate: () => {}, mode: 'create' });
 		await waitFor(() => expect(document.getElementById('service-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('service-name')!, { target: { value: 'my-app' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		return waitFor(() => { const el = document.getElementById('service-url-0') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		return waitFor(() => {
+			const el = document.getElementById('service-url-0') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 	}
 	const sent = async () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
@@ -444,9 +666,15 @@ describe('backend server row', () => {
 		const toggle = screen.getByRole('button', { name: 'Add a path to backend 1' });
 		expect(toggle.getAttribute('aria-pressed')).toBe('false');
 		await fireEvent.click(toggle);
-		const path = await waitFor(() => { const el = document.getElementById('service-url-0-path') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		const path = await waitFor(() => {
+			const el = document.getElementById('service-url-0-path') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 		await fireEvent.input(path, { target: { value: 'api' } });
-		expect(screen.getByRole('button', { name: 'Remove the path of backend 1' }).getAttribute('aria-pressed')).toBe('true');
+		expect(screen.getByRole('button', { name: 'Remove the path of backend 1' }).getAttribute('aria-pressed')).toBe(
+			'true',
+		);
 		expect(await sent()).toEqual([{ url: 'http://app/api' }]);
 
 		calls = [];
@@ -479,11 +707,19 @@ describe('backend server row', () => {
 	});
 });
 
-const tcpSvc = (name: string, config: Record<string, unknown> = {}, version = 1, extra = {}) => service(name, { protocol: 'tcp', servers: [{ address: 'db:5432' }], ...config }, version, extra);
-const udpSvc = (name: string, config: Record<string, unknown> = {}, version = 1, extra = {}) => service(name, { protocol: 'udp', servers: [{ address: 'dns:53' }], ...config }, version, extra);
+const tcpSvc = (name: string, config: Record<string, unknown> = {}, version = 1, extra = {}) =>
+	service(name, { protocol: 'tcp', servers: [{ address: 'db:5432' }], ...config }, version, extra);
+const udpSvc = (name: string, config: Record<string, unknown> = {}, version = 1, extra = {}) =>
+	service(name, { protocol: 'udp', servers: [{ address: 'dns:53' }], ...config }, version, extra);
 
 describe('one list for every protocol', () => {
-	const mixed = () => base([service('web'), tcpSvc('db', { tcp: { tls: true, proxy_protocol: 2 }, used_by: usedBy('pg@docker') }), tcpSvc('cache', { servers: [{ address: 'redis:6379' }, { address: 'redis2:6379' }] }), udpSvc('dns')]);
+	const mixed = () =>
+		base([
+			service('web'),
+			tcpSvc('db', { tcp: { tls: true, proxy_protocol: 2 }, used_by: usedBy('pg@docker') }),
+			tcpSvc('cache', { servers: [{ address: 'redis:6379' }, { address: 'redis2:6379' }] }),
+			udpSvc('dns'),
+		]);
 	const rowOf = (name: string) => screen.getAllByText(name)[0].closest('tr') as HTMLElement;
 	async function chooseProtocol(label: RegExp) {
 		await fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
@@ -548,8 +784,14 @@ describe('one list for every protocol', () => {
 		render(ServicesPage, { navigate: (p: string) => paths.push(p) });
 		await screen.findAllByText('web');
 		expect(screen.queryByRole('button', { name: 'Create TCP service' })).toBeNull();
-		const items = screen.getAllByRole('menuitem').filter((m) => /service/.test(m.textContent ?? '') && /Create|HTTP|TCP|UDP/.test(m.textContent ?? ''));
-		expect(items.map((m) => m.querySelector('strong')?.textContent)).toEqual(['HTTP service', 'TCP service', 'UDP service']);
+		const items = screen
+			.getAllByRole('menuitem')
+			.filter((m) => /service/.test(m.textContent ?? '') && /Create|HTTP|TCP|UDP/.test(m.textContent ?? ''));
+		expect(items.map((m) => m.querySelector('strong')?.textContent)).toEqual([
+			'HTTP service',
+			'TCP service',
+			'UDP service',
+		]);
 		await fireEvent.click(screen.getByRole('menuitem', { name: /^TCP service/ }));
 		await fireEvent.click(screen.getByRole('menuitem', { name: /^UDP service/ }));
 		await fireEvent.click(screen.getByRole('menuitem', { name: /^HTTP service/ }));
@@ -585,7 +827,13 @@ describe('one list for every protocol', () => {
 		expect(paths.some((p) => p.startsWith('/tcp-services'))).toBe(false);
 	});
 	it('opens every dialog from the list already loaded, without asking for services again', async () => {
-		for (const [protocol, mode, name] of [['http', 'create', ''], ['tcp', 'create', ''], ['udp', 'create', ''], ['http', 'edit', 'web'], ['tcp', 'view', 'db']] as const) {
+		for (const [protocol, mode, name] of [
+			['http', 'create', ''],
+			['tcp', 'create', ''],
+			['udp', 'create', ''],
+			['http', 'edit', 'web'],
+			['tcp', 'view', 'db'],
+		] as const) {
 			cleanup();
 			calls = [];
 			handlers = mixed();
@@ -593,7 +841,10 @@ describe('one list for every protocol', () => {
 			const dialog = await screen.findByRole('dialog');
 			await waitFor(() => expect(within(dialog).queryByText('Loading…')).toBeNull());
 			await screen.findAllByText('web');
-			expect(calls.filter((c) => c.method === 'GET' && c.path === '/api/v1/services'), `${protocol} ${mode}`).toHaveLength(1);
+			expect(
+				calls.filter((c) => c.method === 'GET' && c.path === '/api/v1/services'),
+				`${protocol} ${mode}`,
+			).toHaveLength(1);
 		}
 	});
 	it('shows the list error inside the dialog when the list could not be loaded', async () => {
@@ -622,13 +873,22 @@ describe('one list for every protocol', () => {
 });
 
 describe('TCP and UDP service editors', () => {
-	const dry = () => ({ ...base([]), 'PUT /api/v1/services/postgres?dry_run=true': () => json({ preview: preview(), restart_required: false }) });
+	const dry = () => ({
+		...base([]),
+		'PUT /api/v1/services/postgres?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+	});
 	async function start(protocol: 'tcp' | 'udp' = 'tcp', name = 'postgres') {
 		render(ServicesPage, { navigate: () => {}, tab: protocol, mode: 'create' });
 		await waitFor(() => expect(document.getElementById('service-name')).toBeTruthy());
-		expect(screen.getAllByText(protocol === 'tcp' ? 'Create TCP service' : 'Create UDP service').length).toBeGreaterThan(0);
+		expect(
+			screen.getAllByText(protocol === 'tcp' ? 'Create TCP service' : 'Create UDP service').length,
+		).toBeGreaterThan(0);
 		await fireEvent.input(document.getElementById('service-name')!, { target: { value: name } });
-		return waitFor(() => { const el = document.getElementById('service-url-0') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		return waitFor(() => {
+			const el = document.getElementById('service-url-0') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 	}
 
 	it('puts the name and the servers on one Service tab', async () => {
@@ -653,8 +913,14 @@ describe('TCP and UDP service editors', () => {
 		handlers = base([]);
 		render(ServicesPage, { navigate: () => {}, tab: 'http', mode: 'create' });
 		await waitFor(() => expect(document.getElementById('service-name')).toBeTruthy());
-		expect(screen.getAllByRole('tab').map((t) => t.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Identity', 'Backend servers', 'Review changes']);
-		expect(document.getElementById('panel-service-identity')!.contains(document.getElementById('service-name'))).toBe(true);
+		expect(screen.getAllByRole('tab').map((t) => t.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+			'Identity',
+			'Backend servers',
+			'Review changes',
+		]);
+		expect(document.getElementById('panel-service-identity')!.contains(document.getElementById('service-name'))).toBe(
+			true,
+		);
 	});
 	it('reports a missing name on the Service tab without leaving it', async () => {
 		handlers = dry();
@@ -685,7 +951,10 @@ describe('TCP and UDP service editors', () => {
 		await waitFor(() => expect(screen.getByText(/All optional/)).toBeTruthy());
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
-		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({ protocol: 'tcp', servers: [{ address: '10.0.0.5:5432' }] });
+		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({
+			protocol: 'tcp',
+			servers: [{ address: '10.0.0.5:5432' }],
+		});
 	});
 	it('sends every TCP option that was chosen', async () => {
 		handlers = dry();
@@ -709,7 +978,13 @@ describe('TCP and UDP service editors', () => {
 			protocol: 'tcp',
 			servers: [{ address: 'db.internal:5432' }],
 			insecure_skip_verify: true,
-			tcp: { tls: true, server_name: 'db.example.com', proxy_protocol: 2, dial_timeout: '5s', health_check: { interval: '10s', port: 8008, send: 'PING', expect: 'PONG' } }
+			tcp: {
+				tls: true,
+				server_name: 'db.example.com',
+				proxy_protocol: 2,
+				dial_timeout: '5s',
+				health_check: { interval: '10s', port: 8008, send: 'PING', expect: 'PONG' },
+			},
 		});
 	});
 	it('takes the user to the Options tab for an invalid option', async () => {
@@ -728,11 +1003,31 @@ describe('TCP and UDP service editors', () => {
 	});
 	it('loads a TCP service with its options and keeps it a TCP service', async () => {
 		handlers = {
-			...base([tcpSvc('postgres', { servers: [{ address: '[fd00::5]:5432' }], insecure_skip_verify: true, tcp: { tls: true, server_name: 'db.example.com', proxy_protocol: 1, termination_delay: '200ms', health_check: { interval: '30s' } } }, 6)]),
-			'PUT /api/v1/services/postgres?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			...base([
+				tcpSvc(
+					'postgres',
+					{
+						servers: [{ address: '[fd00::5]:5432' }],
+						insecure_skip_verify: true,
+						tcp: {
+							tls: true,
+							server_name: 'db.example.com',
+							proxy_protocol: 1,
+							termination_delay: '200ms',
+							health_check: { interval: '30s' },
+						},
+					},
+					6,
+				),
+			]),
+			'PUT /api/v1/services/postgres?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(ServicesPage, { navigate: () => {}, tab: 'tcp', mode: 'edit', name: 'postgres' });
-		const host = await waitFor(() => { const el = document.getElementById('service-url-0') as HTMLInputElement | null; expect(el).toBeTruthy(); return el!; });
+		const host = await waitFor(() => {
+			const el = document.getElementById('service-url-0') as HTMLInputElement | null;
+			expect(el).toBeTruthy();
+			return el!;
+		});
 		expect(host.value).toBe('fd00::5');
 		expect((document.getElementById('service-url-0-port') as HTMLInputElement).value).toBe('5432');
 		await fireEvent.click(screen.getByRole('tab', { name: /Options/ }));
@@ -743,19 +1038,49 @@ describe('TCP and UDP service editors', () => {
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
 		const put = calls.find((c) => c.method === 'PUT')!;
 		expect(put.headers['if-match']).toBe('"6"');
-		expect(put.body).toEqual({ protocol: 'tcp', servers: [{ address: '[fd00::5]:5432' }], insecure_skip_verify: true, tcp: { tls: true, server_name: 'db.example.com', proxy_protocol: 1, termination_delay: '200ms', health_check: { interval: '30s' } } });
+		expect(put.body).toEqual({
+			protocol: 'tcp',
+			servers: [{ address: '[fd00::5]:5432' }],
+			insecure_skip_verify: true,
+			tcp: {
+				tls: true,
+				server_name: 'db.example.com',
+				proxy_protocol: 1,
+				termination_delay: '200ms',
+				health_check: { interval: '30s' },
+			},
+		});
 	});
 	it('shows a TCP service as Traefik declares it, with its transport, and checks it in Traefik as TCP', async () => {
 		handlers = {
-			...base([tcpSvc('postgres', { insecure_skip_verify: true, tcp: { tls: true, proxy_protocol: 2, health_check: { interval: '10s', port: 8008 } } })]),
-			'GET /api/v1/services/postgres/diagnostics?protocol=tcp': () => json({ protocol: 'tcp', name: 'postgres', observed: true, runtimeStatus: 'enabled', healthStatus: 'healthy', serverStatus: { UP: 1 }, routers: [{ name: 'pg@docker', status: 'enabled', entryPoints: ['postgres'] }], observedAt: '2026-01-01T00:00:00Z' })
+			...base([
+				tcpSvc('postgres', {
+					insecure_skip_verify: true,
+					tcp: { tls: true, proxy_protocol: 2, health_check: { interval: '10s', port: 8008 } },
+				}),
+			]),
+			'GET /api/v1/services/postgres/diagnostics?protocol=tcp': () =>
+				json({
+					protocol: 'tcp',
+					name: 'postgres',
+					observed: true,
+					runtimeStatus: 'enabled',
+					healthStatus: 'healthy',
+					serverStatus: { UP: 1 },
+					routers: [{ name: 'pg@docker', status: 'enabled', entryPoints: ['postgres'] }],
+					observedAt: '2026-01-01T00:00:00Z',
+				}),
 		};
 		render(ServicesPage, { navigate: () => {}, tab: 'tcp', mode: 'view', name: 'postgres' });
 		const dialog = await screen.findByRole('dialog');
 		await waitFor(() => expect(dialog.textContent).toContain('loadBalancer:'));
 		const [svc, transport] = [...dialog.querySelectorAll('pre')].map((x) => x.textContent);
-		expect(svc).toBe('loadBalancer:\n  servers:\n    - address: db:5432\n      tls: true\n  healthCheck:\n    interval: 10s\n    port: 8008\n  serversTransport: postgres-tcp-transport\n');
-		expect(transport).toBe('postgres-tcp-transport:\n  proxyProtocol:\n    version: 2\n  tls:\n    insecureSkipVerify: true\n');
+		expect(svc).toBe(
+			'loadBalancer:\n  servers:\n    - address: db:5432\n      tls: true\n  healthCheck:\n    interval: 10s\n    port: 8008\n  serversTransport: postgres-tcp-transport\n',
+		);
+		expect(transport).toBe(
+			'postgres-tcp-transport:\n  proxyProtocol:\n    version: 2\n  tls:\n    insecureSkipVerify: true\n',
+		);
 		expect(dialog.textContent).toContain('TCP service');
 		await fireEvent.click(screen.getByRole('button', { name: 'Check in Traefik' }));
 		await waitFor(() => expect(screen.getByText('Healthy')).toBeTruthy());
@@ -763,14 +1088,20 @@ describe('TCP and UDP service editors', () => {
 		expect(screen.queryByRole('button', { name: 'pg@docker' })).toBeNull(); // no page for TCP routers
 	});
 	it('creates a UDP service with servers only', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/services/dns?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/services/dns?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		const host = await start('udp', 'dns');
 		expect(screen.queryByRole('tab', { name: /Options/ })).toBeNull();
 		await fireEvent.input(host, { target: { value: '10.0.0.53' } });
 		await fireEvent.input(document.getElementById('service-url-0-port')!, { target: { value: '53' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
-		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({ protocol: 'udp', servers: [{ address: '10.0.0.53:53' }] });
+		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({
+			protocol: 'udp',
+			servers: [{ address: '10.0.0.53:53' }],
+		});
 	});
 	it('refuses a name already used by a service of another protocol', async () => {
 		handlers = base([service('db')]);

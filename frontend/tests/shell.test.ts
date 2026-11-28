@@ -3,19 +3,46 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import { createRawSnippet } from 'svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import ConsoleShell from '../src/shell/ConsoleShell.svelte';
 import { prefs } from '../src/shared/preferences/preferences.svelte';
 
 const page = createRawSnippet(() => ({ render: () => '<p>page</p>' }));
-const state = (extra = {}) => ({ static_hash: '', dynamic_hash: '', domains_hash: '', published_static_hash: '', published_dynamic_hash: '', published_domains_hash: '', drifted: false, drifted_files: null, restart_required: false, running_operation: false, archived_drafts: 0, archived_secret_drafts: 0, legacy_snapshots_imported: 0, plugin_updates: 0, ...extra });
+const state = (extra = {}) => ({
+	static_hash: '',
+	dynamic_hash: '',
+	domains_hash: '',
+	published_static_hash: '',
+	published_dynamic_hash: '',
+	published_domains_hash: '',
+	drifted: false,
+	drifted_files: null,
+	restart_required: false,
+	running_operation: false,
+	archived_drafts: 0,
+	archived_secret_drafts: 0,
+	legacy_snapshots_imported: 0,
+	plugin_updates: 0,
+	...extra,
+});
 let paths: string[] = [];
 let configState = state();
 
 function viewport(wide: boolean) {
-	window.matchMedia = ((query: string) => ({ matches: query.includes('min-width: 1200px') ? wide : false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as typeof window.matchMedia;
+	window.matchMedia = ((query: string) => ({
+		matches: query.includes('min-width: 1200px') ? wide : false,
+		media: query,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		onchange: null,
+		dispatchEvent: () => false,
+	})) as typeof window.matchMedia;
 }
 
 beforeEach(() => {
@@ -55,7 +82,12 @@ describe('config state polling', () => {
 		const { container } = mount();
 		await waitFor(() => expect(paths).toContain('/api/v1/config/state'));
 		expect(container.querySelector('.update-link')).toBeNull();
-		configState = state({ console_update: { version: '0.1.0-rc.4', url: 'https://github.com/fouad-aniq/Traefik-Console/releases/tag/v0.1.0-rc.4' } });
+		configState = state({
+			console_update: {
+				version: '0.1.0-rc.4',
+				url: 'https://github.com/fouad-aniq/Traefik-Console/releases/tag/v0.1.0-rc.4',
+			},
+		});
 		// Coming back to the tab re-reads the state at once instead of waiting for the next poll.
 		Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
 		document.dispatchEvent(new Event('visibilitychange'));

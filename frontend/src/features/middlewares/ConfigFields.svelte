@@ -7,14 +7,7 @@
 	import Button from '../../shared/ui/Button.svelte';
 	import { Eye, EyeOff, Plus, X } from '@lucide/svelte';
 	import { t } from '../../shared/localization/i18n';
-	import {
-		emptyLeaf,
-		fieldKind,
-		isSensitiveKey,
-		type FormState,
-		type LeafState,
-		type SchemaField
-	} from './models';
+	import { emptyLeaf, fieldKind, isSensitiveKey, type FormState, type LeafState, type SchemaField } from './models';
 	import { numberBounds } from './validation';
 	import { remainingTypeGroups, remainingRequiredFields, fieldExample } from './formPresentation';
 
@@ -33,7 +26,7 @@
 		sensitiveMode = 'none',
 		serviceOptions = [],
 		activeType = '',
-		oninvalidate
+		oninvalidate,
 	}: {
 		schemaFields: Record<string, SchemaField>;
 		/** Presence-aware leaf state owned by the dialog; mutated in place. */
@@ -68,14 +61,14 @@
 			{
 				id: 'service',
 				fields: ['address'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'redirection',
 				labelKey: 'forwardAuthRedirection',
 				descriptionKey: 'forwardAuthRedirectionDesc',
 				fields: ['authSigninURL', 'trustForwardHeader'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'headers',
@@ -86,9 +79,9 @@
 					'authRequestHeaders',
 					'headerField',
 					'authResponseHeadersRegex',
-					'addAuthCookiesToResponse'
+					'addAuthCookiesToResponse',
 				],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'body',
@@ -99,17 +92,17 @@
 					'maxBodySize',
 					'maxResponseBodySize',
 					'preserveLocationHeader',
-					'preserveRequestMethod'
+					'preserveRequestMethod',
 				],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'tls',
 				labelKey: 'forwardAuthTls',
 				descriptionKey: 'forwardAuthTlsDesc',
 				fields: ['tls'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		basicAuth: [
 			{
@@ -117,8 +110,8 @@
 				labelKey: 'moreOptions',
 				descriptionKey: 'authOptionsDesc',
 				fields: ['realm', 'headerField', 'removeHeader', 'usersFile'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		digestAuth: [
 			{
@@ -126,164 +119,164 @@
 				labelKey: 'moreOptions',
 				descriptionKey: 'authOptionsDesc',
 				fields: ['realm', 'headerField', 'removeHeader', 'usersFile'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		rateLimit: [
 			{
 				id: 'rate',
 				fields: ['average'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'burst',
 				labelKey: 'rateBurstPeriod',
 				descriptionKey: 'rateBurstPeriodDesc',
 				fields: ['burst', 'period'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'criterion',
 				labelKey: 'rateCriterion',
 				descriptionKey: 'rateCriterionDesc',
 				fields: ['sourceCriterion'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'redis',
 				labelKey: 'rateRedis',
 				descriptionKey: 'rateRedisDesc',
 				fields: ['redis'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		inFlightReq: [
 			{
 				id: 'limits',
 				fields: ['amount'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'criterion',
 				labelKey: 'rateCriterion',
 				descriptionKey: 'rateCriterionDesc',
 				fields: ['sourceCriterion'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		buffering: [
 			{
 				id: 'request',
 				fields: ['maxRequestBodyBytes'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'requestMemory',
 				labelKey: 'bufferingRequestMemory',
 				descriptionKey: 'bufferingRequestMemoryDesc',
 				fields: ['memRequestBodyBytes'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'response',
 				labelKey: 'bufferingResponse',
 				descriptionKey: 'bufferingResponseDesc',
 				fields: ['maxResponseBodyBytes', 'memResponseBodyBytes'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'retry',
 				labelKey: 'bufferingRetry',
 				descriptionKey: 'bufferingRetryDesc',
 				fields: ['retryExpression'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		circuitBreaker: [
 			{
 				id: 'expression',
 				fields: ['expression'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'durations',
 				labelKey: 'circuitBreakerDurations',
 				descriptionKey: 'circuitBreakerDurationsDesc',
 				fields: ['checkPeriod', 'fallbackDuration', 'recoveryDuration'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'response',
 				labelKey: 'circuitBreakerResponse',
 				descriptionKey: 'circuitBreakerResponseDesc',
 				fields: ['responseCode'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		retry: [
 			{
 				id: 'attempts',
 				fields: ['attempts'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'intervals',
 				labelKey: 'retryIntervals',
 				descriptionKey: 'retryIntervalsDesc',
 				fields: ['initialInterval', 'timeout'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'conditions',
 				labelKey: 'retryConditions',
 				descriptionKey: 'retryConditionsDesc',
 				fields: ['status', 'maxRequestBodyBytes', 'disableRetryOnNetworkError', 'retryNonIdempotentMethod'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		ipAllowList: [
 			{
 				id: 'sourceRange',
 				fields: ['sourceRange'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'strategy',
 				labelKey: 'ipAllowListStrategy',
 				descriptionKey: 'ipAllowListStrategyDesc',
 				fields: ['ipStrategy'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'rejection',
 				labelKey: 'ipAllowListResponse',
 				descriptionKey: 'ipAllowListResponseDesc',
 				fields: ['rejectStatusCode'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
 		ipWhiteList: [
 			{
 				id: 'sourceRange',
 				fields: ['sourceRange'],
-				plain: true
+				plain: true,
 			},
 			{
 				id: 'strategy',
 				labelKey: 'ipAllowListStrategy',
 				descriptionKey: 'ipAllowListStrategyDesc',
 				fields: ['ipStrategy'],
-				collapsible: true
+				collapsible: true,
 			},
 			{
 				id: 'rejection',
 				labelKey: 'ipAllowListResponse',
 				descriptionKey: 'ipAllowListResponseDesc',
 				fields: ['rejectStatusCode'],
-				collapsible: true
-			}
+				collapsible: true,
+			},
 		],
-		...remainingTypeGroups
+		...remainingTypeGroups,
 	};
 
 	function leafLabel(key: string): string {
@@ -293,9 +286,7 @@
 		}
 		const localized = t(`middlewares.labels.${key}`);
 		if (localized && !localized.startsWith('middlewares.labels.')) return localized;
-		return key
-			.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-			.replace(/^./, (ch) => ch.toUpperCase());
+		return key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (ch) => ch.toUpperCase());
 	}
 
 	function isFieldRequired(type: string, key: string, path: string): boolean {
@@ -307,7 +298,8 @@
 		if (type === 'forwardAuth' && key === 'address') return true;
 		if (type === 'stripPrefix' && key === 'prefixes') return true;
 		if (type === 'stripPrefixRegex' && key === 'regex') return true;
-		if ((type === 'replacePathRegex' || type === 'redirectRegex') && (key === 'regex' || key === 'replacement')) return true;
+		if ((type === 'replacePathRegex' || type === 'redirectRegex') && (key === 'regex' || key === 'replacement'))
+			return true;
 		if (type === 'errors' && (key === 'status' || key === 'service')) return true;
 		if (type === 'circuitBreaker' && key === 'expression') return true;
 		if ((type === 'ipAllowList' || type === 'ipWhiteList') && key === 'sourceRange') return true;
@@ -319,28 +311,69 @@
 
 	/** Mirrors the hint keys from validation.ts for help text. */
 	const HINT_HELP_KEYS: Record<string, string> = {
-		customRequestHeaders: 'helpHeaderMap', customResponseHeaders: 'helpHeaderMap', sslProxyHeaders: 'helpHeaderMap',
-		prefix: 'helpPath', path: 'helpPath', prefixes: 'helpPathList', regex: 'helpRegex',
-		replacement: 'helpReplacement', scheme: 'helpScheme', port: 'helpPort',
-		expression: 'helpExpression', retryExpression: 'helpExpression',
-		period: 'helpDuration', checkPeriod: 'helpDuration', fallbackDuration: 'helpDuration',
-		recoveryDuration: 'helpDuration', initialInterval: 'helpDuration', timeout: 'helpDuration',
-		dialTimeout: 'helpDuration', readTimeout: 'helpDuration', writeTimeout: 'helpDuration',
-		attempts: 'helpAttempts', responseCode: 'helpStatusSingle', rejectStatusCode: 'helpStatusSingle',
-		amount: 'helpAmount', sourceRange: 'helpCidrList', excludedIPs: 'helpCidrList',
-		depth: 'helpDepth', ipv6Subnet: 'helpIpv6Subnet', address: 'helpAddress',
-		authSigninURL: 'helpSigninUrl', authResponseHeadersRegex: 'helpRegex',
-		accessControlMaxAge: 'helpSeconds', stsSeconds: 'helpSeconds', encodings: 'helpEncodings',
-		includedContentTypes: 'helpMediaList', excludedContentTypes: 'helpMediaList',
-		defaultEncoding: 'helpEncoding', minResponseBodyBytes: 'helpBytes',
-		maxRequestBodyBytes: 'helpBytes', maxResponseBodyBytes: 'helpBytes',
-		memRequestBodyBytes: 'helpBytes', memResponseBodyBytes: 'helpBytes',
-		status: 'helpStatusList', statusRewrites: 'helpStatusRewrites', service: 'helpServiceRef',
-		query: 'helpQuery', middlewares: 'helpChainMembers', headerField: 'helpHeaderName',
-		requestHeaderName: 'helpHeaderName', realm: 'helpRealm', endpoints: 'helpRedisEndpoints',
-		db: 'helpRedisDb', poolSize: 'helpRedisPool', maxActiveConns: 'helpRedisPool',
-		minIdleConns: 'helpRedisPool', insecureSkipVerify: 'helpSkipVerify', caOptional: 'helpCaOptional',
-		pem: 'helpPem', ca: 'helpAsset', cert: 'helpAsset', key: 'helpAsset', usersFile: 'helpAsset'
+		customRequestHeaders: 'helpHeaderMap',
+		customResponseHeaders: 'helpHeaderMap',
+		sslProxyHeaders: 'helpHeaderMap',
+		prefix: 'helpPath',
+		path: 'helpPath',
+		prefixes: 'helpPathList',
+		regex: 'helpRegex',
+		replacement: 'helpReplacement',
+		scheme: 'helpScheme',
+		port: 'helpPort',
+		expression: 'helpExpression',
+		retryExpression: 'helpExpression',
+		period: 'helpDuration',
+		checkPeriod: 'helpDuration',
+		fallbackDuration: 'helpDuration',
+		recoveryDuration: 'helpDuration',
+		initialInterval: 'helpDuration',
+		timeout: 'helpDuration',
+		dialTimeout: 'helpDuration',
+		readTimeout: 'helpDuration',
+		writeTimeout: 'helpDuration',
+		attempts: 'helpAttempts',
+		responseCode: 'helpStatusSingle',
+		rejectStatusCode: 'helpStatusSingle',
+		amount: 'helpAmount',
+		sourceRange: 'helpCidrList',
+		excludedIPs: 'helpCidrList',
+		depth: 'helpDepth',
+		ipv6Subnet: 'helpIpv6Subnet',
+		address: 'helpAddress',
+		authSigninURL: 'helpSigninUrl',
+		authResponseHeadersRegex: 'helpRegex',
+		accessControlMaxAge: 'helpSeconds',
+		stsSeconds: 'helpSeconds',
+		encodings: 'helpEncodings',
+		includedContentTypes: 'helpMediaList',
+		excludedContentTypes: 'helpMediaList',
+		defaultEncoding: 'helpEncoding',
+		minResponseBodyBytes: 'helpBytes',
+		maxRequestBodyBytes: 'helpBytes',
+		maxResponseBodyBytes: 'helpBytes',
+		memRequestBodyBytes: 'helpBytes',
+		memResponseBodyBytes: 'helpBytes',
+		status: 'helpStatusList',
+		statusRewrites: 'helpStatusRewrites',
+		service: 'helpServiceRef',
+		query: 'helpQuery',
+		middlewares: 'helpChainMembers',
+		headerField: 'helpHeaderName',
+		requestHeaderName: 'helpHeaderName',
+		realm: 'helpRealm',
+		endpoints: 'helpRedisEndpoints',
+		db: 'helpRedisDb',
+		poolSize: 'helpRedisPool',
+		maxActiveConns: 'helpRedisPool',
+		minIdleConns: 'helpRedisPool',
+		insecureSkipVerify: 'helpSkipVerify',
+		caOptional: 'helpCaOptional',
+		pem: 'helpPem',
+		ca: 'helpAsset',
+		cert: 'helpAsset',
+		key: 'helpAsset',
+		usersFile: 'helpAsset',
 	};
 
 	function leafHelp(key: string, fullPath: string): string {
@@ -349,21 +382,22 @@
 		return hintKey ? c(hintKey) : '';
 	}
 
-    const ph = (key: string, args?: Record<string, string | number>) => t(`middlewares.placeholders.${key}`, args);
-    function placeholderFor(key: string, path: string, kind: string): string {
-        const example = fieldExample(activeType, path);
-        if (kind === 'list') return example ? ph('listExample', { value: example }) : ph('list');
-        if (example) return ph('example', { value: example });
-        if (kind === 'number') return ph('example', { value: '0' });
-        return ph('text', { label: leafLabel(key).toLocaleLowerCase() });
-    }
-    function mapPlaceholder(key: string, side: 'key' | 'value'): string {
-        if (key === 'statusRewrites') return ph(side === 'key' ? 'statusFrom' : 'statusTo');
-        if (key === 'customRequestHeaders') return ph('example', { value: side === 'key' ? 'X-Request-ID' : 'console' });
-        if (key === 'customResponseHeaders') return ph('example', { value: side === 'key' ? 'X-Frame-Options' : 'SAMEORIGIN' });
-        if (key === 'sslProxyHeaders') return ph('example', { value: side === 'key' ? 'X-Forwarded-Proto' : 'https' });
-        return g(side === 'key' ? 'keyPlaceholder' : 'valuePlaceholder');
-    }
+	const ph = (key: string, args?: Record<string, string | number>) => t(`middlewares.placeholders.${key}`, args);
+	function placeholderFor(key: string, path: string, kind: string): string {
+		const example = fieldExample(activeType, path);
+		if (kind === 'list') return example ? ph('listExample', { value: example }) : ph('list');
+		if (example) return ph('example', { value: example });
+		if (kind === 'number') return ph('example', { value: '0' });
+		return ph('text', { label: leafLabel(key).toLocaleLowerCase() });
+	}
+	function mapPlaceholder(key: string, side: 'key' | 'value'): string {
+		if (key === 'statusRewrites') return ph(side === 'key' ? 'statusFrom' : 'statusTo');
+		if (key === 'customRequestHeaders') return ph('example', { value: side === 'key' ? 'X-Request-ID' : 'console' });
+		if (key === 'customResponseHeaders')
+			return ph('example', { value: side === 'key' ? 'X-Frame-Options' : 'SAMEORIGIN' });
+		if (key === 'sslProxyHeaders') return ph('example', { value: side === 'key' ? 'X-Forwarded-Proto' : 'https' });
+		return g(side === 'key' ? 'keyPlaceholder' : 'valuePlaceholder');
+	}
 
 	function isObject(node: SchemaField): boolean {
 		return fieldKind(node) === 'object';
@@ -381,7 +415,7 @@
 		if (leaf.kind === 'number') return leaf.raw.trim().length > 0;
 		if (leaf.kind === 'tri') return leaf.value === 'yes' || leaf.value === 'no';
 		if (leaf.kind === 'list') return leaf.items.length > 0;
-		if (leaf.kind === 'map') return leaf.entries.some(entry => entry.key.trim().length > 0);
+		if (leaf.kind === 'map') return leaf.entries.some((entry) => entry.key.trim().length > 0);
 		return true;
 	}
 
@@ -440,7 +474,7 @@
 	{@const kind = fieldKind(node)}
 	{@const label = leafLabel(key)}
 	{@const help = leafHelp(key, p)}
-	{@const error = submitted ? errors[p] ?? '' : ''}
+	{@const error = submitted ? (errors[p] ?? '') : ''}
 	{@const leaf = form[p] ?? emptyLeaf(kind)}
 	{@const concealed = isSensitiveKey(key) && sensitiveMode === 'replace'}
 	{@const required = isFieldRequired(activeType, key, p)}
@@ -459,18 +493,18 @@
 		/>
 		{#if error}<p class="inline-error" id={`mw-${p}-error`} role="alert">{error}</p>{/if}
 	{:else if kind === 'tri'}
-		<Field id={`mw-${p}`} label={label} help={error ? '' : help} error={error} {required}>
+		<Field id={`mw-${p}`} {label} help={error ? '' : help} {error} {required}>
 			{#snippet children(f)}
 				<SelectMenu
 					id={f.id}
-                    {required}
+					{required}
 					value={leaf.kind === 'tri' ? leaf.value : 'unset'}
 					options={[
 						{ value: 'unset', label: g('triDefault') },
 						{ value: 'yes', label: g('triYes') },
-						{ value: 'no', label: g('triNo') }
+						{ value: 'no', label: g('triNo') },
 					]}
-					disabled={disabled}
+					{disabled}
 					onchange={(value) => {
 						if (value === 'unset') {
 							delete form[p];
@@ -484,7 +518,7 @@
 		</Field>
 	{:else if kind === 'number'}
 		{@const bounds = numberBounds(p)}
-		<Field id={`mw-${p}`} label={label} help={error ? '' : help} error={error} {required}>
+		<Field id={`mw-${p}`} {label} help={error ? '' : help} {error} {required}>
 			{#snippet children(f)}
 				<input
 					id={f.id}
@@ -494,8 +528,8 @@
 					max={bounds.max}
 					value={leaf.kind === 'number' ? leaf.raw : ''}
 					placeholder={placeholderFor(key, p, kind)}
-					disabled={disabled}
-					required={required}
+					{disabled}
+					{required}
 					aria-required={required ? 'true' : undefined}
 					inputmode="numeric"
 					aria-invalid={error ? 'true' : undefined}
@@ -514,15 +548,17 @@
 		</Field>
 	{:else if kind === 'list'}
 		<div class="tag-control" role="group" aria-label={label}>
-			<label class="control-label" for={`mw-${p}-tag-input`}>{label}{#if required}<span class="required" aria-hidden="true">*</span>{/if}</label>
+			<label class="control-label" for={`mw-${p}-tag-input`}>
+				{label}{#if required}<span class="required" aria-hidden="true">*</span>{/if}
+			</label>
 			<div class="tag-box" class:has-error={!!error}>
-				{#each (leaf.kind === 'list' ? leaf.items : []) as item, index (index)}
+				{#each leaf.kind === 'list' ? leaf.items : [] as item, index (index)}
 					<span class="tag-chip">
 						<span class="tag-chip-text">{item}</span>
 						<button
 							type="button"
 							class="tag-chip-remove"
-							disabled={disabled}
+							{disabled}
 							aria-label={g('removeTag', { tag: item }) || `Remove ${item}`}
 							onclick={() => {
 								const currentItems = leaf.kind === 'list' ? leaf.items : [];
@@ -546,8 +582,9 @@
 					placeholder={placeholderFor(key, p, kind)}
 					aria-required={required ? 'true' : undefined}
 					aria-invalid={error ? 'true' : undefined}
-					aria-describedby={[help ? `mw-${p}-help` : '', error ? `mw-${p}-error` : ''].filter(Boolean).join(' ') || undefined}
-					disabled={disabled}
+					aria-describedby={[help ? `mw-${p}-help` : '', error ? `mw-${p}-error` : ''].filter(Boolean).join(' ') ||
+						undefined}
+					{disabled}
 					aria-label={label}
 					onkeydown={(event) => {
 						if (event.key === 'Enter' || (event.key === ',' && !key.toLowerCase().includes('regex'))) {
@@ -577,12 +614,14 @@
 	{:else if kind === 'map' || kind === 'mapint'}
 		<div class="map-control" role="group" aria-label={label}>
 			<div class="map-header">
-				<label class="control-label map-label" for={`mw-${p}-add`}>{label}{#if HINT_HELP_KEYS[key] === 'helpHeaderMap'}<span class="map-hint">{g('headerMapHint')}</span>{/if}</label>
+				<label class="control-label map-label" for={`mw-${p}-add`}>
+					{label}{#if HINT_HELP_KEYS[key] === 'helpHeaderMap'}<span class="map-hint">{g('headerMapHint')}</span>{/if}
+				</label>
 				<button
 					id={`mw-${p}-add`}
 					type="button"
 					class="add-inline-btn"
-					disabled={disabled}
+					{disabled}
 					onclick={() => {
 						const currentEntries = leaf.kind === 'map' ? leaf.entries : [];
 						form[p] = { kind: 'map', numeric: kind === 'mapint', entries: [...currentEntries, { key: '', value: '' }] };
@@ -603,11 +642,18 @@
 								type="text"
 								value={entry.key}
 								placeholder={mapPlaceholder(key, 'key')}
-								disabled={disabled}
+								{disabled}
 								aria-label={`${label} — ${g('keyLabel')} ${index + 1}`}
 								aria-invalid={error ? 'true' : undefined}
 								oninput={(event) => {
-									form[p] = { kind: 'map', numeric: kind === 'mapint', entries: (leaf.kind === 'map' ? [...leaf.entries] : []).with(index, { key: event.currentTarget.value, value: entry.value }) };
+									form[p] = {
+										kind: 'map',
+										numeric: kind === 'mapint',
+										entries: (leaf.kind === 'map' ? [...leaf.entries] : []).with(index, {
+											key: event.currentTarget.value,
+											value: entry.value,
+										}),
+									};
 									oninvalidate();
 								}}
 							/>
@@ -615,24 +661,31 @@
 								id={`mw-${p}-${index}-value`}
 								class="entry-input"
 								type={kind === 'mapint' ? 'number' : 'text'}
-                                min={kind === 'mapint' ? 100 : undefined}
-                                max={kind === 'mapint' ? 599 : undefined}
-                                step={kind === 'mapint' ? 1 : undefined}
+								min={kind === 'mapint' ? 100 : undefined}
+								max={kind === 'mapint' ? 599 : undefined}
+								step={kind === 'mapint' ? 1 : undefined}
 								value={entry.value}
-                                aria-invalid={error ? 'true' : undefined}
-                                aria-describedby={error ? `mw-${p}-error` : undefined}
+								aria-invalid={error ? 'true' : undefined}
+								aria-describedby={error ? `mw-${p}-error` : undefined}
 								placeholder={mapPlaceholder(key, 'value')}
-								disabled={disabled}
+								{disabled}
 								aria-label={`${label} — ${g('valueLabel')} ${index + 1}`}
 								oninput={(event) => {
-									form[p] = { kind: 'map', numeric: kind === 'mapint', entries: (leaf.kind === 'map' ? [...leaf.entries] : []).with(index, { key: entry.key, value: event.currentTarget.value }) };
+									form[p] = {
+										kind: 'map',
+										numeric: kind === 'mapint',
+										entries: (leaf.kind === 'map' ? [...leaf.entries] : []).with(index, {
+											key: entry.key,
+											value: event.currentTarget.value,
+										}),
+									};
 									oninvalidate();
 								}}
 							/>
 							<button
 								type="button"
 								class="entry-remove"
-								disabled={disabled}
+								{disabled}
 								aria-label={g('removeEntry', { number: index + 1 })}
 								onclick={() => {
 									const updated = (leaf.kind === 'map' ? [...leaf.entries] : []).toSpliced(index, 1);
@@ -654,17 +707,17 @@
 			{#if error}<p class="control-error" id={`mw-${p}-error`} role="alert">{error}</p>{/if}
 		</div>
 	{:else if HINT_HELP_KEYS[key] === 'helpServiceRef'}
-		<Field id={`mw-${p}`} label={label} help={error ? '' : help} error={error} {required}>
+		<Field id={`mw-${p}`} {label} help={error ? '' : help} {error} {required}>
 			{#snippet children(f)}
 				<SearchableSelect
 					id={f.id}
-                    {required}
+					{required}
 					value={leaf.kind === 'text' ? leaf.value : ''}
-					options={serviceOptions.filter(option => option.value)}
+					options={serviceOptions.filter((option) => option.value)}
 					placeholder={g('selectService')}
 					searchPlaceholder={g('searchServices')}
 					emptyMessage={g('noServices')}
-					disabled={disabled}
+					{disabled}
 					ariaInvalid={!!error}
 					ariaDescribedby={f.describedBy}
 					onchange={(value) => {
@@ -676,14 +729,20 @@
 			{/snippet}
 		</Field>
 	{:else if HINT_HELP_KEYS[key] === 'helpScheme' || HINT_HELP_KEYS[key] === 'helpEncoding'}
-		<Field id={`mw-${p}`} label={label} help={error ? '' : help} error={error} {required}>
+		<Field id={`mw-${p}`} {label} help={error ? '' : help} {error} {required}>
 			{#snippet children(f)}
 				<SelectMenu
 					id={f.id}
-                    {required}
+					{required}
 					value={leaf.kind === 'text' ? leaf.value : ''}
-					options={[{ value: '', label: required ? ph('scheme') : g('triDefault') }, ...(HINT_HELP_KEYS[key] === 'helpScheme' ? ['http', 'https'] : ['gzip', 'br', 'zstd']).map((value) => ({ value, label: value }))]}
-					disabled={disabled}
+					options={[
+						{ value: '', label: required ? ph('scheme') : g('triDefault') },
+						...(HINT_HELP_KEYS[key] === 'helpScheme' ? ['http', 'https'] : ['gzip', 'br', 'zstd']).map((value) => ({
+							value,
+							label: value,
+						})),
+					]}
+					{disabled}
 					onchange={(value) => {
 						if (!value) delete form[p];
 						else form[p] = { kind: 'text', value };
@@ -693,7 +752,7 @@
 			{/snippet}
 		</Field>
 	{:else}
-		<Field id={`mw-${p}`} label={label} help={error ? '' : help} error={error} {required}>
+		<Field id={`mw-${p}`} {label} help={error ? '' : help} {error} {required}>
 			{#snippet children(f)}
 				<div class="text-entry" class:has-reveal={concealed}>
 					<input
@@ -701,8 +760,8 @@
 						type={concealed && !revealed[p] ? 'password' : 'text'}
 						placeholder={concealed ? ph('secret') : placeholderFor(key, p, kind)}
 						value={leaf.kind === 'text' ? leaf.value : ''}
-						disabled={disabled}
-						required={required}
+						{disabled}
+						{required}
 						aria-required={required ? 'true' : undefined}
 						spellcheck="false"
 						autocomplete={concealed ? 'new-password' : 'off'}
@@ -722,10 +781,12 @@
 						<button
 							type="button"
 							class="reveal"
-							disabled={disabled}
+							{disabled}
 							aria-label={revealed[p] ? g('concealValue') : g('revealValue')}
 							aria-pressed={!!revealed[p]}
-							onclick={() => { revealed[p] = !revealed[p]; }}
+							onclick={() => {
+								revealed[p] = !revealed[p];
+							}}
 						>
 							{#if revealed[p]}<EyeOff size={18} aria-hidden="true" />{:else}<Eye size={18} aria-hidden="true" />{/if}
 						</button>
@@ -741,28 +802,45 @@
 	{@const hiddenStored = sensitiveMode === 'retain' && isSensitiveKey(key)}
 	{@const kind = fieldKind(node)}
 	{#if activeType === 'passTLSClientCert' && (p === 'info.subject' || p === 'info.issuer')}
-        <Field id={`mw-${p}`} label={leafLabel(key)} error={submitted ? errors[p] ?? '' : ''}>
-            {#snippet children(f)}
-                <SearchableMultiSelect id={f.id}
-                    values={Object.keys(node.fields).filter(child => { const value = form[`${p}.${child}`]; return value?.kind === 'bool' && value.value; })}
-                    options={Object.keys(node.fields).map(child => ({ value: child, label: leafLabel(child) }))}
-                    maxItems={Object.keys(node.fields).length}
-                    placeholder={g('selectCertificateFields')} searchPlaceholder={g('searchCertificateFields')} emptyMessage={g('noCertificateFields')}
-                    {disabled} ariaDescribedby={f.describedBy}
-                    onchange={(selected) => {
-                        for (const child of Object.keys(node.fields)) {
-                            const path = `${p}.${child}`;
-                            if (selected.includes(child)) form[path] = { kind: 'bool', value: true, present: true };
-                            else { const old = form[path]; if (old?.kind === 'bool' && old.value) delete form[path]; }
-                        }
-                        oninvalidate();
-                    }} />
-            {/snippet}
-        </Field>
-    {:else if isObject(node) && !hiddenStored}
+		<Field id={`mw-${p}`} label={leafLabel(key)} error={submitted ? (errors[p] ?? '') : ''}>
+			{#snippet children(f)}
+				<SearchableMultiSelect
+					id={f.id}
+					values={Object.keys(node.fields).filter((child) => {
+						const value = form[`${p}.${child}`];
+						return value?.kind === 'bool' && value.value;
+					})}
+					options={Object.keys(node.fields).map((child) => ({ value: child, label: leafLabel(child) }))}
+					maxItems={Object.keys(node.fields).length}
+					placeholder={g('selectCertificateFields')}
+					searchPlaceholder={g('searchCertificateFields')}
+					emptyMessage={g('noCertificateFields')}
+					{disabled}
+					ariaDescribedby={f.describedBy}
+					onchange={(selected) => {
+						for (const child of Object.keys(node.fields)) {
+							const path = `${p}.${child}`;
+							if (selected.includes(child)) form[path] = { kind: 'bool', value: true, present: true };
+							else {
+								const old = form[path];
+								if (old?.kind === 'bool' && old.value) delete form[path];
+							}
+						}
+						oninvalidate();
+					}}
+				/>
+			{/snippet}
+		</Field>
+	{:else if isObject(node) && !hiddenStored}
 		{@const errorCount = submitted === true ? subtreeErrorCount({ [key]: node }, prefix) : 0}
 		{@const autoOpen = subtreeHasContent({ [key]: node }, prefix) || (submitted === true && errorCount > 0)}
-		<details class="nested" open={openState[p] ?? autoOpen} ontoggle={(event) => { openState[p] = (event.currentTarget as HTMLDetailsElement).open; }}>
+		<details
+			class="nested"
+			open={openState[p] ?? autoOpen}
+			ontoggle={(event) => {
+				openState[p] = (event.currentTarget as HTMLDetailsElement).open;
+			}}
+		>
 			<summary data-invalid={errorCount ? 'true' : undefined}>
 				<span class="nested-label">{leafLabel(key)}</span>
 				{#if subtreeHasContent({ [key]: node }, prefix)}<span class="configured">{g('configured')}</span>{/if}
@@ -793,7 +871,9 @@
 {#if TYPE_GROUPS[activeType]}
 	{@const typeGroups = TYPE_GROUPS[activeType]}
 	{@const groupedKeys = new Set(typeGroups.flatMap((gr) => gr.fields))}
-	{@const unassigned = Object.keys(schemaFields).filter((k) => !groupedKeys.has(k) && !(activeType === 'basicAuth' && k === 'users'))}
+	{@const unassigned = Object.keys(schemaFields).filter(
+		(k) => !groupedKeys.has(k) && !(activeType === 'basicAuth' && k === 'users'),
+	)}
 	{#each typeGroups as group (group.id)}
 		{@const matching = group.fields.filter((k) => schemaFields[k])}
 		{#if matching.length > 0}
@@ -804,9 +884,14 @@
 					class="options config-group-collapsible"
 					id={`group-${group.id}`}
 					open={openState[group.id] ?? (count > 0 || errCount > 0)}
-					ontoggle={(event) => { openState[group.id] = (event.currentTarget as HTMLDetailsElement).open; }}
+					ontoggle={(event) => {
+						openState[group.id] = (event.currentTarget as HTMLDetailsElement).open;
+					}}
 				>
-					<summary>{t(`middlewares.groups.${group.labelKey}`)} <span>{count > 0 ? g('configuredCount', { count }) : g('defaultOptions')}</span></summary>
+					<summary>
+						{t(`middlewares.groups.${group.labelKey}`)}
+						<span>{count > 0 ? g('configuredCount', { count }) : g('defaultOptions')}</span>
+					</summary>
 					<div class="option-fields">
 						{#if group.descriptionKey}
 							<p class="muted">{t(`middlewares.groups.${group.descriptionKey}`)}</p>
@@ -891,7 +976,9 @@
 		list-style: none;
 		border-radius: 6px;
 	}
-	.nested > summary::-webkit-details-marker { display: none; }
+	.nested > summary::-webkit-details-marker {
+		display: none;
+	}
 	.nested > summary::before {
 		content: '';
 		width: 8px;
@@ -902,9 +989,15 @@
 		transition: transform 120ms ease;
 		flex-shrink: 0;
 	}
-	.nested[open] > summary::before { transform: rotate(45deg); }
-	.nested > summary[data-invalid='true'] { color: var(--danger-text); }
-	.nested-label { flex: 0 1 auto; }
+	.nested[open] > summary::before {
+		transform: rotate(45deg);
+	}
+	.nested > summary[data-invalid='true'] {
+		color: var(--danger-text);
+	}
+	.nested-label {
+		flex: 0 1 auto;
+	}
 	.configured {
 		font-size: 12px;
 		line-height: 18px;
@@ -932,10 +1025,33 @@
 		padding: 16px 14px;
 		border-top: 1px solid var(--border);
 	}
-	.inline-error { width: 100%; margin: 4px 0 0; color: var(--danger-text); font-size: 13px; line-height: 18px; font-weight: 500; }
-	.control-label { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text); }
-	.control-help { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 20px; }
-	.control-error { margin: 0; color: var(--danger-text); font-size: 14px; line-height: 20px; font-weight: 500; }
+	.inline-error {
+		width: 100%;
+		margin: 4px 0 0;
+		color: var(--danger-text);
+		font-size: 13px;
+		line-height: 18px;
+		font-weight: 500;
+	}
+	.control-label {
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 20px;
+		color: var(--text);
+	}
+	.control-help {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 20px;
+	}
+	.control-error {
+		margin: 0;
+		color: var(--danger-text);
+		font-size: 14px;
+		line-height: 20px;
+		font-weight: 500;
+	}
 	.tag-control {
 		display: flex;
 		flex-direction: column;
@@ -953,7 +1069,9 @@
 		background: var(--surface);
 		border: 1px solid var(--outline);
 		border-radius: var(--radius-control);
-		transition: border-color 120ms ease, box-shadow 120ms ease;
+		transition:
+			border-color 120ms ease,
+			box-shadow 120ms ease;
 	}
 	.tag-box:focus-within {
 		border-color: var(--outline-focus, var(--accent));
@@ -1021,8 +1139,18 @@
 		width: 100%;
 		max-width: 560px;
 	}
-	.map-label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-	.map-hint { font-size: 12px; line-height: 18px; font-weight: 400; color: var(--text-muted); }
+	.map-label {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.map-hint {
+		font-size: 12px;
+		line-height: 18px;
+		font-weight: 400;
+		color: var(--text-muted);
+	}
 	.map-header {
 		display: flex;
 		align-items: center;
@@ -1064,8 +1192,12 @@
 		gap: 8px;
 		width: 100%;
 	}
-	.map-row .entry-input:first-child { flex: 2; }
-	.map-row .entry-input:last-of-type { flex: 3; }
+	.map-row .entry-input:first-child {
+		flex: 2;
+	}
+	.map-row .entry-input:last-of-type {
+		flex: 3;
+	}
 	.entry-input {
 		flex: 1;
 		min-width: 0;
@@ -1079,7 +1211,9 @@
 		font-size: 16px;
 		line-height: 24px;
 	}
-	.entry-input[aria-invalid='true'] { border-color: var(--danger-text); }
+	.entry-input[aria-invalid='true'] {
+		border-color: var(--danger-text);
+	}
 	.entry-remove,
 	.reveal {
 		display: grid;
@@ -1093,13 +1227,27 @@
 		color: var(--text-muted);
 		cursor: pointer;
 	}
-	.entry-remove:hover:not(:disabled) { color: var(--danger-text); }
+	.entry-remove:hover:not(:disabled) {
+		color: var(--danger-text);
+	}
 	.entry-remove:disabled,
-	.reveal:disabled { opacity: 0.5; cursor: default; }
-	.text-entry { display: block; }
-	.text-entry :global(input) { width: 100%; }
-	.text-entry.has-reveal { position: relative; display: block; }
-	.text-entry.has-reveal :global(input) { padding-right: 48px; }
+	.reveal:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.text-entry {
+		display: block;
+	}
+	.text-entry :global(input) {
+		width: 100%;
+	}
+	.text-entry.has-reveal {
+		position: relative;
+		display: block;
+	}
+	.text-entry.has-reveal :global(input) {
+		padding-right: 48px;
+	}
 	.reveal {
 		position: absolute;
 		right: 2px;
@@ -1107,8 +1255,14 @@
 		border: 0;
 		background: transparent;
 	}
-	.reveal:hover:not(:disabled) { color: var(--text); background: var(--surface-muted); }
-	.reveal:focus-visible { outline: 2px solid var(--connection); outline-offset: -2px; }
+	.reveal:hover:not(:disabled) {
+		color: var(--text);
+		background: var(--surface-muted);
+	}
+	.reveal:focus-visible {
+		outline: 2px solid var(--connection);
+		outline-offset: -2px;
+	}
 	.stored-row {
 		display: flex;
 		align-items: center;
@@ -1119,7 +1273,10 @@
 		border-radius: 6px;
 		max-width: 560px;
 	}
-	.stored-label { font-weight: 500; font-size: 14px; }
+	.stored-label {
+		font-weight: 500;
+		font-size: 14px;
+	}
 	.stored-pill {
 		font-size: 12px;
 		line-height: 18px;
@@ -1226,9 +1383,19 @@
 		width: 100%;
 	}
 	@media (max-width: 767px) {
-		.tag-box { min-height: var(--touch-h); }
-		.entry-input { min-height: 44px; }
-		.entry-remove { width: 44px; height: 44px; }
-		.reveal { width: 40px; height: 40px; }
+		.tag-box {
+			min-height: var(--touch-h);
+		}
+		.entry-input {
+			min-height: 44px;
+		}
+		.entry-remove {
+			width: 44px;
+			height: 44px;
+		}
+		.reveal {
+			width: 40px;
+			height: 40px;
+		}
 	}
 </style>

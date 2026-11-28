@@ -8,7 +8,7 @@
 		describedBy,
 		invalid = false,
 		autocomplete = 'current-password',
-		disabled = false
+		disabled = false,
 	}: {
 		id: string;
 		value?: string;
@@ -34,18 +34,43 @@
 		aria-invalid={invalid}
 		maxlength={512}
 	/>
-	<button type="button" class="toggle" onclick={() => (visible = !visible)} aria-label={t(visible ? 'authScreens.hidePassword' : 'authScreens.showPassword')} aria-pressed={visible} {disabled}>
+	<button
+		type="button"
+		class="toggle"
+		onclick={() => (visible = !visible)}
+		aria-label={t(visible ? 'authScreens.hidePassword' : 'authScreens.showPassword')}
+		aria-pressed={visible}
+		{disabled}
+	>
 		{#if visible}<EyeOff size={18} aria-hidden="true" />{:else}<Eye size={18} aria-hidden="true" />{/if}
 	</button>
 </div>
 
 <style>
-	.password { position: relative; }
-	.password input { padding-right: 48px !important; }
-	.toggle {
-		position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
-		width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
-		border: none; background: transparent; color: var(--text-muted); border-radius: var(--radius-control); cursor: pointer;
+	.password {
+		position: relative;
 	}
-	.toggle:hover { color: var(--text); background: var(--surface-muted); }
+	.password input {
+		padding-right: 48px !important;
+	}
+	.toggle {
+		position: absolute;
+		top: 50%;
+		right: 4px;
+		transform: translateY(-50%);
+		width: 36px;
+		height: 36px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		border-radius: var(--radius-control);
+		cursor: pointer;
+	}
+	.toggle:hover {
+		color: var(--text);
+		background: var(--surface-muted);
+	}
 </style>

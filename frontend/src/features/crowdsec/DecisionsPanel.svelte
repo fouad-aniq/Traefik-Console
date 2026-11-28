@@ -12,7 +12,12 @@
 	import { deleteDecision, listDecisions } from './api';
 	import type { CrowdSecDecision } from './models';
 
-	let { onadd, reloadKey = 0, canAdd = true, canDelete = true }: { onadd: () => void; reloadKey?: number; canAdd?: boolean; canDelete?: boolean } = $props();
+	let {
+		onadd,
+		reloadKey = 0,
+		canAdd = true,
+		canDelete = true,
+	}: { onadd: () => void; reloadKey?: number; canAdd?: boolean; canDelete?: boolean } = $props();
 	const c = (key: string, args?: Record<string, string | number>) => t('crowdsecV2.' + key, args);
 
 	let rows = $state<CrowdSecDecision[]>([]);
@@ -36,16 +41,39 @@
 		{ id: 'origin', label: c('decisions.origin'), sortable: true, width: '140px' },
 		{ id: 'scenario', label: c('decisions.scenario'), sortable: true, width: 'clamp(180px, 28vw, 340px)' },
 		{ id: 'duration', label: c('decisions.remaining'), width: '140px' },
-		{ id: 'actions', label: '', hideLabel: true, width: '120px' }
+		{ id: 'actions', label: '', hideLabel: true, width: '120px' },
 	]);
 	const types = $derived([...new Set(rows.map((r) => r.type).filter(Boolean))].sort());
-	const filters = $derived([{ id: 'type', label: c('decisions.type'), options: [{ value: '', label: t('resolverUI.all') }, ...types.map((v) => ({ value: v, label: v }))] }]);
-	const sortValue = (r: CrowdSecDecision, col: string) => (col === 'value' ? r.value : col === 'type' ? r.type : col === 'origin' ? r.origin : col === 'scenario' ? r.scenario : '');
+	const filters = $derived([
+		{
+			id: 'type',
+			label: c('decisions.type'),
+			options: [{ value: '', label: t('resolverUI.all') }, ...types.map((v) => ({ value: v, label: v }))],
+		},
+	]);
+	const sortValue = (r: CrowdSecDecision, col: string) =>
+		col === 'value'
+			? r.value
+			: col === 'type'
+				? r.type
+				: col === 'origin'
+					? r.origin
+					: col === 'scenario'
+						? r.scenario
+						: '';
 	const filtered = $derived.by(() => {
 		const q = search.trim().toLowerCase();
 		return rows
-			.filter((r) => (!typeFilter || r.type === typeFilter) && (!q || `${r.value} ${r.scenario} ${r.origin} ${r.type}`.toLowerCase().includes(q)))
-			.toSorted((a, b) => sortValue(a, sort.column).localeCompare(sortValue(b, sort.column), undefined, { numeric: true }) * (sort.direction === 'desc' ? -1 : 1));
+			.filter(
+				(r) =>
+					(!typeFilter || r.type === typeFilter) &&
+					(!q || `${r.value} ${r.scenario} ${r.origin} ${r.type}`.toLowerCase().includes(q)),
+			)
+			.toSorted(
+				(a, b) =>
+					sortValue(a, sort.column).localeCompare(sortValue(b, sort.column), undefined, { numeric: true }) *
+					(sort.direction === 'desc' ? -1 : 1),
+			);
 	});
 	const pageRows = $derived(filtered.slice((page - 1) * pageSize, page * pageSize));
 
@@ -69,8 +97,13 @@
 		}
 	}
 	onMount(() => void load());
-	onDestroy(() => { disposed = true; controller.abort(); });
-	$effect(() => { if (reloadKey > 0) void load(); });
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
+	$effect(() => {
+		if (reloadKey > 0) void load();
+	});
 
 	async function confirmRemove() {
 		const target = pending;
@@ -90,26 +123,42 @@
 	}
 </script>
 
-{#if error}<div class="notice"><Notice tone="error" message={error}><Button size="sm" onclick={load}>{t('common.retry')}</Button></Notice></div>{/if}
-{#if actionError}<div class="notice"><Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} /></div>{/if}
+{#if error}<div class="notice">
+		<Notice tone="error" message={error}><Button size="sm" onclick={load}>{t('common.retry')}</Button></Notice>
+	</div>{/if}
+{#if actionError}<div class="notice">
+		<Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} />
+	</div>{/if}
 
 <DataTable
 	{columns}
 	rows={pageRows}
 	getRowId={(r: CrowdSecDecision) => String(r.id) + ':' + r.value}
 	searchValue={search}
-	onsearch={(v: string) => { search = v; page = 1; }}
+	onsearch={(v: string) => {
+		search = v;
+		page = 1;
+	}}
 	searchPlaceholder={c('decisions.search')}
 	{filters}
 	filterValues={{ type: typeFilter }}
-	onfilterchange={(_id: string, v: string) => { typeFilter = v; page = 1; }}
+	onfilterchange={(_id: string, v: string) => {
+		typeFilter = v;
+		page = 1;
+	}}
 	{sort}
-	onsort={(column: string) => { sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' }; page = 1; }}
+	onsort={(column: string) => {
+		sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' };
+		page = 1;
+	}}
 	{page}
 	{pageSize}
 	total={filtered.length}
 	onpage={(v: number) => (page = v)}
-	onpagesize={(v: number) => { pageSize = v; page = 1; }}
+	onpagesize={(v: number) => {
+		pageSize = v;
+		page = 1;
+	}}
 	{loading}
 	error={!!error}
 	onretry={load}
@@ -121,17 +170,33 @@
 		{#if canAdd}<Button variant="primary" onclick={onadd}>{c('decisions.add')}</Button>{/if}
 	{/snippet}
 	{#snippet rowSnippet(row: CrowdSecDecision)}
-		<td><ValueTooltip text={row.value} truncate><strong>{row.value}</strong></ValueTooltip><span class="scope">{row.scope}</span></td>
+		<td>
+			<ValueTooltip text={row.value} truncate><strong>{row.value}</strong></ValueTooltip><span class="scope">
+				{row.scope}
+			</span>
+		</td>
 		<td><StatusBadge size="sm" tone={row.type === 'ban' ? 'danger' : 'neutral'} text={row.type || '—'} /></td>
 		<td>{row.origin || '—'}</td>
 		<td><ValueTooltip text={row.scenario} truncate>{row.scenario || '—'}</ValueTooltip></td>
 		<td>{row.duration || '—'}</td>
-		<td>{#if canDelete}<Button size="sm" variant="danger" onclick={() => (pending = row)}>{c('decisions.remove')}</Button>{:else}—{/if}</td>
+		<td>
+			{#if canDelete}<Button size="sm" variant="danger" onclick={() => (pending = row)}>
+					{c('decisions.remove')}
+				</Button>{:else}—{/if}
+		</td>
 	{/snippet}
 	{#snippet emptyState()}
 		<h2>{c(search || typeFilter ? 'decisions.noMatches' : 'decisions.empty')}</h2>
 		<p>{c(search || typeFilter ? 'decisions.adjust' : 'decisions.emptyHelp')}</p>
-		{#if search || typeFilter}<Button onclick={() => { search = ''; typeFilter = ''; page = 1; }}>{c('decisions.clear')}</Button>{:else if canAdd}<Button onclick={onadd}>{c('decisions.add')}</Button>{/if}
+		{#if search || typeFilter}<Button
+				onclick={() => {
+					search = '';
+					typeFilter = '';
+					page = 1;
+				}}
+			>
+				{c('decisions.clear')}
+			</Button>{:else if canAdd}<Button onclick={onadd}>{c('decisions.add')}</Button>{/if}
 	{/snippet}
 </DataTable>
 
@@ -142,11 +207,19 @@
 	message={pending ? c('decisions.removeMessage', { value: pending.value }) : ''}
 	cancelLabel={t('common.cancel')}
 	confirmLabel={c('decisions.removeConfirm')}
-	oncancel={() => { if (!removing) pending = null; }}
+	oncancel={() => {
+		if (!removing) pending = null;
+	}}
 	onconfirm={confirmRemove}
 />
 
 <style>
-	.notice { margin-bottom: 16px; }
-	.scope { display: block; color: var(--text-muted); font-size: 12px; }
+	.notice {
+		margin-bottom: 16px;
+	}
+	.scope {
+		display: block;
+		color: var(--text-muted);
+		font-size: 12px;
+	}
 </style>

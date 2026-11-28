@@ -37,7 +37,7 @@
 		CircleUserRound,
 		CircleArrowUp,
 		ArrowRight,
-		Tag
+		Tag,
 	} from '@lucide/svelte';
 	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import TrafficMark from '../shared/ui/TrafficMark.svelte';
@@ -49,7 +49,14 @@
 	import { adoptConfig, getConfigState } from '../features/changes/api';
 	import type { ConfigState } from '../core/types';
 	import { t } from '../shared/localization/i18n';
-	import { prefs, getResolvedTheme, setLanguage, setSidebarCollapsed, setThemePreference, type ThemePreference } from '../shared/preferences/preferences.svelte';
+	import {
+		prefs,
+		getResolvedTheme,
+		setLanguage,
+		setSidebarCollapsed,
+		setThemePreference,
+		type ThemePreference,
+	} from '../shared/preferences/preferences.svelte';
 
 	interface NavSection {
 		id: string;
@@ -75,18 +82,22 @@
 	const GROUPS: NavGroup[] = [
 		{
 			id: 'home',
-			items: [
-				{ id: 'map', route: '/', labelKey: 'nav.map', icon: Workflow, delivered: true }
-			]
+			items: [{ id: 'map', route: '/', labelKey: 'nav.map', icon: Workflow, delivered: true }],
 		},
 		{
 			id: 'tls',
 			labelKey: 'nav.groups.tls',
 			items: [
 				{ id: 'resolvers', route: '/resolvers', labelKey: 'nav.resolvers', icon: KeyRound, delivered: true },
-				{ id: 'certificates', route: '/certificates', labelKey: 'nav.certificates', icon: ShieldCheck, delivered: true },
-				{ id: 'domains', route: '/domains', labelKey: 'nav.domains', icon: Globe, delivered: true }
-			]
+				{
+					id: 'certificates',
+					route: '/certificates',
+					labelKey: 'nav.certificates',
+					icon: ShieldCheck,
+					delivered: true,
+				},
+				{ id: 'domains', route: '/domains', labelKey: 'nav.domains', icon: Globe, delivered: true },
+			],
 		},
 		{
 			id: 'traffic',
@@ -95,25 +106,25 @@
 				{ id: 'entrypoints', route: '/entrypoints', labelKey: 'nav.entrypoints', icon: LogIn, delivered: true },
 				{ id: 'middlewares', route: '/middlewares', labelKey: 'nav.middlewares', icon: Layers, delivered: true },
 				{ id: 'services', route: '/services', labelKey: 'nav.services', icon: Network, delivered: true },
-				{ id: 'routes', route: '/routers', labelKey: 'nav.routes', icon: Route, delivered: true }
-			]
+				{ id: 'routes', route: '/routers', labelKey: 'nav.routes', icon: Route, delivered: true },
+			],
 		},
 		{
 			id: 'security',
 			labelKey: 'nav.groups.security',
 			items: [
 				{ id: 'plugins', route: '/plugins', labelKey: 'nav.plugins', icon: Puzzle, delivered: true },
-				{ id: 'crowdsec', route: '/crowdsec', labelKey: 'nav.crowdsec', icon: ShieldAlert, delivered: true }
-			]
+				{ id: 'crowdsec', route: '/crowdsec', labelKey: 'nav.crowdsec', icon: ShieldAlert, delivered: true },
+			],
 		},
 		{
 			id: 'admin',
 			labelKey: 'nav.groups.admin',
 			items: [
 				{ id: 'changes', route: '/changes', labelKey: 'nav.changes', icon: History, delivered: true },
-				{ id: 'security', route: '/settings/security', labelKey: 'nav.security', icon: Lock, delivered: true }
-			]
-		}
+				{ id: 'security', route: '/settings/security', labelKey: 'nav.security', icon: Lock, delivered: true },
+			],
+		},
 	];
 
 	const SECTIONS: NavSection[] = GROUPS.flatMap((g) => g.items);
@@ -128,7 +139,7 @@
 		onLogout,
 		username = '',
 		banner,
-		children
+		children,
 	}: {
 		currentRoute: string;
 		navigate: (path: string) => void;
@@ -139,9 +150,11 @@
 	} = $props();
 
 	let confirmPending = $state(false);
-	onMount(() => navigationGuard.subscribe(() => {
-		confirmPending = navigationGuard.confirmPending;
-	}));
+	onMount(() =>
+		navigationGuard.subscribe(() => {
+			confirmPending = navigationGuard.confirmPending;
+		}),
+	);
 
 	// Installation state: drift, a pending manual restart, an operation that needs recovery.
 	let configState = $state<ConfigState | null>(null);
@@ -165,7 +178,8 @@
 
 	async function adopt() {
 		if (adopting) return;
-		adopting = true; adoptError = '';
+		adopting = true;
+		adoptError = '';
 		try {
 			await adoptConfig();
 			await refreshState();
@@ -183,15 +197,22 @@
 		if (document.visibilityState === 'visible') void refreshState();
 	}
 	onMount(() => {
-		stateTimer = setInterval(() => { void refreshState(); }, 20_000);
+		stateTimer = setInterval(() => {
+			void refreshState();
+		}, 20_000);
 		document.addEventListener('visibilitychange', refreshWhenVisible);
 	});
 	onDestroy(() => {
-		stateDisposed = true; stateController.abort(); if (stateTimer) clearInterval(stateTimer);
+		stateDisposed = true;
+		stateController.abort();
+		if (stateTimer) clearInterval(stateTimer);
 		document.removeEventListener('visibilitychange', refreshWhenVisible);
 	});
 	// Re-read after every navigation: a write on the page just left may have changed the state.
-	$effect(() => { void currentRoute; void refreshState(); });
+	$effect(() => {
+		void currentRoute;
+		void refreshState();
+	});
 
 	// Available plugin updates come with the polled config state: the server
 	// compares the installed plugins with the synced catalog, nothing is guessed.
@@ -199,7 +220,7 @@
 	// The server checks GitHub's releases and only reports one newer than this build.
 	const consoleUpdate = $derived(configState?.console_update ?? null);
 	const pluginUpdatesLabel = $derived(
-		pluginUpdates === 1 ? t('shell.pluginUpdateOne') : t('shell.pluginUpdatesMany', { count: pluginUpdates })
+		pluginUpdates === 1 ? t('shell.pluginUpdateOne') : t('shell.pluginUpdatesMany', { count: pluginUpdates }),
 	);
 	/** Count shown as a badge beside a navigation item (0 hides it). */
 	function navBadge(section: NavSection): number {
@@ -213,7 +234,9 @@
 	// Sidebar: full width on wide screens (collapsible to the icon rail, remembered), always the
 	// rail on tablets (no room for both), a drawer behind the hamburger on phones.
 	const WIDE = '(min-width: 1200px)';
-	let wide = $state(typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(WIDE).matches : true);
+	let wide = $state(
+		typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(WIDE).matches : true,
+	);
 	onMount(() => {
 		if (typeof window.matchMedia !== 'function') return;
 		const query = window.matchMedia(WIDE);
@@ -250,18 +273,18 @@
 	const themes: { value: ThemePreference; labelKey: string }[] = [
 		{ value: 'system', labelKey: 'shell.themeSystem' },
 		{ value: 'light', labelKey: 'shell.themeLight' },
-		{ value: 'dark', labelKey: 'shell.themeDark' }
+		{ value: 'dark', labelKey: 'shell.themeDark' },
 	];
 
 	const currentSection = $derived(
-		SECTIONS.find((s) => (
+		SECTIONS.find((s) =>
 			s.route === '/'
 				? currentRoute === '/'
 				: currentRoute.startsWith(s.route) ||
-				  (s.id === 'middlewares' && /^\/(chains|tcp-middlewares)/.test(currentRoute)) ||
-				  (s.id === 'routes' && /^\/(routes|tcp-routers|udp-routers)/.test(currentRoute)) ||
-				  (s.id === 'services' && /^\/(tcp|udp)-services/.test(currentRoute))
-		)) ?? SECTIONS[0]
+					(s.id === 'middlewares' && /^\/(chains|tcp-middlewares)/.test(currentRoute)) ||
+					(s.id === 'routes' && /^\/(routes|tcp-routers|udp-routers)/.test(currentRoute)) ||
+					(s.id === 'services' && /^\/(tcp|udp)-services/.test(currentRoute)),
+		) ?? SECTIONS[0],
 	);
 
 	function go(section: NavSection) {
@@ -277,7 +300,7 @@
 		}
 		if (e.key !== 'Tab' || !drawerPanel) return;
 		const focusables = drawerPanel.querySelectorAll<HTMLElement>(
-			'button:not([disabled]), [href], input, select, textarea'
+			'button:not([disabled]), [href], input, select, textarea',
 		);
 		if (focusables.length === 0) return;
 		const first = focusables[0];
@@ -298,9 +321,7 @@
 		}
 	});
 
-	const themeLabel = $derived(
-		themes.find((th) => th.value === prefs.themePreference)?.labelKey ?? 'shell.themeSystem'
-	);
+	const themeLabel = $derived(themes.find((th) => th.value === prefs.themePreference)?.labelKey ?? 'shell.themeSystem');
 </script>
 
 <svelte:window
@@ -407,13 +428,13 @@
 {/snippet}
 
 <ConfirmDialog
- open={confirmPending}
- title={t('navigation.leaveTitle')}
- message={t('navigation.leaveBody')}
- cancelLabel={t('navigation.keepEditing')}
- confirmLabel={t('navigation.discard')}
- oncancel={() => navigationGuard.cancelDiscard()}
- onconfirm={() => navigationGuard.confirmDiscard()}
+	open={confirmPending}
+	title={t('navigation.leaveTitle')}
+	message={t('navigation.leaveBody')}
+	cancelLabel={t('navigation.keepEditing')}
+	confirmLabel={t('navigation.discard')}
+	oncancel={() => navigationGuard.cancelDiscard()}
+	onconfirm={() => navigationGuard.confirmDiscard()}
 />
 
 <FlashHost />
@@ -466,7 +487,10 @@
 						title={label}
 						onclick={() => setSidebarCollapsed(!prefs.sidebarCollapsed)}
 					>
-						{#if prefs.sidebarCollapsed}<PanelLeftOpen size={18} aria-hidden="true" />{:else}<PanelLeftClose size={18} aria-hidden="true" />{/if}
+						{#if prefs.sidebarCollapsed}<PanelLeftOpen size={18} aria-hidden="true" />{:else}<PanelLeftClose
+								size={18}
+								aria-hidden="true"
+							/>{/if}
 					</button>
 				{/if}
 			</div>
@@ -482,7 +506,10 @@
 				class="drawer-backdrop"
 				aria-label={t('shell.closeMenu')}
 				tabindex="-1"
-				onclick={() => { drawerOpen = false; drawerTrigger?.focus(); }}
+				onclick={() => {
+					drawerOpen = false;
+					drawerTrigger?.focus();
+				}}
 			></button>
 			<div
 				class="drawer"
@@ -502,7 +529,10 @@
 						type="button"
 						class="icon-btn"
 						aria-label={t('shell.closeMenu')}
-						onclick={() => { drawerOpen = false; drawerTrigger?.focus(); }}
+						onclick={() => {
+							drawerOpen = false;
+							drawerTrigger?.focus();
+						}}
 					>
 						<X size={20} aria-hidden="true" />
 					</button>
@@ -521,7 +551,9 @@
 						aria-label={t('shell.openMenu')}
 						aria-expanded={drawerOpen}
 						bind:this={drawerTrigger}
-						onclick={() => { drawerOpen = !drawerOpen; }}
+						onclick={() => {
+							drawerOpen = !drawerOpen;
+						}}
 					>
 						<Menu size={20} aria-hidden="true" />
 					</button>
@@ -532,7 +564,12 @@
 					</nav>
 				</div>
 				<div class="topbar-actions">
-					<a class="snapshot-link text-sm" href="#/changes/snapshots/new" aria-label={t('shell.createSnapshot')} title={t('shell.createSnapshotHint')}>
+					<a
+						class="snapshot-link text-sm"
+						href="#/changes/snapshots/new"
+						aria-label={t('shell.createSnapshot')}
+						title={t('shell.createSnapshotHint')}
+					>
 						<Camera size={16} aria-hidden="true" />
 						<span class="snapshot-label">{t('shell.createSnapshot')}</span>
 					</a>
@@ -543,7 +580,11 @@
 							class="icon-btn theme-btn"
 							aria-label={t('shell.theme')}
 							aria-expanded={themeMenuOpen}
-							onclick={() => { themeMenuOpen = !themeMenuOpen; languageMenuOpen = false; accountMenuOpen = false; }}
+							onclick={() => {
+								themeMenuOpen = !themeMenuOpen;
+								languageMenuOpen = false;
+								accountMenuOpen = false;
+							}}
 						>
 							<span aria-hidden="true">{getResolvedTheme() === 'dark' ? '🌙' : '☀️'}</span>
 						</button>
@@ -554,7 +595,10 @@
 										type="button"
 										role="menuitemradio"
 										aria-checked={prefs.themePreference === th.value}
-										onclick={() => { setThemePreference(th.value); themeMenuOpen = false; }}
+										onclick={() => {
+											setThemePreference(th.value);
+											themeMenuOpen = false;
+										}}
 									>
 										{t(th.labelKey)}{#if prefs.themePreference === th.value}<span aria-hidden="true"> ✓</span>{/if}
 									</button>
@@ -569,7 +613,11 @@
 							class="icon-btn lang-btn"
 							aria-label={`${t('shell.language')}: ${prefs.language.toUpperCase()}`}
 							aria-expanded={languageMenuOpen}
-							onclick={() => { languageMenuOpen = !languageMenuOpen; themeMenuOpen = false; accountMenuOpen = false; }}
+							onclick={() => {
+								languageMenuOpen = !languageMenuOpen;
+								themeMenuOpen = false;
+								accountMenuOpen = false;
+							}}
 						>
 							<span class="text-sm">{prefs.language.toUpperCase()}</span>
 						</button>
@@ -579,7 +627,10 @@
 									type="button"
 									role="menuitemradio"
 									aria-checked={prefs.language === 'en'}
-									onclick={() => { setLanguage('en'); languageMenuOpen = false; }}
+									onclick={() => {
+										setLanguage('en');
+										languageMenuOpen = false;
+									}}
 								>
 									{t('shell.languageEn')}{#if prefs.language === 'en'}<span aria-hidden="true"> ✓</span>{/if}
 								</button>
@@ -587,7 +638,10 @@
 									type="button"
 									role="menuitemradio"
 									aria-checked={prefs.language === 'fr'}
-									onclick={() => { setLanguage('fr'); languageMenuOpen = false; }}
+									onclick={() => {
+										setLanguage('fr');
+										languageMenuOpen = false;
+									}}
 								>
 									{t('shell.languageFr')}{#if prefs.language === 'fr'}<span aria-hidden="true"> ✓</span>{/if}
 								</button>
@@ -597,36 +651,41 @@
 
 					<!-- The account menu exists when the host provides sign-out (always, once signed in). -->
 					{#if onLogout}
-					<div class="menu-anchor">
-						<button
-							type="button"
-							class="icon-btn"
-							aria-label={t('shell.account')}
-							aria-expanded={accountMenuOpen}
-							onclick={() => { accountMenuOpen = !accountMenuOpen; themeMenuOpen = false; languageMenuOpen = false; }}
-						>
-							<CircleUserRound size={18} aria-hidden="true" />
-						</button>
-						{#if accountMenuOpen}
-							<div class="menu" role="menu" aria-label={t('shell.account')}>
-								{#if username}<div class="menu-user" role="presentation">{t('shell.signedInAs', { name: username })}</div>{/if}
-								<button
-									type="button"
-									role="menuitem"
-									onclick={() => { accountMenuOpen = false; navigate('/settings/security'); }}
-								>
-									{t('nav.security')}
-								</button>
-								<button
-									type="button"
-									role="menuitem"
-									onclick={handleSignOut}
-								>
-									{t('shell.signOut')}
-								</button>
-							</div>
-						{/if}
-					</div>
+						<div class="menu-anchor">
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('shell.account')}
+								aria-expanded={accountMenuOpen}
+								onclick={() => {
+									accountMenuOpen = !accountMenuOpen;
+									themeMenuOpen = false;
+									languageMenuOpen = false;
+								}}
+							>
+								<CircleUserRound size={18} aria-hidden="true" />
+							</button>
+							{#if accountMenuOpen}
+								<div class="menu" role="menu" aria-label={t('shell.account')}>
+									{#if username}<div class="menu-user" role="presentation">
+											{t('shell.signedInAs', { name: username })}
+										</div>{/if}
+									<button
+										type="button"
+										role="menuitem"
+										onclick={() => {
+											accountMenuOpen = false;
+											navigate('/settings/security');
+										}}
+									>
+										{t('nav.security')}
+									</button>
+									<button type="button" role="menuitem" onclick={handleSignOut}>
+										{t('shell.signOut')}
+									</button>
+								</div>
+							{/if}
+						</div>
 					{/if}
 				</div>
 			</header>
@@ -637,14 +696,25 @@
 						{#if configState.recovery_operation}
 							<Notice type="danger" title={t('shell.recoveryTitle')}>
 								<p class="state-text">{t('shell.recoveryHelp')}</p>
-								<a class="btn-secondary btn-sm" href={'#/changes/history/' + configState.recovery_operation.id}>{t('shell.recoveryAction')}</a>
+								<a class="btn-secondary btn-sm" href={'#/changes/history/' + configState.recovery_operation.id}>
+									{t('shell.recoveryAction')}
+								</a>
 							</Notice>
 						{/if}
 						{#if configState.drifted}
 							<Notice type="warning" title={t('shell.driftTitle')}>
 								<p class="state-text">{t('shell.driftHelp')}</p>
-								{#if configState.drifted_files?.length}<ul class="state-files">{#each configState.drifted_files as f}<li><code>{f}</code></li>{/each}</ul>{/if}
-								<button type="button" class="btn-secondary btn-sm" onclick={adopt} disabled={adopting || configState.running_operation}>{adopting ? t('shell.adopting') : t('shell.adopt')}</button>
+								{#if configState.drifted_files?.length}<ul class="state-files">
+										{#each configState.drifted_files as f}<li><code>{f}</code></li>{/each}
+									</ul>{/if}
+								<button
+									type="button"
+									class="btn-secondary btn-sm"
+									onclick={adopt}
+									disabled={adopting || configState.running_operation}
+								>
+									{adopting ? t('shell.adopting') : t('shell.adopt')}
+								</button>
 								{#if adoptError}<span class="state-error" role="alert">{adoptError}</span>{/if}
 							</Notice>
 						{/if}
@@ -652,13 +722,28 @@
 							<Notice type="warning" title={t('shell.restartTitle')} message={t('shell.restartHelp')} />
 						{/if}
 						{#if archivedCount > 0 && !archivedDismissed}
-							<Notice type="info" title={t('shell.archivedTitle')} message={t('shell.archivedHelp', { count: archivedCount })} dismissible={true} onDismiss={() => { archivedDismissed = true; }} />
+							<Notice
+								type="info"
+								title={t('shell.archivedTitle')}
+								message={t('shell.archivedHelp', { count: archivedCount })}
+								dismissible={true}
+								onDismiss={() => {
+									archivedDismissed = true;
+								}}
+							/>
 						{/if}
 					</div>
 				{/if}
 				{#if topbarLogoutError}
 					<div class="topbar-error mb-16" role="alert">
-						<Notice type="danger" message={topbarLogoutError} dismissible={true} onDismiss={() => { topbarLogoutError = null; }} />
+						<Notice
+							type="danger"
+							message={topbarLogoutError}
+							dismissible={true}
+							onDismiss={() => {
+								topbarLogoutError = null;
+							}}
+						/>
 					</div>
 				{/if}
 				{#if !currentSection.delivered && !currentRoute.startsWith('/foundation') && currentSection.id !== 'settings'}
@@ -834,7 +919,9 @@
 		cursor: pointer;
 		text-align: left;
 		width: 100%;
-		transition: background-color 150ms ease, color 150ms ease;
+		transition:
+			background-color 150ms ease,
+			color 150ms ease;
 	}
 	.nav-item:hover {
 		background: var(--surface-muted);
@@ -1080,7 +1167,9 @@
 	.state-banners:not(:has(*)) {
 		display: none;
 	}
-	.state-text { margin: 0 0 8px; }
+	.state-text {
+		margin: 0 0 8px;
+	}
 	.state-files {
 		margin: 8px 0;
 		padding-left: 20px;

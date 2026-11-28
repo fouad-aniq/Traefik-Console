@@ -90,7 +90,8 @@ export interface Operation {
 	finished_at?: string | null;
 }
 
-export type SnapshotOrigin = 'manual' | 'initial' | 'pre_restore' | 'pre_static' | 'scheduled' | 'legacy_import' | 'adopted';
+export type SnapshotOrigin =
+	'manual' | 'initial' | 'pre_restore' | 'pre_static' | 'scheduled' | 'legacy_import' | 'adopted';
 
 /** A restore point: sealed state plus the exact bytes of the managed files. */
 export interface Snapshot {

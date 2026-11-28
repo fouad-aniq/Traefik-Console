@@ -15,7 +15,7 @@
 		dismissible = false,
 		onDismiss,
 		ondismiss,
-		children
+		children,
 	}: {
 		tone?: Tone;
 		type?: Tone;
@@ -27,7 +27,7 @@
 		children?: Snippet;
 	} = $props();
 
-	const finalTone = $derived(type === 'danger' ? 'error' : (type || tone || 'info'));
+	const finalTone = $derived(type === 'danger' ? 'error' : type || tone || 'info');
 	const role = $derived(finalTone === 'error' || finalTone === 'danger' ? 'alert' : 'status');
 	const handleDismiss = () => (ondismiss || onDismiss)?.();
 </script>

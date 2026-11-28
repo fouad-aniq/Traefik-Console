@@ -13,7 +13,7 @@
 		label,
 		help = '',
 		disabled = false,
-		onchange
+		onchange,
 	}: {
 		id?: string;
 		checked?: boolean;
@@ -36,7 +36,9 @@
 		aria-describedby={help ? `${uid}-help` : undefined}
 		onchange={(e) => onchange?.(e.currentTarget.checked)}
 	/>
-	<span class="box" aria-hidden="true">{#if checked}<Check size={12} strokeWidth={3.5} />{/if}</span>
+	<span class="box" aria-hidden="true">
+		{#if checked}<Check size={12} strokeWidth={3.5} />{/if}
+	</span>
 	<span class="text">
 		<span class="label">{label}</span>
 		{#if help}<span class="help" id="{uid}-help">{help}</span>{/if}
@@ -56,12 +58,25 @@
 		border: 1px solid var(--outline);
 		border-radius: var(--radius-control);
 		cursor: pointer;
-		transition: border-color 120ms ease, background-color 120ms ease;
+		transition:
+			border-color 120ms ease,
+			background-color 120ms ease;
 	}
-	.checkbox:hover:not(.disabled) { border-color: var(--connection-border); }
-	.checkbox.checked { border-color: var(--connection); background: var(--connection-soft); }
-	.checkbox:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-	.checkbox.disabled { opacity: 0.6; cursor: not-allowed; }
+	.checkbox:hover:not(.disabled) {
+		border-color: var(--connection-border);
+	}
+	.checkbox.checked {
+		border-color: var(--connection);
+		background: var(--connection-soft);
+	}
+	.checkbox:has(input:focus-visible) {
+		outline: 2px solid var(--focus-ring);
+		outline-offset: 2px;
+	}
+	.checkbox.disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
 	input {
 		position: absolute;
 		opacity: 0;
@@ -82,11 +97,34 @@
 		border-radius: 4px;
 		background: var(--surface);
 		color: #fff;
-		transition: background-color 120ms ease, border-color 120ms ease;
+		transition:
+			background-color 120ms ease,
+			border-color 120ms ease;
 	}
-	.checked .box { background: var(--connection); border-color: var(--connection); }
-	.text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-	.label { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text); }
-	.help { font-size: 13px; line-height: 18px; color: var(--text-muted); }
-	@media (max-width: 767px) { .checkbox { min-height: var(--touch-h); } }
+	.checked .box {
+		background: var(--connection);
+		border-color: var(--connection);
+	}
+	.text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.label {
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 20px;
+		color: var(--text);
+	}
+	.help {
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--text-muted);
+	}
+	@media (max-width: 767px) {
+		.checkbox {
+			min-height: var(--touch-h);
+		}
+	}
 </style>

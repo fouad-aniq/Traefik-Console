@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import CertificatesPage from '../src/features/certificates/CertificatesPage.svelte';
@@ -11,35 +13,105 @@ import { flashes } from '../src/shared/ui/flash.svelte';
 
 const CERT = '-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----';
 const KEY = '-----BEGIN PRIVATE KEY-----\nBBB\n-----END PRIVATE KEY-----';
-const preview = (extra = {}) => ({ changes: [{ action: 'created', id: 'tls:shop', kind: 'tls', name: 'shop', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+tls: {}', requires_restart: false, ...extra });
-const operation = (extra = {}) => ({ id: 9, kind: 'tls.create', target: 'shop', status: 'succeeded', summary: 'Applied 1 change', requires_restart: false, created_at: 'now', ...extra });
-const cert = (name: string, config = {}, version = 1) => ({ id: 'tls:certificate:' + name, name, version, status: 'active', origin: 'managed', provider: 'file', read_only: false, live_health: 'unknown', config: { name, source: 'imported', cert_file: '/etc/traefik/secrets/c.secret', key_file: '', fingerprint: 'ff', domains: ['shop.test'], issuer: 'CN=Test CA', not_before: '2026-01-01T00:00:00Z', not_after: '2099-01-01T00:00:00Z', algorithm: 'RSA', status: 'valid', purpose: 'server', ...config } });
-const acme = (main: string) => ({ resolver_name: 'le', main_domain: main, sans: null, issuer: 'R3', serial_number: '01', fingerprint: 'fp-' + main, not_before: '2026-01-01T00:00:00Z', expires_at: '2099-01-01T00:00:00Z', days_left: 90, status: 'valid' });
+const preview = (extra = {}) => ({
+	changes: [{ action: 'created', id: 'tls:shop', kind: 'tls', name: 'shop', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+tls: {}',
+	requires_restart: false,
+	...extra,
+});
+const operation = (extra = {}) => ({
+	id: 9,
+	kind: 'tls.create',
+	target: 'shop',
+	status: 'succeeded',
+	summary: 'Applied 1 change',
+	requires_restart: false,
+	created_at: 'now',
+	...extra,
+});
+const cert = (name: string, config = {}, version = 1) => ({
+	id: 'tls:certificate:' + name,
+	name,
+	version,
+	status: 'active',
+	origin: 'managed',
+	provider: 'file',
+	read_only: false,
+	live_health: 'unknown',
+	config: {
+		name,
+		source: 'imported',
+		cert_file: '/etc/traefik/secrets/c.secret',
+		key_file: '',
+		fingerprint: 'ff',
+		domains: ['shop.test'],
+		issuer: 'CN=Test CA',
+		not_before: '2026-01-01T00:00:00Z',
+		not_after: '2099-01-01T00:00:00Z',
+		algorithm: 'RSA',
+		status: 'valid',
+		purpose: 'server',
+		...config,
+	},
+});
+const acme = (main: string) => ({
+	resolver_name: 'le',
+	main_domain: main,
+	sans: null,
+	issuer: 'R3',
+	serial_number: '01',
+	fingerprint: 'fp-' + main,
+	not_before: '2026-01-01T00:00:00Z',
+	expires_at: '2099-01-01T00:00:00Z',
+	days_left: 90,
+	status: 'valid',
+});
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const base = (files: unknown, inventory: unknown = { certificates: [], observations: [], partial: false }) => ({
 	'GET /api/v1/certificates': () => json(files),
-	'GET /api/v1/acme/certificates': () => json(inventory)
+	'GET /api/v1/acme/certificates': () => json(inventory),
 });
 
 describe('CertificatesPage states', () => {
@@ -55,7 +127,11 @@ describe('CertificatesPage states', () => {
 		await waitFor(() => expect(screen.getByText('No uploaded certificates yet')).toBeTruthy());
 	});
 	it('shows an error with retry and recovers', async () => {
-		handlers = { ...base([]), 'GET /api/v1/certificates': () => json({ code: 'ERR_INTERNAL', message: 'db is locked', operation_id: 'o', retryable: true }, 500) };
+		handlers = {
+			...base([]),
+			'GET /api/v1/certificates': () =>
+				json({ code: 'ERR_INTERNAL', message: 'db is locked', operation_id: 'o', retryable: true }, 500),
+		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded' });
 		await waitFor(() => expect(screen.getAllByText('db is locked').length).toBeGreaterThan(0));
 		handlers['GET /api/v1/certificates'] = () => json([cert('back')]);
@@ -63,24 +139,40 @@ describe('CertificatesPage states', () => {
 		await waitFor(() => expect(screen.getAllByText('back')[0]).toBeTruthy());
 	});
 	it('lists automatic certificates and explains partial ACME observation', async () => {
-		handlers = base([], { certificates: [acme('a.test')], observations: [{ resolver: 'le', state: 'not_mapped', invalid_entries: 0 }], partial: true });
+		handlers = base([], {
+			certificates: [acme('a.test')],
+			observations: [{ resolver: 'le', state: 'not_mapped', invalid_entries: 0 }],
+			partial: true,
+		});
 		render(CertificatesPage, { navigate: () => {}, tab: 'automatic' });
 		await waitFor(() => expect(screen.getAllByText('a.test')[0]).toBeTruthy());
 		expect(screen.getByText(/outside \/etc\/traefik\/acme/)).toBeTruthy();
 	});
 	it('does not warn about empty ACME storage of resolvers nothing uses, but still warns about unreadable files', async () => {
-		handlers = base([], { certificates: [], observations: [{ resolver: 'le', state: 'uninitialized', invalid_entries: 0, in_use: false }], partial: true });
+		handlers = base([], {
+			certificates: [],
+			observations: [{ resolver: 'le', state: 'uninitialized', invalid_entries: 0, in_use: false }],
+			partial: true,
+		});
 		render(CertificatesPage, { navigate: () => {}, tab: 'automatic' });
 		await waitFor(() => expect(screen.getByText('No automatic certificates observed')).toBeTruthy());
 		expect(screen.queryByText(/has not written anything/)).toBeNull();
 		expect(screen.queryByText(/incomplete/)).toBeNull();
 		cleanup();
-		handlers = base([], { certificates: [], observations: [{ resolver: 'le', state: 'unreadable', invalid_entries: 0 }], partial: true });
+		handlers = base([], {
+			certificates: [],
+			observations: [{ resolver: 'le', state: 'unreadable', invalid_entries: 0 }],
+			partial: true,
+		});
 		render(CertificatesPage, { navigate: () => {}, tab: 'automatic' });
 		await waitFor(() => expect(screen.getByText(/not allowed to read the ACME storage/)).toBeTruthy());
 	});
 	it('keeps the warning when core-v2 reports the resolver in use', async () => {
-		handlers = base([], { certificates: [], observations: [{ resolver: 'le', state: 'uninitialized', invalid_entries: 0, in_use: true }], partial: true });
+		handlers = base([], {
+			certificates: [],
+			observations: [{ resolver: 'le', state: 'uninitialized', invalid_entries: 0, in_use: true }],
+			partial: true,
+		});
 		render(CertificatesPage, { navigate: () => {}, tab: 'automatic' });
 		await waitFor(() => expect(screen.getByText(/has not written anything/)).toBeTruthy());
 	});
@@ -88,13 +180,26 @@ describe('CertificatesPage states', () => {
 
 const usedBy = {
 	domains: [{ name: 'domain-aniqhomelab-ovh', main: 'aniqhomelab.ovh', source: 'claudflare', read_only: false }],
-	routers: [{ name: 'portainer', rule: 'Host(`portainer.aniqhomelab.ovh`)', entry_points: ['websecure'], service: 'portainer', tls: true, read_only: false }]
+	routers: [
+		{
+			name: 'portainer',
+			rule: 'Host(`portainer.aniqhomelab.ovh`)',
+			entry_points: ['websecure'],
+			service: 'portainer',
+			tls: true,
+			read_only: false,
+		},
+	],
 };
 const none = { domains: [], routers: [] };
 
 describe('certificate usage comes with the certificates', () => {
 	it('loads the page with the two certificate endpoints only', async () => {
-		handlers = base([cert('shop', { used_by: none })], { certificates: [{ ...acme('portainer.aniqhomelab.ovh'), used_by: usedBy }], observations: [], partial: false });
+		handlers = base([cert('shop', { used_by: none })], {
+			certificates: [{ ...acme('portainer.aniqhomelab.ovh'), used_by: usedBy }],
+			observations: [],
+			partial: false,
+		});
 		render(CertificatesPage, { navigate: () => {}, tab: 'automatic' });
 		await waitFor(() => expect(screen.getAllByText('portainer.aniqhomelab.ovh')[0]).toBeTruthy());
 		expect(calls.map((c) => c.path).sort()).toEqual(['/api/v1/acme/certificates', '/api/v1/certificates']);
@@ -125,7 +230,14 @@ describe('certificate usage comes with the certificates', () => {
 
 	it('gives automatic certificates the same Used by column and dialog', async () => {
 		const navigate = vi.fn();
-		handlers = base([], { certificates: [{ ...acme('portainer.aniqhomelab.ovh'), used_by: usedBy }, { ...acme('lonely.example'), used_by: none }], observations: [], partial: false });
+		handlers = base([], {
+			certificates: [
+				{ ...acme('portainer.aniqhomelab.ovh'), used_by: usedBy },
+				{ ...acme('lonely.example'), used_by: none },
+			],
+			observations: [],
+			partial: false,
+		});
 		const { container } = render(CertificatesPage, { navigate, tab: 'automatic' });
 		await waitFor(() => expect(screen.getAllByText('portainer.aniqhomelab.ovh')[0]).toBeTruthy());
 		const headers = [...container.querySelectorAll('thead th')].map((h) => h.textContent?.trim());
@@ -178,7 +290,8 @@ describe('upload flow', () => {
 		handlers = {
 			...base([]),
 			'PUT /api/v1/certificates/shop?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/certificates/shop': () => json({ operation: operation(), resource: cert('shop'), restart_required: false })
+			'PUT /api/v1/certificates/shop': () =>
+				json({ operation: operation(), resource: cert('shop'), restart_required: false }),
 		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded', mode: 'create' });
 		await waitFor(() => expect(document.getElementById('upload-name')).toBeTruthy());
@@ -210,7 +323,7 @@ describe('upload flow', () => {
 		handlers = {
 			...base([cert('shop', {}, 3)]),
 			'GET /api/v1/certificates/shop': () => json(cert('shop', {}, 3)),
-			'PUT /api/v1/certificates/shop?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/certificates/shop?dry_run=true': () => json({ preview: preview(), restart_required: false }),
 		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded', mode: 'replace', name: 'shop' });
 		await waitFor(() => expect(document.getElementById('upload-chain-pem')).toBeTruthy());
@@ -221,7 +334,19 @@ describe('upload flow', () => {
 		expect(calls.find((c) => c.method === 'PUT')!.headers['if-match']).toBe('"3"');
 	});
 	it('shows the server PEM error on the file field and keeps the form', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/certificates/shop?dry_run=true': () => json({ code: 'ERR_VALIDATION', message: 'invalid PEM certificate chain format', operation_id: 'o', retryable: false }, 422) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/certificates/shop?dry_run=true': () =>
+				json(
+					{
+						code: 'ERR_VALIDATION',
+						message: 'invalid PEM certificate chain format',
+						operation_id: 'o',
+						retryable: false,
+					},
+					422,
+				),
+		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded', mode: 'create' });
 		await waitFor(() => expect(document.getElementById('upload-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('upload-name')!, { target: { value: 'shop' } });
@@ -235,7 +360,11 @@ describe('upload flow', () => {
 		handlers = base([]);
 		const navigate = vi.fn();
 		render(CertificatesPage, { navigate, tab: 'uploaded', mode: 'create' });
-		const picker = await waitFor(() => { const el = document.getElementById('upload-chain'); if (!el) throw new Error('no picker'); return el; });
+		const picker = await waitFor(() => {
+			const el = document.getElementById('upload-chain');
+			if (!el) throw new Error('no picker');
+			return el;
+		});
 		// Closing the native file chooser fires a bubbling "cancel" on the input.
 		picker.dispatchEvent(new Event('cancel', { bubbles: true, cancelable: true }));
 		expect(navigate).not.toHaveBeenCalled();
@@ -244,7 +373,10 @@ describe('upload flow', () => {
 		await waitFor(() => expect(navigate).toHaveBeenCalledWith('/certificates/uploaded'));
 	});
 	it('omits the key for a CA trust file', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/certificates/ca1?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/certificates/ca1?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded', mode: 'create' });
 		await waitFor(() => expect(document.getElementById('upload-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('upload-name')!, { target: { value: 'ca1' } });
@@ -260,7 +392,10 @@ describe('upload flow', () => {
 
 describe('delete', () => {
 	it('deletes with the version read with the list', async () => {
-		handlers = { ...base([cert('shop', {}, 5)]), 'DELETE /api/v1/certificates/shop': () => json({ operation: operation(), restart_required: false }) };
+		handlers = {
+			...base([cert('shop', {}, 5)]),
+			'DELETE /api/v1/certificates/shop': () => json({ operation: operation(), restart_required: false }),
+		};
 		render(CertificatesPage, { navigate: () => {}, tab: 'uploaded' });
 		await waitFor(() => expect(screen.getAllByText('shop')[0]).toBeTruthy());
 		await fireEvent.click(screen.getAllByRole('menuitem', { name: 'Delete' })[0]);
@@ -273,7 +408,13 @@ describe('delete', () => {
 describe('Checkbox', () => {
 	it('toggles through the native input and reports the new value', async () => {
 		const seen: boolean[] = [];
-		render(Checkbox, { id: 'cb', checked: false, label: 'Allow', help: 'Explains it', onchange: (v: boolean) => seen.push(v) });
+		render(Checkbox, {
+			id: 'cb',
+			checked: false,
+			label: 'Allow',
+			help: 'Explains it',
+			onchange: (v: boolean) => seen.push(v),
+		});
 		const input = document.getElementById('cb') as HTMLInputElement;
 		expect(input.getAttribute('aria-describedby')).toBe('cb-help');
 		await fireEvent.click(screen.getByText('Allow'));

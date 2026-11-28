@@ -7,7 +7,7 @@
 		tabs,
 		selected,
 		onselect,
-		label
+		label,
 	}: {
 		tabs: { id: string; label: string; errorCount?: number; errorLabel?: string }[];
 		selected: string;
@@ -54,14 +54,14 @@
 			aria-controls={`panel-${tab.id}`}
 			tabindex={tab.id === selected ? 0 : -1}
 			class:active={tab.id === selected}
-            data-invalid={tab.errorCount ? true : undefined}
-            aria-describedby={tab.errorCount ? `tab-${tab.id}-errors` : undefined}
+			data-invalid={tab.errorCount ? true : undefined}
+			aria-describedby={tab.errorCount ? `tab-${tab.id}-errors` : undefined}
 			onclick={() => onselect(tab.id)}
 			onkeydown={onKeydown}
 		>
 			{tab.label}{#if tab.errorCount}<span class="tab-error-count">{tab.errorCount}</span>{/if}
 		</button>
-        {#if tab.errorCount}<span class="tab-error-description" id={`tab-${tab.id}-errors`}>{tab.errorLabel}</span>{/if}
+		{#if tab.errorCount}<span class="tab-error-description" id={`tab-${tab.id}-errors`}>{tab.errorLabel}</span>{/if}
 	{/each}
 </div>
 
@@ -84,10 +84,38 @@
 		white-space: nowrap;
 		min-height: var(--touch-h);
 	}
- .tab-error-description {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
- .tab-error-count {display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;margin-left:6px;border-radius:10px;font-size:11px;font-weight:600;line-height:16px;background:var(--danger-text);color:var(--surface);}
- button[data-invalid='true'] {color:var(--danger-text);}
- button.active[data-invalid='true'] {border-bottom-color:var(--danger-text);}
+	.tab-error-description {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+	.tab-error-count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 4px;
+		margin-left: 6px;
+		border-radius: 10px;
+		font-size: 11px;
+		font-weight: 600;
+		line-height: 16px;
+		background: var(--danger-text);
+		color: var(--surface);
+	}
+	button[data-invalid='true'] {
+		color: var(--danger-text);
+	}
+	button.active[data-invalid='true'] {
+		border-bottom-color: var(--danger-text);
+	}
 	button:hover {
 		color: var(--text);
 	}

@@ -19,7 +19,7 @@
 		error = '',
 		pending = false,
 		oncancel,
-		onconfirm
+		onconfirm,
 	}: {
 		open: boolean;
 		title: string;
@@ -53,18 +53,46 @@
 	}
 </script>
 
-<ConfirmDialog {open} {title} {danger} {confirmLabel} cancelLabel={t('common.cancel')} oncancel={() => { if (!pending) oncancel(); }} onconfirm={confirm}>
+<ConfirmDialog
+	{open}
+	{title}
+	{danger}
+	{confirmLabel}
+	cancelLabel={t('common.cancel')}
+	oncancel={() => {
+		if (!pending) oncancel();
+	}}
+	onconfirm={confirm}
+>
 	<p class="message">{message}</p>
-	<form class="field" onsubmit={(e) => { e.preventDefault(); confirm(); }}>
+	<form
+		class="field"
+		onsubmit={(e) => {
+			e.preventDefault();
+			confirm();
+		}}
+	>
 		<Field id="confirm-password" label={t('authScreens.security.currentPassword')} error={localError || error}>
-			{#snippet children({ id, describedBy, invalid })}<PasswordInput {id} bind:value={password} {describedBy} {invalid} disabled={pending} />{/snippet}
+			{#snippet children({ id, describedBy, invalid })}<PasswordInput
+					{id}
+					bind:value={password}
+					{describedBy}
+					{invalid}
+					disabled={pending}
+				/>{/snippet}
 		</Field>
 	</form>
 	{#if pending}<Notice tone="info" message={t('authScreens.security.checking')} />{/if}
 </ConfirmDialog>
 
 <style>
-	.message { margin: 0 0 16px; }
-	.field { margin-bottom: 4px; }
-	.field :global(.field) { max-width: none; }
+	.message {
+		margin: 0 0 16px;
+	}
+	.field {
+		margin-bottom: 4px;
+	}
+	.field :global(.field) {
+		max-width: none;
+	}
 </style>

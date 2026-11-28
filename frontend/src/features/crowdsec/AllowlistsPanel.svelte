@@ -11,7 +11,14 @@
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { t } from '../../shared/localization/i18n';
 	import type { SortState } from '../../shared/ui/tableTypes';
-	import { addAllowlistEntry, checkAllowlist, createAllowlist, deleteAllowlist, listAllowlists, removeAllowlistEntry } from './api';
+	import {
+		addAllowlistEntry,
+		checkAllowlist,
+		createAllowlist,
+		deleteAllowlist,
+		listAllowlists,
+		removeAllowlistEntry,
+	} from './api';
 	import { looksLikeIpOrCidr, type CrowdSecAllowlist } from './models';
 
 	let { canWrite = false, reloadKey = 0 }: { canWrite?: boolean; reloadKey?: number } = $props();
@@ -40,17 +47,27 @@
 	let controller = new AbortController();
 	let generation = 0;
 
-	const rows = $derived(lists.flatMap((list) => (list.items.length ? list.items : [{ value: '', description: '', expiration: '' }]).map((entry) => ({
-		id: `${list.name}:${entry.value}`, list: list.name, value: entry.value, comment: entry.description || list.description,
-		expiration: entry.expiration || '', managed: list.console_managed
-	}))) as EntryRow[]);
+	const rows = $derived(
+		lists.flatMap((list) =>
+			(list.items.length ? list.items : [{ value: '', description: '', expiration: '' }]).map((entry) => ({
+				id: `${list.name}:${entry.value}`,
+				list: list.name,
+				value: entry.value,
+				comment: entry.description || list.description,
+				expiration: entry.expiration || '',
+				managed: list.console_managed,
+			})),
+		) as EntryRow[],
+	);
 	const filtered = $derived.by(() => {
 		const q = search.trim().toLowerCase();
-		return rows.filter((row) => !q || `${row.list} ${row.value} ${row.comment}`.toLowerCase().includes(q)).toSorted((a, b) => {
-			const left = sort.column === 'value' ? a.value : a.list;
-			const right = sort.column === 'value' ? b.value : b.list;
-			return left.localeCompare(right, undefined, { numeric: true }) * (sort.direction === 'desc' ? -1 : 1);
-		});
+		return rows
+			.filter((row) => !q || `${row.list} ${row.value} ${row.comment}`.toLowerCase().includes(q))
+			.toSorted((a, b) => {
+				const left = sort.column === 'value' ? a.value : a.list;
+				const right = sort.column === 'value' ? b.value : b.list;
+				return left.localeCompare(right, undefined, { numeric: true }) * (sort.direction === 'desc' ? -1 : 1);
+			});
 	});
 	const pageRows = $derived(filtered.slice((page - 1) * pageSize, page * pageSize));
 	const columns = $derived([
@@ -59,7 +76,7 @@
 		{ id: 'comment', label: c('allowlists.comment'), width: 'clamp(180px, 26vw, 330px)' },
 		{ id: 'expiration', label: c('allowlists.expiration'), width: '180px' },
 		{ id: 'managed', label: c('allowlists.managed'), width: '150px' },
-		{ id: 'actions', label: '', hideLabel: true, width: '210px' }
+		{ id: 'actions', label: '', hideLabel: true, width: '210px' },
 	]);
 
 	async function load() {
@@ -125,7 +142,10 @@
 				await load();
 			} else if (dialog === 'check') {
 				const checked = await checkAllowlist(value.trim());
-				result = c(checked.allowlisted ? 'allowlists.checkAllowed' : 'allowlists.checkDenied', { value: value.trim(), reason: checked.reason || '—' });
+				result = c(checked.allowlisted ? 'allowlists.checkAllowed' : 'allowlists.checkDenied', {
+					value: value.trim(),
+					reason: checked.reason || '—',
+				});
 			}
 		} catch (e) {
 			actionError = errorMessage(e, c('allowlists.actionFailed'));
@@ -163,26 +183,42 @@
 	}
 
 	onMount(() => void load());
-	onDestroy(() => { disposed = true; controller.abort(); });
-	$effect(() => { if (reloadKey > 0) void load(); });
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
+	$effect(() => {
+		if (reloadKey > 0) void load();
+	});
 </script>
 
-{#if actionError}<div class="notice"><Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} /></div>{/if}
+{#if actionError}<div class="notice">
+		<Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} />
+	</div>{/if}
 {#if !canWrite}<div class="notice"><Notice tone="info" message={c('allowlists.readOnly')} /></div>{/if}
 <DataTable
 	{columns}
 	rows={pageRows}
 	getRowId={(row: EntryRow) => row.id}
 	searchValue={search}
-	onsearch={(input: string) => { search = input; page = 1; }}
+	onsearch={(input: string) => {
+		search = input;
+		page = 1;
+	}}
 	searchPlaceholder={c('allowlists.search')}
 	{sort}
-	onsort={(column: string) => { sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' }; page = 1; }}
+	onsort={(column: string) => {
+		sort = { column, direction: sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc' };
+		page = 1;
+	}}
 	{page}
 	{pageSize}
 	total={filtered.length}
 	onpage={(input: number) => (page = input)}
-	onpagesize={(input: number) => { pageSize = input; page = 1; }}
+	onpagesize={(input: number) => {
+		pageSize = input;
+		page = 1;
+	}}
 	{loading}
 	error={!!error && !lists.length}
 	onretry={load}
@@ -191,60 +227,184 @@
 >
 	{#snippet toolbarActions()}
 		<Button onclick={load} pending={loading} disabled={loading}>{c('refresh')}</Button>
-		<Button onclick={() => { dialog = 'check'; value = ''; result = ''; actionError = ''; }}>{c('allowlists.check')}</Button>
+		<Button
+			onclick={() => {
+				dialog = 'check';
+				value = '';
+				result = '';
+				actionError = '';
+			}}
+		>
+			{c('allowlists.check')}
+		</Button>
 		<Button onclick={() => openEntry()} disabled={!canWrite || !lists.length}>{c('allowlists.addEntry')}</Button>
-		<Button variant="primary" onclick={() => { dialog = 'create'; name = PREFIX; description = ''; result = ''; actionError = ''; }} disabled={!canWrite}>{c('allowlists.add')}</Button>
+		<Button
+			variant="primary"
+			onclick={() => {
+				dialog = 'create';
+				name = PREFIX;
+				description = '';
+				result = '';
+				actionError = '';
+			}}
+			disabled={!canWrite}
+		>
+			{c('allowlists.add')}
+		</Button>
 	{/snippet}
 	{#snippet rowSnippet(row: EntryRow)}
 		<td><strong>{row.list}</strong></td>
 		<td>{row.value || '—'}</td>
 		<td>{row.comment || '—'}</td>
 		<td>{row.expiration || c('allowlists.never')}</td>
-		<td><StatusBadge size="sm" tone={row.managed ? 'info' : 'neutral'} text={c(row.managed ? 'allowlists.cloud' : 'allowlists.local')} /></td>
-		<td><div class="row-actions">
-			<Button size="sm" onclick={() => openEntry(row.list)} disabled={!canWrite}>{c('allowlists.addEntry')}</Button>
-			{#if row.value}<Button size="sm" variant="danger" onclick={() => (pendingEntry = row)} disabled={!canWrite}>{c('allowlists.removeEntry')}</Button>{/if}
-			{#if row.list.startsWith(PREFIX)}<Button size="sm" variant="danger" onclick={() => (pendingList = lists.find((list) => list.name === row.list) ?? null)} disabled={!canWrite}>{c('allowlists.deleteList')}</Button>{/if}
-		</div></td>
+		<td>
+			<StatusBadge
+				size="sm"
+				tone={row.managed ? 'info' : 'neutral'}
+				text={c(row.managed ? 'allowlists.cloud' : 'allowlists.local')}
+			/>
+		</td>
+		<td>
+			<div class="row-actions">
+				<Button size="sm" onclick={() => openEntry(row.list)} disabled={!canWrite}>{c('allowlists.addEntry')}</Button>
+				{#if row.value}<Button size="sm" variant="danger" onclick={() => (pendingEntry = row)} disabled={!canWrite}>
+						{c('allowlists.removeEntry')}
+					</Button>{/if}
+				{#if row.list.startsWith(PREFIX)}<Button
+						size="sm"
+						variant="danger"
+						onclick={() => (pendingList = lists.find((list) => list.name === row.list) ?? null)}
+						disabled={!canWrite}
+					>
+						{c('allowlists.deleteList')}
+					</Button>{/if}
+			</div>
+		</td>
 	{/snippet}
 	{#snippet emptyState()}
 		<h2>{c(search ? 'allowlists.noMatches' : 'allowlists.empty')}</h2>
 		<p>{c(search ? 'allowlists.adjust' : 'allowlists.emptyHelp')}</p>
-		{#if search}<Button onclick={() => { search = ''; page = 1; }}>{c('decisions.clear')}</Button>{:else}<Button onclick={() => (dialog = 'create')} disabled={!canWrite}>{c('allowlists.add')}</Button>{/if}
+		{#if search}<Button
+				onclick={() => {
+					search = '';
+					page = 1;
+				}}
+			>
+				{c('decisions.clear')}
+			</Button>{:else}<Button onclick={() => (dialog = 'create')} disabled={!canWrite}>
+				{c('allowlists.add')}
+			</Button>{/if}
 	{/snippet}
 </DataTable>
 
 {#if dialog}
-	<ResourceDialog title={c('allowlists.' + dialog + 'Title')} description={c('allowlists.' + dialog + 'Help')} closeLabel={t('common.close')} onclose={closeDialog}>
+	<ResourceDialog
+		title={c('allowlists.' + dialog + 'Title')}
+		description={c('allowlists.' + dialog + 'Help')}
+		closeLabel={t('common.close')}
+		onclose={closeDialog}
+	>
 		<div class="stack">
 			{#if actionError}<Notice tone="error" message={actionError} />{/if}
 			{#if result}<Notice tone="info" message={result} />{/if}
 			{#if dialog === 'create'}
-				<Field id="allowlist-name" label={c('allowlists.name')} required help={c('allowlists.nameHelp')}><input id="allowlist-name" bind:value={name} disabled={busy} autocomplete="off" spellcheck="false" /></Field>
-				<Field id="allowlist-description" label={c('allowlists.comment')} required><input id="allowlist-description" bind:value={description} disabled={busy} maxlength="512" /></Field>
+				<Field id="allowlist-name" label={c('allowlists.name')} required help={c('allowlists.nameHelp')}>
+					<input id="allowlist-name" bind:value={name} disabled={busy} autocomplete="off" spellcheck="false" />
+				</Field>
+				<Field id="allowlist-description" label={c('allowlists.comment')} required>
+					<input id="allowlist-description" bind:value={description} disabled={busy} maxlength="512" />
+				</Field>
 			{:else if dialog === 'entry'}
-				<Field id="allowlist-target" label={c('allowlists.name')} required><SearchableSelect id="allowlist-target" value={targetList} options={lists.map((list) => ({ value: list.name, label: list.name }))} onchange={(input) => (targetList = input)} disabled={busy} /></Field>
+				<Field id="allowlist-target" label={c('allowlists.name')} required>
+					<SearchableSelect
+						id="allowlist-target"
+						value={targetList}
+						options={lists.map((list) => ({ value: list.name, label: list.name }))}
+						onchange={(input) => (targetList = input)}
+						disabled={busy}
+					/>
+				</Field>
 			{/if}
 			{#if dialog !== 'create'}
-				<Field id="allowlist-value" label={c('allowlists.value')} required help={c('ban.ipHelp')}><input id="allowlist-value" bind:value={value} disabled={busy} autocomplete="off" spellcheck="false" placeholder="203.0.113.7 · 198.51.100.0/24" /></Field>
+				<Field id="allowlist-value" label={c('allowlists.value')} required help={c('ban.ipHelp')}>
+					<input
+						id="allowlist-value"
+						bind:value
+						disabled={busy}
+						autocomplete="off"
+						spellcheck="false"
+						placeholder="203.0.113.7 · 198.51.100.0/24"
+					/>
+				</Field>
 			{/if}
 			{#if dialog === 'entry'}
-				<Field id="allowlist-entry-comment" label={c('allowlists.comment')}><input id="allowlist-entry-comment" bind:value={description} disabled={busy} maxlength="512" /></Field>
-				<Field id="allowlist-expiration" label={c('allowlists.expiration')} help={c('allowlists.expirationHelp')}><SearchableSelect id="allowlist-expiration" value={expiration} options={[{ value: '', label: c('allowlists.never') }, { value: '1h', label: '1h' }, { value: '24h', label: '24h' }, { value: '168h', label: '168h' }]} onchange={(input) => (expiration = input)} disabled={busy} /></Field>
+				<Field id="allowlist-entry-comment" label={c('allowlists.comment')}>
+					<input id="allowlist-entry-comment" bind:value={description} disabled={busy} maxlength="512" />
+				</Field>
+				<Field id="allowlist-expiration" label={c('allowlists.expiration')} help={c('allowlists.expirationHelp')}>
+					<SearchableSelect
+						id="allowlist-expiration"
+						value={expiration}
+						options={[
+							{ value: '', label: c('allowlists.never') },
+							{ value: '1h', label: '1h' },
+							{ value: '24h', label: '24h' },
+							{ value: '168h', label: '168h' },
+						]}
+						onchange={(input) => (expiration = input)}
+						disabled={busy}
+					/>
+				</Field>
 			{/if}
 		</div>
 		{#snippet footer()}
 			<Button onclick={closeDialog} disabled={busy}>{t('common.cancel')}</Button>
-			<Button variant="primary" onclick={submit} pending={busy} disabled={busy}>{c('allowlists.' + dialog + 'Submit')}</Button>
+			<Button variant="primary" onclick={submit} pending={busy} disabled={busy}>
+				{c('allowlists.' + dialog + 'Submit')}
+			</Button>
 		{/snippet}
 	</ResourceDialog>
 {/if}
 
-<ConfirmDialog open={!!pendingEntry} danger title={c('allowlists.removeEntryTitle')} message={pendingEntry ? c('allowlists.removeEntryMessage', { value: pendingEntry.value, name: pendingEntry.list }) : ''} cancelLabel={t('common.cancel')} confirmLabel={c('allowlists.removeEntry')} oncancel={() => { if (!busy) pendingEntry = null; }} onconfirm={confirmEntry} />
-<ConfirmDialog open={!!pendingList} danger title={c('allowlists.deleteListTitle')} message={pendingList ? c('allowlists.deleteListMessage', { name: pendingList.name }) : ''} cancelLabel={t('common.cancel')} confirmLabel={c('allowlists.deleteList')} oncancel={() => { if (!busy) pendingList = null; }} onconfirm={confirmList} />
+<ConfirmDialog
+	open={!!pendingEntry}
+	danger
+	title={c('allowlists.removeEntryTitle')}
+	message={pendingEntry
+		? c('allowlists.removeEntryMessage', { value: pendingEntry.value, name: pendingEntry.list })
+		: ''}
+	cancelLabel={t('common.cancel')}
+	confirmLabel={c('allowlists.removeEntry')}
+	oncancel={() => {
+		if (!busy) pendingEntry = null;
+	}}
+	onconfirm={confirmEntry}
+/>
+<ConfirmDialog
+	open={!!pendingList}
+	danger
+	title={c('allowlists.deleteListTitle')}
+	message={pendingList ? c('allowlists.deleteListMessage', { name: pendingList.name }) : ''}
+	cancelLabel={t('common.cancel')}
+	confirmLabel={c('allowlists.deleteList')}
+	oncancel={() => {
+		if (!busy) pendingList = null;
+	}}
+	onconfirm={confirmList}
+/>
 
 <style>
-	.notice { margin-bottom: 16px; }
-	.stack { display: grid; gap: 20px; }
-	.row-actions { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+	.notice {
+		margin-bottom: 16px;
+	}
+	.stack {
+		display: grid;
+		gap: 20px;
+	}
+	.row-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 4px;
+	}
 </style>

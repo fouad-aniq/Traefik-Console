@@ -40,10 +40,12 @@
 
 	const device = (r: SessionInfo) => deviceLabel(r.user_agent, s('on'), s('unknownDevice'));
 	const method = (r: SessionInfo) => (r.method === 'oauth' ? r.provider || s('external') : s('password'));
-	const filtered = $derived(rows.filter((r) => {
-		const q = search.trim().toLowerCase();
-		return !q || [device(r), r.ip, method(r)].some((v) => v.toLowerCase().includes(q));
-	}));
+	const filtered = $derived(
+		rows.filter((r) => {
+			const q = search.trim().toLowerCase();
+			return !q || [device(r), r.ip, method(r)].some((v) => v.toLowerCase().includes(q));
+		}),
+	);
 	const pageRows = $derived(filtered.slice((page - 1) * pageSize, page * pageSize));
 	const others = $derived(rows.filter((r) => !r.current).length);
 
@@ -53,7 +55,7 @@
 		{ id: 'method', label: s('colMethod'), width: '170px' },
 		{ id: 'signedIn', label: s('colSignedIn'), width: '150px' },
 		{ id: 'lastActive', label: s('colLastActive'), width: '150px' },
-		{ id: 'actions', label: s('colActions'), hideLabel: true, width: '120px' }
+		{ id: 'actions', label: s('colActions'), hideLabel: true, width: '120px' },
 	];
 
 	let pendingRevoke = $state<SessionInfo | null>(null);
@@ -91,20 +93,28 @@
 	}
 </script>
 
-{#if actionError}<div class="notices"><Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} /></div>{/if}
+{#if actionError}<div class="notices">
+		<Notice tone="error" message={actionError} dismissible onDismiss={() => (actionError = '')} />
+	</div>{/if}
 
 <DataTable
 	{columns}
 	rows={pageRows}
 	getRowId={(r: SessionInfo) => r.id}
 	searchValue={search}
-	onsearch={(v: string) => { search = v; page = 1; }}
+	onsearch={(v: string) => {
+		search = v;
+		page = 1;
+	}}
 	searchPlaceholder={s('search')}
 	{page}
 	{pageSize}
 	total={filtered.length}
 	onpage={(v: number) => (page = v)}
-	onpagesize={(v: number) => { pageSize = v; page = 1; }}
+	onpagesize={(v: number) => {
+		pageSize = v;
+		page = 1;
+	}}
 	{loading}
 	error={!!error}
 	onretry={load}
@@ -117,7 +127,13 @@
 
 	{#snippet rowSnippet(row: SessionInfo)}
 		<td>
-			<span class="device"><strong>{device(row)}</strong>{#if row.current}<StatusBadge size="sm" tone="connection" text={s('thisBrowser')} />{/if}</span>
+			<span class="device">
+				<strong>{device(row)}</strong>{#if row.current}<StatusBadge
+						size="sm"
+						tone="connection"
+						text={s('thisBrowser')}
+					/>{/if}
+			</span>
 		</td>
 		<td><span class="mono">{row.ip || '—'}</span></td>
 		<td>{method(row)}</td>
@@ -125,7 +141,10 @@
 		<td><RelativeTime value={row.last_seen_at} /></td>
 		<td>
 			{#if !row.current}
-				<RowActions label={device(row)} actions={[{ label: s('signOut'), variant: 'danger', onclick: () => (pendingRevoke = row) }]} />
+				<RowActions
+					label={device(row)}
+					actions={[{ label: s('signOut'), variant: 'danger', onclick: () => (pendingRevoke = row) }]}
+				/>
 			{/if}
 		</td>
 	{/snippet}
@@ -139,13 +158,48 @@
 
 <p class="footnote">{s('lifetimeHelp')}</p>
 
-<ConfirmDialog open={!!pendingRevoke} danger title={s('revokeOneTitle')} message={pendingRevoke ? s('revokeOneBody', { device: device(pendingRevoke), ip: pendingRevoke.ip || '—' }) : ''} confirmLabel={s('signOut')} cancelLabel={t('common.cancel')} oncancel={() => (pendingRevoke = null)} onconfirm={revokeOne} />
-<ConfirmDialog open={confirmOthers} danger title={s('revokeOthersTitle')} message={s('revokeOthersBody', { count: others })} confirmLabel={s('revokeOthers')} cancelLabel={t('common.cancel')} oncancel={() => (confirmOthers = false)} onconfirm={revokeAll} />
+<ConfirmDialog
+	open={!!pendingRevoke}
+	danger
+	title={s('revokeOneTitle')}
+	message={pendingRevoke ? s('revokeOneBody', { device: device(pendingRevoke), ip: pendingRevoke.ip || '—' }) : ''}
+	confirmLabel={s('signOut')}
+	cancelLabel={t('common.cancel')}
+	oncancel={() => (pendingRevoke = null)}
+	onconfirm={revokeOne}
+/>
+<ConfirmDialog
+	open={confirmOthers}
+	danger
+	title={s('revokeOthersTitle')}
+	message={s('revokeOthersBody', { count: others })}
+	confirmLabel={s('revokeOthers')}
+	cancelLabel={t('common.cancel')}
+	oncancel={() => (confirmOthers = false)}
+	onconfirm={revokeAll}
+/>
 
 <style>
-	.notices { margin-bottom: 16px; }
-	.device { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-	.device strong { font-weight: 600; }
-	.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
-	.footnote { margin: 12px 0 0; color: var(--text-muted); font-size: 13px; line-height: 20px; }
+	.notices {
+		margin-bottom: 16px;
+	}
+	.device {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.device strong {
+		font-weight: 600;
+	}
+	.mono {
+		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		font-size: 13px;
+	}
+	.footnote {
+		margin: 12px 0 0;
+		color: var(--text-muted);
+		font-size: 13px;
+		line-height: 20px;
+	}
 </style>

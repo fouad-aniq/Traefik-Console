@@ -22,6 +22,6 @@ export default defineConfig(({ mode }) => {
 		plugins: [svelte({ preprocess: vitePreprocess({ script: true }) })],
 		server: { proxy: { '/api': { target, changeOrigin: true } } },
 		build: { outDir: 'dist', emptyOutDir: true },
-		test: { environment: 'happy-dom', include: ['tests/**/*.test.ts', 'src/**/*.test.ts'] }
+		test: { environment: 'happy-dom', include: ['tests/**/*.test.ts', 'src/**/*.test.ts'] },
 	};
 });

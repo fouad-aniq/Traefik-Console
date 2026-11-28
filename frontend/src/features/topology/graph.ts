@@ -12,8 +12,23 @@
  * linked, and the exact PUT body that creates or removes a link.
  */
 import type { Resource } from '../../core/types';
-import { formFrom, referenceBase, routerProtocolOf, toInput, MAX_ENTRYPOINTS, MAX_MIDDLEWARES, type RouterInput, type RouterResource } from '../routes/models';
-import { MAX_CHAIN_MEMBERS, middlewareProtocolOf, type ChainInput, type ChainResource, type MiddlewareResource } from '../middlewares/models';
+import {
+	formFrom,
+	referenceBase,
+	routerProtocolOf,
+	toInput,
+	MAX_ENTRYPOINTS,
+	MAX_MIDDLEWARES,
+	type RouterInput,
+	type RouterResource,
+} from '../routes/models';
+import {
+	MAX_CHAIN_MEMBERS,
+	middlewareProtocolOf,
+	type ChainInput,
+	type ChainResource,
+	type MiddlewareResource,
+} from '../middlewares/models';
 import { protocolOf as serviceProtocolOf, serversOf, type ServiceResource } from '../services/models';
 import { displayAddress, kindOf, type EntryPointResource } from '../entrypoints/models';
 import { coversAll, hasWildcard, namesOf, type DomainInput, type DomainResource } from '../domains/models';
@@ -23,20 +38,37 @@ import type { CertificateResource } from '../certificates/models';
 /** The Traefik section a router, service or middleware lives in; for an entrypoint, what it listens on. */
 export type Transport = 'http' | 'tcp' | 'udp';
 
-export type NodeKind = 'resolver' | 'certificate' | 'entrypoint' | 'domain' | 'route' | 'chain' | 'middleware' | 'service';
+export type NodeKind =
+	'resolver' | 'certificate' | 'entrypoint' | 'domain' | 'route' | 'chain' | 'middleware' | 'service';
 
 /** Left-to-right lanes; kinds sharing a lane are stacked in this order. */
-export const COLUMNS: NodeKind[][] = [['resolver', 'certificate'], ['entrypoint', 'domain'], ['route'], ['chain', 'middleware'], ['service']];
+export const COLUMNS: NodeKind[][] = [
+	['resolver', 'certificate'],
+	['entrypoint', 'domain'],
+	['route'],
+	['chain', 'middleware'],
+	['service'],
+];
 export const KINDS: NodeKind[] = COLUMNS.flat();
-const COLUMN_OF = Object.fromEntries(COLUMNS.flatMap((kinds, index) => kinds.map((kind) => [kind, index]))) as Record<NodeKind, number>;
+const COLUMN_OF = Object.fromEntries(COLUMNS.flatMap((kinds, index) => kinds.map((kind) => [kind, index]))) as Record<
+	NodeKind,
+	number
+>;
 
 /**
  * A relation is named after the resource that stores it ("route-middleware" lives in the
  * route). `middleware-service` (an `errors` middleware pointing at a service) is displayed only.
  */
 export type Relation =
-	| 'route-entrypoint' | 'route-domain' | 'route-resolver' | 'route-middleware' | 'route-service'
-	| 'chain-middleware' | 'domain-resolver' | 'domain-certificate' | 'middleware-service';
+	| 'route-entrypoint'
+	| 'route-domain'
+	| 'route-resolver'
+	| 'route-middleware'
+	| 'route-service'
+	| 'chain-middleware'
+	| 'domain-resolver'
+	| 'domain-certificate'
+	| 'middleware-service';
 
 export interface GraphNode {
 	id: string;
@@ -113,7 +145,9 @@ function routeSubtitle(r: RouterResource): string {
 
 /** "HTTP", "HTTPS", "H2C", or several joined when the backends differ. */
 export function protocolOf(urls: string[]): string {
-	const schemes = urls.map((u) => /^([a-z][a-z0-9+.-]*):\/\//i.exec(u.trim())?.[1].toUpperCase()).filter((s): s is string => !!s);
+	const schemes = urls
+		.map((u) => /^([a-z][a-z0-9+.-]*):\/\//i.exec(u.trim())?.[1].toUpperCase())
+		.filter((s): s is string => !!s);
 	return [...new Set(schemes)].join(' / ');
 }
 
@@ -127,13 +161,39 @@ export function buildGraph(inv: Inventory): Graph {
 		const id = nodeId(kind, name);
 		const existing = byId.get(id);
 		if (existing) return existing;
-		const node: GraphNode = { id, kind, name, subtitle: '', count: 0, protocol: '', transport: '', external: false, provider: '', readOnly: false, missing: false, health: '', error: '', tls: false, version: 0, ...extra };
+		const node: GraphNode = {
+			id,
+			kind,
+			name,
+			subtitle: '',
+			count: 0,
+			protocol: '',
+			transport: '',
+			external: false,
+			provider: '',
+			readOnly: false,
+			missing: false,
+			health: '',
+			error: '',
+			tls: false,
+			version: 0,
+			...extra,
+		};
 		nodes.push(node);
 		byId.set(id, node);
 		return node;
 	};
 	const fromResource = (kind: NodeKind, r: Resource<any>, extra: Partial<GraphNode> = {}) =>
-		add(kind, r.name, { external: r.origin === 'external', provider: r.provider ?? '', readOnly: !!r.read_only, health: r.live_health ?? '', error: r.live_error_msg ?? '', version: r.version ?? 0, resource: r, ...extra });
+		add(kind, r.name, {
+			external: r.origin === 'external',
+			provider: r.provider ?? '',
+			readOnly: !!r.read_only,
+			health: r.live_health ?? '',
+			error: r.live_error_msg ?? '',
+			version: r.version ?? 0,
+			resource: r,
+			...extra,
+		});
 
 	/** TCP and UDP objects say so next to their name; HTTP is the unmarked case. */
 	const tag = (transport: Transport) => (transport === 'http' ? '' : transport.toUpperCase());
@@ -141,23 +201,59 @@ export function buildGraph(inv: Inventory): Graph {
 	for (const e of inv.entryPointResources ?? []) {
 		const transport: Transport = e.config.protocol === 'udp' ? 'udp' : 'tcp';
 		const redirect = e.config.http?.redirect?.to;
-		fromResource('entrypoint', e, { subtitle: displayAddress(e.config) + (redirect ? ' → ' + redirect : ''), transport, protocol: transport === 'udp' ? 'UDP' : '', tls: kindOf(e.config) === 'https' });
+		fromResource('entrypoint', e, {
+			subtitle: displayAddress(e.config) + (redirect ? ' → ' + redirect : ''),
+			transport,
+			protocol: transport === 'udp' ? 'UDP' : '',
+			tls: kindOf(e.config) === 'https',
+		});
 	}
-	for (const name of inv.entryPoints) add('entrypoint', name, { readOnly: true, transport: listens(name), protocol: listens(name) === 'udp' ? 'UDP' : '' });
-	for (const r of inv.resolvers) fromResource('resolver', r, { subtitle: r.config.type === 'custom' ? 'custom' : [r.config.challenge, r.config.provider].filter(Boolean).join(' · ') });
-	for (const c of inv.certificates) fromResource('certificate', c, { subtitle: (c.config.domains ?? []).join(', '), health: c.config.status ?? '' });
-	for (const d of inv.domains) fromResource('domain', d, { subtitle: [d.config.main, ...(d.config.sans ?? [])].filter(Boolean).join(', '), tls: true });
+	for (const name of inv.entryPoints)
+		add('entrypoint', name, {
+			readOnly: true,
+			transport: listens(name),
+			protocol: listens(name) === 'udp' ? 'UDP' : '',
+		});
+	for (const r of inv.resolvers)
+		fromResource('resolver', r, {
+			subtitle:
+				r.config.type === 'custom' ? 'custom' : [r.config.challenge, r.config.provider].filter(Boolean).join(' · '),
+		});
+	for (const c of inv.certificates)
+		fromResource('certificate', c, { subtitle: (c.config.domains ?? []).join(', '), health: c.config.status ?? '' });
+	for (const d of inv.domains)
+		fromResource('domain', d, {
+			subtitle: [d.config.main, ...(d.config.sans ?? [])].filter(Boolean).join(', '),
+			tls: true,
+		});
 	for (const s of inv.services) {
 		// HTTP backends are URLs, TCP and UDP ones are host:port addresses.
-		const transport = serviceProtocolOf(s.config), servers = serversOf(s.config);
-		fromResource('service', s, { subtitle: servers[0] ?? '', count: servers.length, transport, protocol: transport === 'http' ? protocolOf(servers) : tag(transport) });
+		const transport = serviceProtocolOf(s.config),
+			servers = serversOf(s.config);
+		fromResource('service', s, {
+			subtitle: servers[0] ?? '',
+			count: servers.length,
+			transport,
+			protocol: transport === 'http' ? protocolOf(servers) : tag(transport),
+		});
 	}
-	for (const m of inv.middlewares) fromResource('middleware', m, { subtitle: m.config.type === 'plugin' && m.config.plugin_name ? m.config.plugin_name : m.config.type ?? '', transport: middlewareProtocolOf(m.config), protocol: tag(middlewareProtocolOf(m.config)) });
-	for (const c of inv.chains) fromResource('chain', c, { count: (c.config.middlewares ?? []).length, transport: 'http' });
+	for (const m of inv.middlewares)
+		fromResource('middleware', m, {
+			subtitle: m.config.type === 'plugin' && m.config.plugin_name ? m.config.plugin_name : (m.config.type ?? ''),
+			transport: middlewareProtocolOf(m.config),
+			protocol: tag(middlewareProtocolOf(m.config)),
+		});
+	for (const c of inv.chains)
+		fromResource('chain', c, { count: (c.config.middlewares ?? []).length, transport: 'http' });
 	for (const r of inv.routers) {
 		const transport = routerProtocolOf(r.config);
 		// A UDP router has no rule: what identifies it is where it listens.
-		fromResource('route', r, { subtitle: routeSubtitle(r) || (r.config.entry_points ?? []).join(', '), tls: transport !== 'udp' && (!!r.config.tls || !!r.config.domain_name), transport, protocol: tag(transport) });
+		fromResource('route', r, {
+			subtitle: routeSubtitle(r) || (r.config.entry_points ?? []).join(', '),
+			tls: transport !== 'udp' && (!!r.config.tls || !!r.config.domain_name),
+			transport,
+			protocol: tag(transport),
+		});
 	}
 
 	/**
@@ -168,16 +264,23 @@ export function buildGraph(inv: Inventory): Graph {
 	const resolve = (kinds: NodeKind[], ref: string, owner: GraphNode): GraphNode => {
 		const candidates = [ref, referenceBase(ref)];
 		if (owner.external && owner.provider && !ref.includes('@')) candidates.push(`${ref}@${owner.provider}`);
-		for (const kind of kinds) for (const name of candidates) {
-			const hit = byId.get(nodeId(kind, name));
-			if (hit) return hit;
-		}
+		for (const kind of kinds)
+			for (const name of candidates) {
+				const hit = byId.get(nodeId(kind, name));
+				if (hit) return hit;
+			}
 		const kind = kinds[0];
-		return add(kind, referenceBase(ref), { missing: !failed.has(kind), external: ref.includes('@') && !ref.endsWith('@file'), provider: ref.includes('@') ? ref.split('@').pop()! : '', readOnly: true });
+		return add(kind, referenceBase(ref), {
+			missing: !failed.has(kind),
+			external: ref.includes('@') && !ref.endsWith('@file'),
+			provider: ref.includes('@') ? ref.split('@').pop()! : '',
+			readOnly: true,
+		});
 	};
 	const link = (relation: Relation, subject: GraphNode, object: GraphNode, order?: number) => {
 		// Drawn left to right: whichever end sits in the earlier lane is the start.
-		const forward = COLUMN_OF[subject.kind] < COLUMN_OF[object.kind] || (COLUMN_OF[subject.kind] === COLUMN_OF[object.kind]);
+		const forward =
+			COLUMN_OF[subject.kind] < COLUMN_OF[object.kind] || COLUMN_OF[subject.kind] === COLUMN_OF[object.kind];
 		const [from, to] = forward ? [subject, object] : [object, subject];
 		const id = `${relation}|${subject.id}|${object.id}`;
 		if (edges.some((e) => e.id === id)) return;
@@ -190,20 +293,26 @@ export function buildGraph(inv: Inventory): Graph {
 		for (const ep of c.entry_points ?? []) link('route-entrypoint', route, resolve(['entrypoint'], ep, route));
 		if (c.domain_name) {
 			link('route-domain', route, resolve(['domain'], c.domain_name, route));
-			for (const extra of c.extra_domains ?? []) link('route-domain', route, resolve(['domain'], extra.domain_name, route));
-		}
-		else if (c.tls?.cert_resolver) link('route-resolver', route, resolve(['resolver'], c.tls.cert_resolver, route));
-		(c.middlewares ?? []).forEach((ref, i) => link('route-middleware', route, resolve(['middleware', 'chain'], ref, route), i + 1));
+			for (const extra of c.extra_domains ?? [])
+				link('route-domain', route, resolve(['domain'], extra.domain_name, route));
+		} else if (c.tls?.cert_resolver) link('route-resolver', route, resolve(['resolver'], c.tls.cert_resolver, route));
+		(c.middlewares ?? []).forEach((ref, i) =>
+			link('route-middleware', route, resolve(['middleware', 'chain'], ref, route), i + 1),
+		);
 		if (c.service) link('route-service', route, resolve(['service'], c.service, route));
 	}
 	for (const c of inv.chains) {
 		const chain = byId.get(nodeId('chain', c.name))!;
-		(c.config.middlewares ?? []).forEach((ref, i) => link('chain-middleware', chain, resolve(['middleware', 'chain'], ref, chain), i + 1));
+		(c.config.middlewares ?? []).forEach((ref, i) =>
+			link('chain-middleware', chain, resolve(['middleware', 'chain'], ref, chain), i + 1),
+		);
 	}
 	for (const d of inv.domains) {
 		const domain = byId.get(nodeId('domain', d.name))!;
-		if (d.config.method === 'resolver' && d.config.resolver) link('domain-resolver', domain, resolve(['resolver'], d.config.resolver, domain));
-		if (d.config.method === 'files' && d.config.certificate) link('domain-certificate', domain, resolve(['certificate'], d.config.certificate, domain));
+		if (d.config.method === 'resolver' && d.config.resolver)
+			link('domain-resolver', domain, resolve(['resolver'], d.config.resolver, domain));
+		if (d.config.method === 'files' && d.config.certificate)
+			link('domain-certificate', domain, resolve(['certificate'], d.config.certificate, domain));
 	}
 	for (const m of inv.middlewares) {
 		const target = m.config.type === 'errors' ? (m.config.spec as { service?: unknown } | null)?.service : undefined;
@@ -226,8 +335,17 @@ export const COL_GAP = 96;
 export const HEADER_H = 34;
 export const GROUP_GAP = 30;
 
-export interface Placed { x: number; y: number; column: number }
-export interface LaneHeader { kind: NodeKind; x: number; y: number; count: number }
+export interface Placed {
+	x: number;
+	y: number;
+	column: number;
+}
+export interface LaneHeader {
+	kind: NodeKind;
+	x: number;
+	y: number;
+	count: number;
+}
 export interface Layout {
 	positions: Map<string, Placed>;
 	headers: LaneHeader[];
@@ -248,7 +366,11 @@ export interface Layout {
 export function filterOwnership(graph: Graph, keep: 'managed' | 'external'): Graph {
 	const nodes = graph.nodes.filter((n) => n.kind === 'entrypoint' || n.external === (keep === 'external'));
 	const ids = new Set(nodes.map((n) => n.id));
-	return { nodes, edges: graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)), byId: new Map(nodes.map((n) => [n.id, n])) };
+	return {
+		nodes,
+		edges: graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)),
+		byId: new Map(nodes.map((n) => [n.id, n])),
+	};
 }
 
 export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Set()): Layout {
@@ -259,25 +381,35 @@ export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Se
 		(neighbours.get(e.to) ?? neighbours.set(e.to, []).get(e.to)!).push(e.from);
 	}
 	const byKind = new Map<NodeKind, GraphNode[]>();
-	for (const kind of KINDS) byKind.set(kind, visible.filter((n) => n.kind === kind).sort((a, b) => a.name.localeCompare(b.name)));
+	for (const kind of KINDS)
+		byKind.set(
+			kind,
+			visible.filter((n) => n.kind === kind).sort((a, b) => a.name.localeCompare(b.name)),
+		);
 
 	const rank = new Map<string, number>();
 	const place = (kind: NodeKind, against: NodeKind[] | null) => {
 		const list = byKind.get(kind)!;
 		if (against) {
 			const score = (n: GraphNode) => {
-				const ys = (neighbours.get(n.id) ?? []).filter((id) => against.includes(graph.byId.get(id)!.kind) && rank.has(id)).map((id) => rank.get(id)!);
+				const ys = (neighbours.get(n.id) ?? [])
+					.filter((id) => against.includes(graph.byId.get(id)!.kind) && rank.has(id))
+					.map((id) => rank.get(id)!);
 				return ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : Number.POSITIVE_INFINITY;
 			};
 			const scores = new Map(list.map((n) => [n.id, score(n)]));
-			list.sort((a, b) => (scores.get(a.id)! - scores.get(b.id)!) || a.name.localeCompare(b.name));
+			list.sort((a, b) => scores.get(a.id)! - scores.get(b.id)! || a.name.localeCompare(b.name));
 		}
 		list.forEach((n, i) => rank.set(n.id, i));
 	};
 	const sweep = () => {
-		place('domain', ['route']); place('entrypoint', ['route']);
-		place('resolver', ['domain', 'route']); place('certificate', ['domain']);
-		place('chain', ['route']); placeMiddlewares(); place('service', ['route']);
+		place('domain', ['route']);
+		place('entrypoint', ['route']);
+		place('resolver', ['domain', 'route']);
+		place('certificate', ['domain']);
+		place('chain', ['route']);
+		placeMiddlewares();
+		place('service', ['route']);
 	};
 	/**
 	 * Chains share the middleware lane. Their members come first, grouped per chain in running
@@ -293,7 +425,10 @@ export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Se
 			member.set(e.object, Math.min(member.get(e.object) ?? Infinity, key));
 		}
 		const before = new Map(list.map((n, i) => [n.id, i]));
-		list.sort((a, b) => (member.get(a.id) ?? Infinity) - (member.get(b.id) ?? Infinity) || before.get(a.id)! - before.get(b.id)!);
+		list.sort(
+			(a, b) =>
+				(member.get(a.id) ?? Infinity) - (member.get(b.id) ?? Infinity) || before.get(a.id)! - before.get(b.id)!,
+		);
 		list.forEach((n, i) => rank.set(n.id, i));
 	};
 	place('route', null);
@@ -301,8 +436,14 @@ export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Se
 	place('route', ['service', 'domain']);
 	sweep();
 
-	const lanes = COLUMNS.map((kinds) => kinds.filter((k) => byKind.get(k)!.length > 0)).filter((kinds) => kinds.length > 0);
-	const laneHeight = (kinds: NodeKind[]) => kinds.reduce((h, k, i) => h + (i ? GROUP_GAP : 0) + HEADER_H + byKind.get(k)!.length * (NODE_H + ROW_GAP) - ROW_GAP, 0);
+	const lanes = COLUMNS.map((kinds) => kinds.filter((k) => byKind.get(k)!.length > 0)).filter(
+		(kinds) => kinds.length > 0,
+	);
+	const laneHeight = (kinds: NodeKind[]) =>
+		kinds.reduce(
+			(h, k, i) => h + (i ? GROUP_GAP : 0) + HEADER_H + byKind.get(k)!.length * (NODE_H + ROW_GAP) - ROW_GAP,
+			0,
+		);
 	const height = Math.max(0, ...lanes.map(laneHeight));
 	const positions = new Map<string, Placed>();
 	const headers: LaneHeader[] = [];
@@ -314,7 +455,10 @@ export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Se
 			const list = byKind.get(kind)!;
 			headers.push({ kind, x, y, count: list.length });
 			y += HEADER_H;
-			for (const n of list) { positions.set(n.id, { x, y, column }); y += NODE_H + ROW_GAP; }
+			for (const n of list) {
+				positions.set(n.id, { x, y, column });
+				y += NODE_H + ROW_GAP;
+			}
 			y -= ROW_GAP;
 		});
 	});
@@ -334,7 +478,9 @@ export function layoutGraph(graph: Graph, hidden: ReadonlySet<NodeKind> = new Se
  */
 export function pipelineEdges(graph: Graph, visible: (id: string) => boolean): GraphEdge[] {
 	const last = new Map<string, string>();
-	const steps = graph.edges.filter((e) => e.relation === 'route-middleware').sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+	const steps = graph.edges
+		.filter((e) => e.relation === 'route-middleware')
+		.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 	const drawn = new Map<string, string>();
 	for (const e of steps) {
 		if (!visible(e.subject) || !visible(e.object)) continue;
@@ -354,31 +500,50 @@ export function pipelineEdges(graph: Graph, visible: (id: string) => boolean): G
  * a pipeline hop between two middlewares stays close, a chain's bracket (`wide`) sits further out.
  */
 export function edgePath(a: Placed, b: Placed, wide = false): string {
-	const y1 = a.y + NODE_H / 2, y2 = b.y + NODE_H / 2;
+	const y1 = a.y + NODE_H / 2,
+		y2 = b.y + NODE_H / 2;
 	if (a.column === b.column) {
-		const x = a.x + NODE_W, bow = sameLaneBow(y1, y2, wide);
+		const x = a.x + NODE_W,
+			bow = sameLaneBow(y1, y2, wide);
 		return `M ${x} ${y1} C ${x + bow} ${y1}, ${x + bow} ${y2}, ${x} ${y2}`;
 	}
-	const x1 = a.x + NODE_W, x2 = b.x;
+	const x1 = a.x + NODE_W,
+		x2 = b.x;
 	const bend = Math.max(48, (x2 - x1) * 0.5);
 	return `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`;
 }
 
-const sameLaneBow = (y1: number, y2: number, wide: boolean) => (wide ? 62 : 26) + Math.min(wide ? 44 : 30, Math.abs(y2 - y1) / 8);
+const sameLaneBow = (y1: number, y2: number, wide: boolean) =>
+	(wide ? 62 : 26) + Math.min(wide ? 44 : 30, Math.abs(y2 - y1) / 8);
 
 /** Point at `t` on the same curve, for the order badge. */
 export function edgePoint(a: Placed, b: Placed, t = 0.5, wide = false): { x: number; y: number } {
-	const y1 = a.y + NODE_H / 2, y2 = b.y + NODE_H / 2;
+	const y1 = a.y + NODE_H / 2,
+		y2 = b.y + NODE_H / 2;
 	let p: [number, number][];
 	if (a.column === b.column) {
-		const x = a.x + NODE_W, bow = sameLaneBow(y1, y2, wide);
-		p = [[x, y1], [x + bow, y1], [x + bow, y2], [x, y2]];
+		const x = a.x + NODE_W,
+			bow = sameLaneBow(y1, y2, wide);
+		p = [
+			[x, y1],
+			[x + bow, y1],
+			[x + bow, y2],
+			[x, y2],
+		];
 	} else {
-		const x1 = a.x + NODE_W, x2 = b.x, bend = Math.max(48, (x2 - x1) * 0.5);
-		p = [[x1, y1], [x1 + bend, y1], [x2 - bend, y2], [x2, y2]];
+		const x1 = a.x + NODE_W,
+			x2 = b.x,
+			bend = Math.max(48, (x2 - x1) * 0.5);
+		p = [
+			[x1, y1],
+			[x1 + bend, y1],
+			[x2 - bend, y2],
+			[x2, y2],
+		];
 	}
 	const u = 1 - t;
-	const at = (i: 0 | 1) => u * u * u * p[0][i] + 3 * u * u * t * p[1][i] + 3 * u * t * t * p[2][i] + t * t * t * p[3][i];
+	const at = (i: 0 | 1) =>
+		u * u * u * p[0][i] + 3 * u * u * t * p[1][i] + 3 * u * t * t * p[2][i] + t * t * t * p[3][i];
 	return { x: at(0), y: at(1) };
 }
 
@@ -396,7 +561,10 @@ export function pathThrough(graph: Graph, start: string): { nodes: Set<string>; 
 				if (here !== id) continue;
 				edges.add(e.id);
 				nodes.add(next);
-				if (!seen.has(next)) { seen.add(next); queue.push(next); }
+				if (!seen.has(next)) {
+					seen.add(next);
+					queue.push(next);
+				}
 			}
 		}
 	};
@@ -410,10 +578,19 @@ export function pathThrough(graph: Graph, start: string): { nodes: Set<string>; 
 	while (queue.length) {
 		const id = queue.shift()!;
 		for (const e of graph.edges) {
-			if (e.from !== id || e.relation === 'route-entrypoint' || e.relation === 'route-domain' || e.relation === 'route-resolver') continue;
+			if (
+				e.from !== id ||
+				e.relation === 'route-entrypoint' ||
+				e.relation === 'route-domain' ||
+				e.relation === 'route-resolver'
+			)
+				continue;
 			edges.add(e.id);
 			nodes.add(e.to);
-			if (!seen.has(e.to)) { seen.add(e.to); queue.push(e.to); }
+			if (!seen.has(e.to)) {
+				seen.add(e.to);
+				queue.push(e.to);
+			}
 		}
 	}
 	return { nodes, edges };
@@ -433,10 +610,22 @@ export interface Connection {
 
 /** Why two nodes cannot be linked; the page turns the code into a sentence. */
 export type ConnectError =
-	| 'same' | 'incompatible' | 'missing' | 'readOnly' | 'already' | 'tooMany' | 'cycle'
-	| 'domainTls' | 'notServerCertificate' | 'notCovered' | 'wildcardChallenge' | 'required' | 'protocol';
+	| 'same'
+	| 'incompatible'
+	| 'missing'
+	| 'readOnly'
+	| 'already'
+	| 'tooMany'
+	| 'cycle'
+	| 'domainTls'
+	| 'notServerCertificate'
+	| 'notCovered'
+	| 'wildcardChallenge'
+	| 'required'
+	| 'protocol';
 
-export type ConnectResult = { ok: true; connection: Connection } | { ok: false; error: ConnectError; subject?: GraphNode };
+export type ConnectResult =
+	{ ok: true; connection: Connection } | { ok: false; error: ConnectError; subject?: GraphNode };
 
 const refsEqual = (ref: string, node: GraphNode) => ref === node.name || referenceBase(ref) === node.name;
 
@@ -449,7 +638,7 @@ const RULES: [NodeKind, NodeKind[], Connection['relation']][] = [
 	['route', ['service'], 'route-service'],
 	['chain', ['middleware', 'chain'], 'chain-middleware'],
 	['domain', ['resolver'], 'domain-resolver'],
-	['domain', ['certificate'], 'domain-certificate']
+	['domain', ['certificate'], 'domain-certificate'],
 ];
 
 /**
@@ -461,10 +650,15 @@ function crossesProtocols(relation: Connection['relation'], subject: GraphNode, 
 	if (subject.kind !== 'route') return relation === 'chain-middleware' && object.transport === 'tcp';
 	const own = subject.transport || 'http';
 	switch (relation) {
-		case 'route-service': return !!object.transport && object.transport !== own;
-		case 'route-middleware': return own === 'udp' || (object.transport || 'http') !== own;
-		case 'route-entrypoint': return !!object.transport && (object.transport === 'udp') !== (own === 'udp');
-		case 'route-domain': case 'route-resolver': return own === 'udp';
+		case 'route-service':
+			return !!object.transport && object.transport !== own;
+		case 'route-middleware':
+			return own === 'udp' || (object.transport || 'http') !== own;
+		case 'route-entrypoint':
+			return !!object.transport && (object.transport === 'udp') !== (own === 'udp');
+		case 'route-domain':
+		case 'route-resolver':
+			return own === 'udp';
 	}
 	return false;
 }
@@ -473,7 +667,12 @@ function containsChain(graph: Graph, from: GraphNode, target: GraphNode, seen = 
 	if (from.id === target.id) return true;
 	if (seen.has(from.id)) return false;
 	seen.add(from.id);
-	return graph.edges.some((e) => e.relation === 'chain-middleware' && e.subject === from.id && containsChain(graph, graph.byId.get(e.object)!, target, seen));
+	return graph.edges.some(
+		(e) =>
+			e.relation === 'chain-middleware' &&
+			e.subject === from.id &&
+			containsChain(graph, graph.byId.get(e.object)!, target, seen),
+	);
 }
 
 /**
@@ -483,18 +682,30 @@ function containsChain(graph: Graph, from: GraphNode, target: GraphNode, seen = 
 export function canConnect(graph: Graph, a: GraphNode, b: GraphNode): ConnectResult {
 	if (a.id === b.id) return { ok: false, error: 'same' };
 	let rule: (typeof RULES)[number] | undefined;
-	let subject = a, object = b;
+	let subject = a,
+		object = b;
 	for (const candidate of RULES) {
 		// chain ↔ chain is ambiguous by kind alone: the node the user dropped ON receives the member.
-		if (candidate[0] === b.kind && candidate[1].includes(a.kind)) { rule = candidate; subject = b; object = a; break; }
-		if (candidate[0] === a.kind && candidate[1].includes(b.kind)) { rule = candidate; subject = a; object = b; break; }
+		if (candidate[0] === b.kind && candidate[1].includes(a.kind)) {
+			rule = candidate;
+			subject = b;
+			object = a;
+			break;
+		}
+		if (candidate[0] === a.kind && candidate[1].includes(b.kind)) {
+			rule = candidate;
+			subject = a;
+			object = b;
+			break;
+		}
 	}
 	if (!rule) return { ok: false, error: 'incompatible' };
 	const relation = rule[2];
 	const fail = (error: ConnectError): ConnectResult => ({ ok: false, error, subject });
 	if (subject.missing || object.missing) return fail('missing');
 	if (subject.readOnly || !subject.resource) return fail('readOnly');
-	if (graph.edges.some((e) => e.relation === relation && e.subject === subject.id && e.object === object.id)) return fail('already');
+	if (graph.edges.some((e) => e.relation === relation && e.subject === subject.id && e.object === object.id))
+		return fail('already');
 	if (crossesProtocols(relation, subject, object)) return fail('protocol');
 
 	if (subject.kind === 'route') {
@@ -504,7 +715,8 @@ export function canConnect(graph: Graph, a: GraphNode, b: GraphNode): ConnectRes
 		if (relation === 'route-resolver' && c.domain_name) return fail('domainTls');
 	}
 	if (relation === 'chain-middleware') {
-		if (((subject.resource as ChainResource).config.middlewares ?? []).length >= MAX_CHAIN_MEMBERS) return fail('tooMany');
+		if (((subject.resource as ChainResource).config.middlewares ?? []).length >= MAX_CHAIN_MEMBERS)
+			return fail('tooMany');
 		if (object.kind === 'chain' && containsChain(graph, object, subject)) return fail('cycle');
 	}
 	if (subject.kind === 'domain') {
@@ -523,13 +735,25 @@ export function canConnect(graph: Graph, a: GraphNode, b: GraphNode): ConnectRes
 
 /** Relations that can be removed on their own. A route always needs a service; a domain always needs a certificate source. */
 export function canDisconnect(graph: Graph, edge: GraphEdge): ConnectResult {
-	const subject = graph.byId.get(edge.subject)!, object = graph.byId.get(edge.object)!;
+	const subject = graph.byId.get(edge.subject)!,
+		object = graph.byId.get(edge.object)!;
 	if (edge.relation === 'middleware-service') return { ok: false, error: 'incompatible', subject };
 	if (subject.readOnly || !subject.resource) return { ok: false, error: 'readOnly', subject };
 	// A route keeps at least one domain: one of several hostnames' domains can go (the next one becomes the main one).
-	if (edge.relation === 'route-domain' && (((subject.resource as RouterResource).config.extra_domains ?? []).length > 0)) return { ok: true, connection: { relation: edge.relation, subject, object } };
-	if (edge.relation === 'route-service' || edge.relation === 'route-domain' || edge.relation === 'domain-resolver' || edge.relation === 'domain-certificate') return { ok: false, error: 'required', subject };
-	if (edge.relation === 'chain-middleware' && ((subject.resource as ChainResource).config.middlewares ?? []).length <= 1) return { ok: false, error: 'required', subject };
+	if (edge.relation === 'route-domain' && ((subject.resource as RouterResource).config.extra_domains ?? []).length > 0)
+		return { ok: true, connection: { relation: edge.relation, subject, object } };
+	if (
+		edge.relation === 'route-service' ||
+		edge.relation === 'route-domain' ||
+		edge.relation === 'domain-resolver' ||
+		edge.relation === 'domain-certificate'
+	)
+		return { ok: false, error: 'required', subject };
+	if (
+		edge.relation === 'chain-middleware' &&
+		((subject.resource as ChainResource).config.middlewares ?? []).length <= 1
+	)
+		return { ok: false, error: 'required', subject };
 	return { ok: true, connection: { relation: edge.relation, subject, object } };
 }
 
@@ -568,13 +792,26 @@ export function buildChange(c: Connection, op: 'add' | 'remove', opts: ConnectOp
 	const without = (refs: string[]) => refs.filter((ref) => !refsEqual(ref, object));
 	if (subject.kind === 'chain') {
 		const members = currentOrder(c);
-		return { endpoint: 'chains', name: subject.name, version: subject.version, input: { middlewares: op === 'remove' ? without(members) : opts.order ?? [...members, object.name] } };
+		return {
+			endpoint: 'chains',
+			name: subject.name,
+			version: subject.version,
+			input: { middlewares: op === 'remove' ? without(members) : (opts.order ?? [...members, object.name]) },
+		};
 	}
 	if (subject.kind === 'domain') {
 		const d = (subject.resource as DomainResource).config;
 		return {
-			endpoint: 'domains', name: subject.name, version: subject.version,
-			input: { main: d.main, sans: [...(d.sans ?? [])], ...(c.relation === 'domain-resolver' ? { method: 'resolver', resolver: object.name } : { method: 'files', certificate: object.name }) }
+			endpoint: 'domains',
+			name: subject.name,
+			version: subject.version,
+			input: {
+				main: d.main,
+				sans: [...(d.sans ?? [])],
+				...(c.relation === 'domain-resolver'
+					? { method: 'resolver', resolver: object.name }
+					: { method: 'files', certificate: object.name }),
+			},
 		};
 	}
 	const form = formFrom(subject.name, (subject.resource as RouterResource).config);
@@ -583,7 +820,8 @@ export function buildChange(c: Connection, op: 'add' | 'remove', opts: ConnectOp
 			form.entryPoints = op === 'remove' ? without(form.entryPoints) : [...form.entryPoints, object.name];
 			break;
 		case 'route-middleware':
-			form.middlewares = op === 'remove' ? without(form.middlewares) : opts.order ?? [...form.middlewares, object.name];
+			form.middlewares =
+				op === 'remove' ? without(form.middlewares) : (opts.order ?? [...form.middlewares, object.name]);
 			break;
 		case 'route-service':
 			form.service = object.name;
@@ -591,8 +829,14 @@ export function buildChange(c: Connection, op: 'add' | 'remove', opts: ConnectOp
 		case 'route-domain':
 			if (op === 'remove') {
 				// Drop every hostname on that domain; the first remaining one becomes the main hostname.
-				const all = [{ domainName: form.domainName, subdomain: form.subdomain }, ...form.extraHosts].filter((h) => h.domainName !== object.name);
-				if (all.length) { form.domainName = all[0].domainName; form.subdomain = all[0].subdomain; form.extraHosts = all.slice(1); }
+				const all = [{ domainName: form.domainName, subdomain: form.subdomain }, ...form.extraHosts].filter(
+					(h) => h.domainName !== object.name,
+				);
+				if (all.length) {
+					form.domainName = all[0].domainName;
+					form.subdomain = all[0].subdomain;
+					form.extraHosts = all.slice(1);
+				}
 				break;
 			}
 			if (form.mode === 'domain' && form.domainName && opts.domainMode !== 'replace') {

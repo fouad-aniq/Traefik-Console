@@ -18,14 +18,26 @@ export async function listEntryPoints(signal?: AbortSignal): Promise<string[]> {
 }
 
 /** Entrypoints with the kind of traffic they carry: UDP routers can only use udp ones, the others tcp ones. */
-export interface EntryPointInfo { name: string; protocol: 'tcp' | 'udp' }
+export interface EntryPointInfo {
+	name: string;
+	protocol: 'tcp' | 'udp';
+}
 export async function listEntryPointInfo(signal?: AbortSignal): Promise<EntryPointInfo[]> {
-	const res = await api.get<{ entry_points?: string[] | null; protocols?: Record<string, string> | null }>('/api/v1/entrypoints', { signal });
+	const res = await api.get<{ entry_points?: string[] | null; protocols?: Record<string, string> | null }>(
+		'/api/v1/entrypoints',
+		{ signal },
+	);
 	return list(res.entry_points).map((name) => ({ name, protocol: res.protocols?.[name] === 'udp' ? 'udp' : 'tcp' }));
 }
 
 /** Minimal shapes for the reference pickers; the full envelopes are not needed here. */
-export interface NamedRef { name: string; status: string; origin: 'managed' | 'external'; provider: string; config: Record<string, any> }
+export interface NamedRef {
+	name: string;
+	status: string;
+	origin: 'managed' | 'external';
+	provider: string;
+	config: Record<string, any>;
+}
 const refs = async (path: string, signal?: AbortSignal) => list(await api.get<NamedRef[] | null>(path, { signal }));
 /** Every service with its protocol: a router can only use those of its own (HTTP, TCP and UDP live in separate Traefik sections). */
 export const listServices = (signal?: AbortSignal) => refs('/api/v1/services', signal);

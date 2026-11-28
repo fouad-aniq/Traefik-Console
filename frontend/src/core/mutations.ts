@@ -38,7 +38,8 @@ function writeInit(version: number | null | undefined, opts: WriteOptions | unde
 	return { headers, signal: opts?.signal, timeoutMs: opts?.dryRun ? 30_000 : MUTATION_RESPONSE_TIMEOUT_MS };
 }
 
-const withDryRun = (path: string, opts?: WriteOptions) => (opts?.dryRun ? path + (path.includes('?') ? '&' : '?') + 'dry_run=true' : path);
+const withDryRun = (path: string, opts?: WriteOptions) =>
+	opts?.dryRun ? path + (path.includes('?') ? '&' : '?') + 'dry_run=true' : path;
 
 /**
  * The browser usually reaches the Console through the Traefik a change restarts: for a few
@@ -50,12 +51,20 @@ export const reconnect = { windowMs: 90_000, delayMs: 2_000 };
 
 /** No answer from the Console: no connection, or Traefik's own (non-JSON) error page. */
 export const isReconnectable = (e: unknown) =>
-	e instanceof NetworkError || (e instanceof ApiError && e.code === 'INTERNAL_ERROR' && !e.operationId && [404, 502, 503, 504].includes(e.status));
+	e instanceof NetworkError ||
+	(e instanceof ApiError && e.code === 'INTERNAL_ERROR' && !e.operationId && [404, 502, 503, 504].includes(e.status));
 
 const pause = (ms: number, signal?: AbortSignal) =>
 	new Promise<void>((resolve) => {
 		const timer = setTimeout(resolve, ms);
-		signal?.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+		signal?.addEventListener(
+			'abort',
+			() => {
+				clearTimeout(timer);
+				resolve();
+			},
+			{ once: true },
+		);
 	});
 
 async function withReconnect<T>(opts: WriteOptions | undefined, send: () => Promise<T>): Promise<T> {
@@ -86,17 +95,29 @@ export const removeResource = <T = unknown>(path: string, version: number, opts?
 
 /** POST writes without a path-level version (plugin YAML / catalog install). */
 export const postWrite = <T>(path: string, body: unknown, opts?: WriteOptions, version?: number | null) =>
-	withReconnect(opts, () => api.post<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, version !== undefined)));
+	withReconnect(opts, () =>
+		api.post<WriteResult<T>>(withDryRun(path, opts), body, writeInit(version, opts, version !== undefined)),
+	);
 
 /** True when the change is saved but Traefik could not be restarted (HTTP 202). */
-export const needsManualRestart = (r: { error?: { code: string } | null; restart_required?: boolean } | null | undefined) =>
-	r?.error?.code === 'ERR_MANUAL_RESTART_REQUIRED';
+export const needsManualRestart = (
+	r: { error?: { code: string } | null; restart_required?: boolean } | null | undefined,
+) => r?.error?.code === 'ERR_MANUAL_RESTART_REQUIRED';
 
-export const isFailed = (op: Operation | null | undefined) => !!op && (op.status === 'rolled_back' || op.status === 'recovery_required');
+export const isFailed = (op: Operation | null | undefined) =>
+	!!op && (op.status === 'rolled_back' || op.status === 'recovery_required');
 
 /** A write that changed nothing returns no operation; show it as a finished no-op. */
 export const operationOf = (res: { operation?: Operation | null }, summary: string): Operation =>
-	res.operation ?? { id: 0, kind: 'noop', target: '', status: 'succeeded', summary, requires_restart: false, created_at: new Date().toISOString() };
+	res.operation ?? {
+		id: 0,
+		kind: 'noop',
+		target: '',
+		status: 'succeeded',
+		summary,
+		requires_restart: false,
+		created_at: new Date().toISOString(),
+	};
 
 /**
  * After a successful apply, dialogs go straight back to their table and the
@@ -110,7 +131,7 @@ export function announceApplied(op: Operation, manualRestart: boolean, subject: 
 		tone: manualRestart || op.status === 'restart_required' ? 'warning' : 'success',
 		title: subject ? `${status} · ${subject}` : status,
 		message: manualRestart ? t('writeV2.manualRestart') : op.summary,
-		...(op.id ? { href: '#/changes/history/' + op.id, hrefLabel: t('operationV2.id', { id: op.id }) } : {})
+		...(op.id ? { href: '#/changes/history/' + op.id, hrefLabel: t('operationV2.id', { id: op.id }) } : {}),
 	});
 	return true;
 }

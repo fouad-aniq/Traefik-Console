@@ -8,7 +8,16 @@ export type ValidationGroup = 'identity' | 'challenge' | 'advanced';
 export function durationMilliseconds(value: string): number | null {
 	if (value === '0') return 0;
 	if (!value) return null;
-	const factors: Record<string, number> = { ns: 1e-6, us: 1e-3, 'µs': 1e-3, 'μs': 1e-3, ms: 1, s: 1000, m: 60000, h: 3600000 };
+	const factors: Record<string, number> = {
+		ns: 1e-6,
+		us: 1e-3,
+		µs: 1e-3,
+		μs: 1e-3,
+		ms: 1,
+		s: 1000,
+		m: 60000,
+		h: 3600000,
+	};
 	const part = /(\d+(?:\.\d*)?|\.\d+)(ns|us|µs|μs|ms|s|m|h)/gy;
 	let total = 0;
 	let end = 0;
@@ -50,7 +59,11 @@ export interface ValidationContext {
  * The server stays authoritative; this only prevents obviously invalid staging.
  * `c` resolves an error message key from the resolverUI catalog.
  */
-export function resolverErrors(group: ValidationGroup, ctx: ValidationContext, c: (key: string) => string): Record<string, string> {
+export function resolverErrors(
+	group: ValidationGroup,
+	ctx: ValidationContext,
+	c: (key: string) => string,
+): Record<string, string> {
 	const { form: r, provider } = ctx;
 	const errors: Record<string, string> = {};
 	const fail = (field: string, message: string) => {
@@ -83,7 +96,16 @@ export function resolverErrors(group: ValidationGroup, ctx: ValidationContext, c
 					const doc = parseDocument(r.customYaml);
 					if (doc.errors.length) throw new Error();
 					const value = doc.toJS({ maxAliasCount: 100 });
-					if (!value || typeof value !== 'object' || Array.isArray(value) || !value.acme || typeof value.acme !== 'object' || Array.isArray(value.acme) || Object.keys(value).some((k) => k !== 'acme')) throw new Error();
+					if (
+						!value ||
+						typeof value !== 'object' ||
+						Array.isArray(value) ||
+						!value.acme ||
+						typeof value.acme !== 'object' ||
+						Array.isArray(value.acme) ||
+						Object.keys(value).some((k) => k !== 'acme')
+					)
+						throw new Error();
 				} catch {
 					fail('yaml', 'invalidCustomYAML');
 				}
@@ -100,7 +122,11 @@ export function resolverErrors(group: ValidationGroup, ctx: ValidationContext, c
 					if (groups.required.includes(f) && !v.trim()) fail(f.env_var, 'required');
 					if (!v || isMasked(v)) continue;
 					if (v.includes('\0') || new TextEncoder().encode(v).length > 1024 * 1024) fail(f.env_var, 'invalidAdvanced');
-					if (f.type === 'integer' && (!/^\d+$/.test(v) || Number(v) > 86400 || (f.bounds === '120-86400' && Number(v) < 120))) fail(f.env_var, 'invalidInteger');
+					if (
+						f.type === 'integer' &&
+						(!/^\d+$/.test(v) || Number(v) > 86400 || (f.bounds === '120-86400' && Number(v) < 120))
+					)
+						fail(f.env_var, 'invalidInteger');
 					if (f.type === 'duration') {
 						// Whole seconds only: the backend delivers integer seconds to lego.
 						const ms = durationMilliseconds(v);
@@ -115,9 +141,11 @@ export function resolverErrors(group: ValidationGroup, ctx: ValidationContext, c
 			fail('entryPoint', 'selectEntryPoint');
 		}
 	} else if (group === 'advanced' && r.type === 'acme') {
-		if (r.keyType && !['EC256', 'EC384', 'RSA2048', 'RSA4096', 'RSA8192'].includes(r.keyType)) fail('keyType', 'invalidKeyType');
+		if (r.keyType && !['EC256', 'EC384', 'RSA2048', 'RSA4096', 'RSA8192'].includes(r.keyType))
+			fail('keyType', 'invalidKeyType');
 		if (r.challenge === 'dns01') {
-			if (r.nameservers.length > 8 || r.nameservers.some((v) => !validNameserver(v))) fail('nameservers', 'invalidNameservers');
+			if (r.nameservers.length > 8 || r.nameservers.some((v) => !validNameserver(v)))
+				fail('nameservers', 'invalidNameservers');
 			if (r.delay && !duration(r.delay, 600000, true)) fail('delay', 'invalidDuration');
 		}
 	}

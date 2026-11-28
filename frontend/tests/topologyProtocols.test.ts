@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { buildChange, buildGraph, canConnect, nodeId, type Inventory } from '../src/features/topology/graph';
 
 const envelope = (kind: string, name: string, config: unknown, extra = {}) =>
-	({ id: `${kind}:${name}`, name, version: 2, origin: 'managed', provider: 'file', status: 'active', read_only: false, live_health: 'loaded', config, ...extra }) as any;
+	({
+		id: `${kind}:${name}`,
+		name,
+		version: 2,
+		origin: 'managed',
+		provider: 'file',
+		status: 'active',
+		read_only: false,
+		live_health: 'loaded',
+		config,
+		...extra,
+	}) as any;
 
 /** One object of each protocol, plus the entrypoints they may listen on. */
 const inventory = (): Inventory => ({
@@ -10,7 +21,12 @@ const inventory = (): Inventory => ({
 	entryPointProtocols: { websecure: 'tcp', postgres: 'tcp', dns: 'udp' },
 	entryPointResources: [
 		envelope('entrypoint', 'websecure', { kind: 'https', protocol: 'tcp', port: 443, http: { tls: {} } }),
-		envelope('entrypoint', 'dns', { kind: 'udp', protocol: 'udp', port: 53, address: ':53/udp' }, { origin: 'external', read_only: true })
+		envelope(
+			'entrypoint',
+			'dns',
+			{ kind: 'udp', protocol: 'udp', port: 53, address: ':53/udp' },
+			{ origin: 'external', read_only: true },
+		),
 	],
 	resolvers: [envelope('resolver', 'le', { type: 'acme', challenge: 'tlsalpn01' })],
 	certificates: [],
@@ -18,24 +34,45 @@ const inventory = (): Inventory => ({
 	services: [
 		envelope('service', 'web', { servers: [{ url: 'https://app:8443' }] }),
 		envelope('service', 'db', { protocol: 'tcp', servers: [{ address: 'db:5432' }, { address: 'db2:5432' }] }),
-		envelope('service', 'resolver', { protocol: 'udp', servers: [{ address: '10.0.0.53:53' }] })
+		envelope('service', 'resolver', { protocol: 'udp', servers: [{ address: '10.0.0.53:53' }] }),
 	],
-	middlewares: [envelope('middleware', 'auth', { type: 'basicAuth', spec: {} }), envelope('middleware', 'office', { protocol: 'tcp', type: 'ipAllowList', spec: {} })],
+	middlewares: [
+		envelope('middleware', 'auth', { type: 'basicAuth', spec: {} }),
+		envelope('middleware', 'office', { protocol: 'tcp', type: 'ipAllowList', spec: {} }),
+	],
 	chains: [envelope('chain', 'secure', { middlewares: ['auth'] })],
 	routers: [
-		envelope('router', 'app', { entry_points: ['websecure'], rule: 'Host(`app.example.com`)', service: 'web', tls: {} }),
-		envelope('router', 'pg', { protocol: 'tcp', entry_points: ['postgres'], rule: 'HostSNI(`db.example.com`)', service: 'db', middlewares: ['office'], tls: {} }),
-		envelope('router', 'names', { protocol: 'udp', entry_points: ['dns'], service: 'resolver' })
-	]
+		envelope('router', 'app', {
+			entry_points: ['websecure'],
+			rule: 'Host(`app.example.com`)',
+			service: 'web',
+			tls: {},
+		}),
+		envelope('router', 'pg', {
+			protocol: 'tcp',
+			entry_points: ['postgres'],
+			rule: 'HostSNI(`db.example.com`)',
+			service: 'db',
+			middlewares: ['office'],
+			tls: {},
+		}),
+		envelope('router', 'names', { protocol: 'udp', entry_points: ['dns'], service: 'resolver' }),
+	],
 });
 const g = buildGraph(inventory());
 const node = (kind: any, name: string) => g.byId.get(nodeId(kind, name))!;
 const connect = (a: [any, string], b: [any, string]) => canConnect(g, node(...a), node(...b));
-const has = (relation: string, subject: string, object: string) => g.edges.some((e) => e.relation === relation && e.subject === subject && e.object === object);
+const has = (relation: string, subject: string, object: string) =>
+	g.edges.some((e) => e.relation === relation && e.subject === subject && e.object === object);
 
 describe('the map shows TCP and UDP objects next to HTTP ones', () => {
 	it('adds routers, services and middlewares of every protocol, marked with their protocol', () => {
-		expect(node('route', 'pg')).toMatchObject({ transport: 'tcp', protocol: 'TCP', subtitle: 'db.example.com', tls: true });
+		expect(node('route', 'pg')).toMatchObject({
+			transport: 'tcp',
+			protocol: 'TCP',
+			subtitle: 'db.example.com',
+			tls: true,
+		});
 		expect(node('route', 'names')).toMatchObject({ transport: 'udp', protocol: 'UDP', subtitle: 'dns', tls: false });
 		expect(node('route', 'app')).toMatchObject({ transport: 'http', protocol: '' });
 		expect(node('service', 'db')).toMatchObject({ transport: 'tcp', protocol: 'TCP', subtitle: 'db:5432', count: 2 });
@@ -53,8 +90,20 @@ describe('the map shows TCP and UDP objects next to HTTP ones', () => {
 	});
 
 	it('describes entrypoints from their configuration and keeps the ones known by name only', () => {
-		expect(node('entrypoint', 'websecure')).toMatchObject({ subtitle: ':443', transport: 'tcp', protocol: '', tls: true, readOnly: false });
-		expect(node('entrypoint', 'dns')).toMatchObject({ subtitle: ':53', transport: 'udp', protocol: 'UDP', readOnly: true, external: true });
+		expect(node('entrypoint', 'websecure')).toMatchObject({
+			subtitle: ':443',
+			transport: 'tcp',
+			protocol: '',
+			tls: true,
+			readOnly: false,
+		});
+		expect(node('entrypoint', 'dns')).toMatchObject({
+			subtitle: ':53',
+			transport: 'udp',
+			protocol: 'UDP',
+			readOnly: true,
+			external: true,
+		});
 		expect(node('entrypoint', 'postgres')).toMatchObject({ subtitle: '', transport: 'tcp', readOnly: true });
 	});
 });
@@ -84,7 +133,11 @@ describe('links stay inside one protocol', () => {
 		expect(tcp.ok).toBe(true);
 		if (tcp.ok) {
 			const change = buildChange(tcp.connection, 'add');
-			expect(change).toMatchObject({ endpoint: 'routers', name: 'pg', input: { protocol: 'tcp', entry_points: ['postgres', 'websecure'], service: 'db' } });
+			expect(change).toMatchObject({
+				endpoint: 'routers',
+				name: 'pg',
+				input: { protocol: 'tcp', entry_points: ['postgres', 'websecure'], service: 'db' },
+			});
 		}
 		expect(connect(['route', 'pg'], ['resolver', 'le']).ok).toBe(true);
 		const udp = connect(['service', 'resolver'], ['route', 'names']);

@@ -14,7 +14,7 @@ import {
 	type FieldKind,
 	type FormState,
 	type Protocol,
-	type SchemaField
+	type SchemaField,
 } from './models';
 
 export interface FieldHint {
@@ -110,10 +110,20 @@ const HINTS: Record<string, FieldHint> = {
 	ca: { helpKey: 'helpAsset' },
 	cert: { helpKey: 'helpAsset' },
 	key: { helpKey: 'helpAsset' },
-	usersFile: { helpKey: 'helpAsset' }
+	usersFile: { helpKey: 'helpAsset' },
 };
 
-const DURATION_LEAVES = new Set(['period', 'checkPeriod', 'fallbackDuration', 'recoveryDuration', 'initialInterval', 'timeout', 'dialTimeout', 'readTimeout', 'writeTimeout']);
+const DURATION_LEAVES = new Set([
+	'period',
+	'checkPeriod',
+	'fallbackDuration',
+	'recoveryDuration',
+	'initialInterval',
+	'timeout',
+	'dialTimeout',
+	'readTimeout',
+	'writeTimeout',
+]);
 
 function hintFor(path: string, kind: FieldKind): FieldHint {
 	const leaf = path.split('.').pop() ?? '';
@@ -121,10 +131,22 @@ function hintFor(path: string, kind: FieldKind): FieldHint {
 	if (direct) return direct;
 	if (kind === 'number') return { ...numberBounds(path) };
 	if (kind === 'duration' || DURATION_LEAVES.has(leaf)) return { helpKey: 'helpDuration' };
-	if (kind === 'list' && (leaf === 'regex' || (leaf.endsWith('Regex') && leaf !== 'authResponseHeadersRegex') || leaf === 'accessControlAllowOriginListRegex')) return { helpKey: 'helpRegexList' };
-	if (kind === 'list' && (leaf.endsWith('Headers') || leaf === 'hostsProxyHeaders')) return { helpKey: 'helpHeaderList' };
-	if (kind === 'map' && (leaf === 'customRequestHeaders' || leaf === 'customResponseHeaders' || leaf === 'sslProxyHeaders')) return { helpKey: 'helpHeaderMap' };
-	if (kind === 'text' && (leaf === 'regex' || leaf.endsWith('Regex') || leaf === 'accessControlAllowOriginListRegex')) return { helpKey: 'helpRegex' };
+	if (
+		kind === 'list' &&
+		(leaf === 'regex' ||
+			(leaf.endsWith('Regex') && leaf !== 'authResponseHeadersRegex') ||
+			leaf === 'accessControlAllowOriginListRegex')
+	)
+		return { helpKey: 'helpRegexList' };
+	if (kind === 'list' && (leaf.endsWith('Headers') || leaf === 'hostsProxyHeaders'))
+		return { helpKey: 'helpHeaderList' };
+	if (
+		kind === 'map' &&
+		(leaf === 'customRequestHeaders' || leaf === 'customResponseHeaders' || leaf === 'sslProxyHeaders')
+	)
+		return { helpKey: 'helpHeaderMap' };
+	if (kind === 'text' && (leaf === 'regex' || leaf.endsWith('Regex') || leaf === 'accessControlAllowOriginListRegex'))
+		return { helpKey: 'helpRegex' };
 	return {};
 }
 
@@ -144,7 +166,18 @@ export function isValidDuration(value: string): boolean {
 		const amount = parseFloat(part);
 		if (Number.isNaN(amount)) return false;
 		const unit = part.replace(/^-?\d+(\.\d+)?/, '');
-		const seconds = unit === 'h' ? 3600 : unit === 'm' ? 60 : unit === 's' ? 1 : unit === 'ms' ? 0.001 : unit === 'us' || unit === 'µs' ? 0.000001 : 0.000000001;
+		const seconds =
+			unit === 'h'
+				? 3600
+				: unit === 'm'
+					? 60
+					: unit === 's'
+						? 1
+						: unit === 'ms'
+							? 0.001
+							: unit === 'us' || unit === 'µs'
+								? 0.000001
+								: 0.000000001;
 		total += amount * seconds;
 	}
 	return total >= -1 && total <= 24 * 3600;
@@ -188,7 +221,13 @@ function isValidIp(value: string): boolean {
 export function isValidAuthUrl(value: string): boolean {
 	try {
 		const url = new URL(value);
-		return (url.protocol === 'http:' || url.protocol === 'https:') && !!url.hostname && !url.username && !url.password && !url.hash;
+		return (
+			(url.protocol === 'http:' || url.protocol === 'https:') &&
+			!!url.hostname &&
+			!url.username &&
+			!url.password &&
+			!url.hash
+		);
 	} catch {
 		return false;
 	}
@@ -220,21 +259,34 @@ export interface ValidationContext {
  * Validate one field path against its hint. Returns a localized message or ''.
  * The message is shown under the field, so it never repeats the label.
  */
-export function validateLeaf(path: string, state: FormState, schemaFields: Record<string, SchemaField>, copy: ValidationContext['copy']): string {
+export function validateLeaf(
+	path: string,
+	state: FormState,
+	schemaFields: Record<string, SchemaField>,
+	copy: ValidationContext['copy'],
+): string {
 	const leaf = state[path];
 	if (!leaf) return '';
 	const node = schemaFields[path];
-	const kind: FieldKind = node ? fieldKind(node) : (leaf.kind === 'text' && DURATION_LEAVES.has(path.split('.').pop() ?? '') ? 'duration' : leaf.kind);
+	const kind: FieldKind = node
+		? fieldKind(node)
+		: leaf.kind === 'text' && DURATION_LEAVES.has(path.split('.').pop() ?? '')
+			? 'duration'
+			: leaf.kind;
 	const hint = hintFor(path, kind);
 	switch (leaf.kind) {
 		case 'text': {
 			const value = leaf.value;
 			if (value.length === 0) return '';
-			if ((kind === 'duration' || DURATION_LEAVES.has(path.split('.').pop() ?? '')) && !isValidDuration(value)) return copy('invalidDuration');
-			if (hint.pattern && !hint.pattern.test(value)) return copy(hint.patternError === 'invalidPath' ? 'invalidPath' : 'invalidValue');
-			if (hint.choices && !hint.choices.includes(value)) return copy('invalidChoice', { values: hint.choices.join(', ') });
+			if ((kind === 'duration' || DURATION_LEAVES.has(path.split('.').pop() ?? '')) && !isValidDuration(value))
+				return copy('invalidDuration');
+			if (hint.pattern && !hint.pattern.test(value))
+				return copy(hint.patternError === 'invalidPath' ? 'invalidPath' : 'invalidValue');
+			if (hint.choices && !hint.choices.includes(value))
+				return copy('invalidChoice', { values: hint.choices.join(', ') });
 			if (hint.helpKey === 'helpPort' && !/^\d*$/.test(value)) return copy('invalidPortNumber');
-			if (hint.helpKey === 'helpPort' && value !== '' && !(Number(value) >= 1 && Number(value) <= 65535)) return copy('outOfBounds', { min: 1, max: 65535 });
+			if (hint.helpKey === 'helpPort' && value !== '' && !(Number(value) >= 1 && Number(value) <= 65535))
+				return copy('outOfBounds', { min: 1, max: 65535 });
 			if (hint.helpKey === 'helpAddress' && !isValidAuthUrl(value)) return copy('invalidAddress');
 			if (hint.helpKey === 'helpSigninUrl' && !isValidAuthUrl(value)) return copy('invalidAddress');
 			if (hint.helpKey === 'helpRealm' && /[:\r\n]/.test(value)) return copy('invalidRealm');
@@ -261,12 +313,15 @@ export function validateLeaf(path: string, state: FormState, schemaFields: Recor
 				if (item === '') continue;
 				if (hint.statuses && !isValidStatusRange(item)) return copy('invalidStatusRange');
 				if (hint.helpKey === 'helpCidrList' && !isValidCidr(item)) return copy('invalidCidr');
-				if ((hint.helpKey === 'helpRegexList' || hint.helpKey === 'helpRegex') && !isValidGoRegex(item)) return copy('invalidRegex');
-				if (hint.helpKey === 'helpHeaderList' && item !== '*' && !isValidHeaderName(item)) return copy('invalidHeaderName');
+				if ((hint.helpKey === 'helpRegexList' || hint.helpKey === 'helpRegex') && !isValidGoRegex(item))
+					return copy('invalidRegex');
+				if (hint.helpKey === 'helpHeaderList' && item !== '*' && !isValidHeaderName(item))
+					return copy('invalidHeaderName');
 				if (hint.helpKey === 'helpMediaList' && !MEDIA_TYPE.test(item)) return copy('invalidMediaType');
 				if (path === 'encodings' && !COMPRESSION_ENCODINGS.has(item)) return copy('invalidEncoding');
 				if (hint.pathPrefix && !item.startsWith('/')) return copy('invalidPath');
-				if (hint.helpKey === 'helpRedisEndpoints' && !/^[^\s/:]+(:\d{1,5})?$/.test(item)) return copy('invalidRedisEndpoint');
+				if (hint.helpKey === 'helpRedisEndpoints' && !/^[^\s/:]+(:\d{1,5})?$/.test(item))
+					return copy('invalidRedisEndpoint');
 			}
 			return '';
 		}
@@ -278,7 +333,8 @@ export function validateLeaf(path: string, state: FormState, schemaFields: Recor
 			}
 			return '';
 		}
-		default: return '';
+		default:
+			return '';
 	}
 }
 
@@ -297,7 +353,7 @@ export function validateForm(
 	credentials: { users: { username: string; password: string }[]; mode: 'none' | 'replace' },
 	chainMembers: string[],
 	selfName: string,
-	copy: ValidationContext['copy']
+	copy: ValidationContext['copy'],
 ): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const path of Object.keys(state)) {
@@ -328,9 +384,16 @@ export function validateForm(
 }
 
 /** Cross-field semantic checks mirrored from the backend for early feedback. */
-function configSemantics(protocol: Protocol, type: string, config: Record<string, unknown>, copy: ValidationContext['copy']): Record<string, string> {
+function configSemantics(
+	protocol: Protocol,
+	type: string,
+	config: Record<string, unknown>,
+	copy: ValidationContext['copy'],
+): Record<string, string> {
 	const errors: Record<string, string> = {};
-	const fail = (path: string, key: string) => { if (!errors[path]) errors[path] = copy(key); };
+	const fail = (path: string, key: string) => {
+		if (!errors[path]) errors[path] = copy(key);
+	};
 	const str = (path: string): string => {
 		let node: unknown = config;
 		for (const part of path.split('.')) {
@@ -358,8 +421,12 @@ function configSemantics(protocol: Protocol, type: string, config: Record<string
 		return undefined;
 	};
 	switch (type) {
-		case 'stripPrefix': if (arr('prefixes').length === 0) fail('prefixes', 'requiredList'); break;
-		case 'stripPrefixRegex': if (arr('regex').length === 0) fail('regex', 'requiredList'); break;
+		case 'stripPrefix':
+			if (arr('prefixes').length === 0) fail('prefixes', 'requiredList');
+			break;
+		case 'stripPrefixRegex':
+			if (arr('regex').length === 0) fail('regex', 'requiredList');
+			break;
 		case 'replacePathRegex':
 		case 'redirectRegex':
 			if (str('regex') === '') fail('regex', 'requiredField');
@@ -395,7 +462,7 @@ function configSemantics(protocol: Protocol, type: string, config: Record<string
 		case 'rateLimit': {
 			if (type === 'inFlightReq' && num('amount') === undefined) fail('amount', 'requiredField');
 			if (type === 'rateLimit' && num('average') === undefined) fail('average', 'requiredField');
-			const criterion = ((config['sourceCriterion'] as Record<string, unknown> | undefined) ?? {});
+			const criterion = (config['sourceCriterion'] as Record<string, unknown> | undefined) ?? {};
 			let active = 0;
 			if (Object.keys((criterion['ipStrategy'] as Record<string, unknown> | undefined) ?? {}).length > 0) active++;
 			if (typeof criterion['requestHeaderName'] === 'string' && criterion['requestHeaderName'] !== '') active++;
@@ -419,7 +486,7 @@ function configSemantics(protocol: Protocol, type: string, config: Record<string
  */
 export function validateCredentials(
 	users: { username: string; password: string }[],
-	copy: ValidationContext['copy']
+	copy: ValidationContext['copy'],
 ): Record<string, string> {
 	const errors: Record<string, string> = {};
 	const usernamePattern = /^[a-zA-Z0-9_.@-]{1,64}$/;
@@ -429,14 +496,17 @@ export function validateCredentials(
 		if (user.username === '' && user.password === '') return; // entirely blank rows are ignored
 		if (!usernamePattern.test(user.username)) errors[key] = copy('invalidUsername');
 		else if (seen.has(user.username)) errors[key] = copy('duplicateUsername');
-		else if (user.password.length < 1 || user.password.length > 72 || /[\x00\r\n]/.test(user.password)) errors[key] = copy('invalidSecret');
+		else if (user.password.length < 1 || user.password.length > 72 || /[\x00\r\n]/.test(user.password))
+			errors[key] = copy('invalidSecret');
 		if (user.username !== '') seen.add(user.username);
 	});
 	return errors;
 }
 
 /** Non-blank credential rows that will actually be submitted. */
-export function activeCredentialUsers(users: { username: string; password: string }[]): { username: string; password: string }[] {
+export function activeCredentialUsers(
+	users: { username: string; password: string }[],
+): { username: string; password: string }[] {
 	return users.filter((user) => user.username !== '' || user.password !== '');
 }
 
@@ -461,7 +531,7 @@ export function flattenSchemaFields(fields: Record<string, SchemaField>, prefix 
 export function findUnknownKeys(
 	schemaFields: Record<string, SchemaField>,
 	config: Record<string, unknown>,
-	prefix = ''
+	prefix = '',
 ): string[] {
 	const unknown: string[] = [];
 	for (const [key, value] of Object.entries(config)) {

@@ -23,7 +23,7 @@ function wire() {
 	if (wired) return;
 	wired = true;
 	api.setHeaderProvider((method): Record<string, string> =>
-		method !== 'GET' && auth.session ? { 'X-CSRF-Token': auth.session.csrf } : {}
+		method !== 'GET' && auth.session ? { 'X-CSRF-Token': auth.session.csrf } : {},
 	);
 	// Any protected call answering 401 means the session ended elsewhere
 	// (expiry, sign-out on another device, password reset from the CLI).

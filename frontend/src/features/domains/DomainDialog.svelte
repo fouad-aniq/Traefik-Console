@@ -27,7 +27,16 @@
 	import type { Operation, OperationPreview } from '../../core/types';
 	import { listDomains, putDomain } from './api';
 	import { domainErrors, toInput, type DomainField, type DomainGroup } from './validation';
-	import { coversAll, domainKey, newForm, normalizeDomain, parseNames, referenceOf, type DomainForm, type DomainResource } from './models';
+	import {
+		coversAll,
+		domainKey,
+		newForm,
+		normalizeDomain,
+		parseNames,
+		referenceOf,
+		type DomainForm,
+		type DomainResource,
+	} from './models';
 	import { listResolvers } from '../resolvers/api';
 	import { listCertificates } from '../certificates/api';
 	import type { ResolverResource } from '../resolvers/models';
@@ -36,7 +45,12 @@
 	import { errorMessage } from '../../shared/api/errorMessage';
 	import { t } from '../../shared/localization/i18n';
 
-	let { mode = 'create', name = '', navigate, onchanged }: { mode?: string; name?: string; navigate: (p: string) => void; onchanged?: () => void } = $props();
+	let {
+		mode = 'create',
+		name = '',
+		navigate,
+		onchanged,
+	}: { mode?: string; name?: string; navigate: (p: string) => void; onchanged?: () => void } = $props();
 
 	const c = (key: string, args?: Record<string, string | number>) => t('domainFlow.' + key, args);
 	const u = (key: string) => t('domainUI.' + key);
@@ -75,10 +89,15 @@
 	let disposed = false;
 	const controller = new AbortController();
 
-	const hosts = $derived([normalizeDomain(form.main) ?? form.main.trim(), ...parseNames(form.sans).map((s) => normalizeDomain(s) ?? s)].filter(Boolean));
+	const hosts = $derived(
+		[
+			normalizeDomain(form.main) ?? form.main.trim(),
+			...parseNames(form.sans).map((s) => normalizeDomain(s) ?? s),
+		].filter(Boolean),
+	);
 	const current = $derived(existing.find((d) => d.name === name));
 	const version = () => current?.version ?? 0;
-	const editable = $derived(creating || !current || (!current.read_only));
+	const editable = $derived(creating || !current || !current.read_only);
 	const dirty = $derived(editable && !!baseline && JSON.stringify($state.snapshot(form)) !== baseline && !result);
 	const locked = $derived(busy || !!result);
 	const serverErrors = $derived(review?.validation_errors ?? []);
@@ -89,31 +108,53 @@
 		resolvers.map((r) => ({
 			value: r.name,
 			label: r.name,
-			description: [r.config.provider, r.config.environment, r.config.challenge, r.origin === 'external' ? u('external') : ''].filter(Boolean).join(' · ')
-		}))
+			description: [
+				r.config.provider,
+				r.config.environment,
+				r.config.challenge,
+				r.origin === 'external' ? u('external') : '',
+			]
+				.filter(Boolean)
+				.join(' · '),
+		})),
 	);
 	const certificateOptions = $derived(
-		certificates.filter((r) => r.config.purpose === 'server' && coversAll(r.config.domains ?? [], hosts)).map((r) => ({
-			value: r.name,
-			label: r.name,
-			description: (r.config.domains ?? []).join(', '),
-			badge: t('certificateUI.' + validityOf(r.config.status))
-		}))
+		certificates
+			.filter((r) => r.config.purpose === 'server' && coversAll(r.config.domains ?? [], hosts))
+			.map((r) => ({
+				value: r.name,
+				label: r.name,
+				description: (r.config.domains ?? []).join(', '),
+				badge: t('certificateUI.' + validityOf(r.config.status)),
+			})),
 	);
 	const options = $derived(form.method === 'resolver' ? resolverOptions : certificateOptions);
 	const selectedResolver = $derived(resolvers.find((r) => r.name === form.reference));
 	const selectedCertificate = $derived(certificates.find((r) => r.name === form.reference));
 
-	const errorsFor = (group: DomainGroup) => ({ domain: ['main', 'sans'], certificate: ['method', 'reference'] })[group].filter((k) => fields[k as DomainField]).length;
+	const errorsFor = (group: DomainGroup) =>
+		({ domain: ['main', 'sans'], certificate: ['method', 'reference'] })[group].filter((k) => fields[k as DomainField])
+			.length;
 	const tabs = $derived([
 		{ id: 'domain-identity', label: u('domainTab'), errorCount: errorsFor('domain'), errorLabel: c('fixDomain') },
-		{ id: 'domain-certificate', label: u('certificateTab'), errorCount: errorsFor('certificate'), errorLabel: c('fixCertificate') },
-		{ id: 'domain-review', label: u('review') }
+		{
+			id: 'domain-certificate',
+			label: u('certificateTab'),
+			errorCount: errorsFor('certificate'),
+			errorLabel: c('fixCertificate'),
+		},
+		{ id: 'domain-review', label: u('review') },
 	]);
 	const errorCount = $derived(Object.keys(fields).length);
 	const messages = $derived({
-		invalidName: v2('invalidName'), nameTaken: v2('nameTaken'), invalidDomain: u('invalidDomain'), invalidSans: u('invalidSans'),
-		chooseMethod: u('chooseMethod'), chooseExisting: u('chooseExisting'), notCovered: c('notCoveredHelp'), wildcard: u('wildcard')
+		invalidName: v2('invalidName'),
+		nameTaken: v2('nameTaken'),
+		invalidDomain: u('invalidDomain'),
+		invalidSans: u('invalidSans'),
+		chooseMethod: u('chooseMethod'),
+		chooseExisting: u('chooseExisting'),
+		notCovered: c('notCoveredHelp'),
+		wildcard: u('wildcard'),
 	});
 
 	$effect(() => {
@@ -126,7 +167,10 @@
 		void load();
 		return unsub;
 	});
-	onDestroy(() => { disposed = true; controller.abort(); });
+	onDestroy(() => {
+		disposed = true;
+		controller.abort();
+	});
 
 	async function load() {
 		loading = true;
@@ -138,7 +182,14 @@
 			if (!creating) {
 				const item = all.find((d) => d.name === name);
 				if (!item) throw new Error(u('loadFailed'));
-				form = { name: item.name, nameTouched: true, main: item.config.main, sans: (item.config.sans ?? []).join('\n'), method: item.config.method, reference: referenceOf(item.config) };
+				form = {
+					name: item.name,
+					nameTouched: true,
+					main: item.config.main,
+					sans: (item.config.sans ?? []).join('\n'),
+					method: item.config.method,
+					reference: referenceOf(item.config),
+				};
 			}
 			baseline = JSON.stringify($state.snapshot(form));
 		} catch (e) {
@@ -154,27 +205,40 @@
 		choicesError = '';
 		const [r, cert] = await Promise.allSettled([listResolvers(controller.signal), listCertificates(controller.signal)]);
 		if (disposed) return;
-		if (r.status === 'fulfilled') resolvers = r.value; else choicesError = u('choicesFailed');
-		if (cert.status === 'fulfilled') certificates = cert.value; else choicesError = u('choicesFailed');
+		if (r.status === 'fulfilled') resolvers = r.value;
+		else choicesError = u('choicesFailed');
+		if (cert.status === 'fulfilled') certificates = cert.value;
+		else choicesError = u('choicesFailed');
 		// Entrypoints are optional (default websecure); a failure never blocks the dialog.
 		choicesLoading = false;
 	}
 
 	function collect(group: DomainGroup) {
-		return domainErrors(group, $state.snapshot(form), {
-			creating,
-			existingNames: existing.map((d) => d.name),
-			optionValues: options.map((o) => o.value),
-			referenceExistsButUncovered: !!selectedCertificate,
-			resolverChallenge: selectedResolver?.config.challenge
-		}, messages);
+		return domainErrors(
+			group,
+			$state.snapshot(form),
+			{
+				creating,
+				existingNames: existing.map((d) => d.name),
+				optionValues: options.map((o) => o.value),
+				referenceExistsButUncovered: !!selectedCertificate,
+				resolverChallenge: selectedResolver?.config.challenge,
+			},
+			messages,
+		);
 	}
 	function revalidate() {
 		fields = Object.assign({}, ...validated.map(collect));
 	}
 	function invalidate() {
 		// Any edit makes the staged review stale; it is staged again on entering Review.
-		review = null; staged = null; reviewError = ''; applyKey = ''; uncertain = false; error = ''; conflict = false;
+		review = null;
+		staged = null;
+		reviewError = '';
+		applyKey = '';
+		uncertain = false;
+		error = '';
+		conflict = false;
 		revalidate();
 	}
 	function setMain(value: string) {
@@ -205,40 +269,62 @@
 		return !groups.some((g) => errorsFor(g) > 0);
 	}
 
-	const controlId = (key: DomainField) => ({ main: 'domain-main', sans: 'domain-sans', method: 'domain-method', reference: 'domain-reference' })[key];
-	const tabOf = (key: DomainField) => (key === 'method' || key === 'reference' ? 'domain-certificate' : 'domain-identity');
+	const controlId = (key: DomainField) =>
+		({ main: 'domain-main', sans: 'domain-sans', method: 'domain-method', reference: 'domain-reference' })[key];
+	const tabOf = (key: DomainField) =>
+		key === 'method' || key === 'reference' ? 'domain-certificate' : 'domain-identity';
 	async function focusFirstError() {
 		const key = (Object.keys(fields) as DomainField[])[0];
 		if (!key) return;
 		step = tabOf(key);
 		await tick();
-		const target = document.getElementById(controlId(key)) ?? document.querySelector<HTMLElement>('.resource-dialog input[type=radio]');
+		const target =
+			document.getElementById(controlId(key)) ??
+			document.querySelector<HTMLElement>('.resource-dialog input[type=radio]');
 		target?.focus();
 		target?.scrollIntoView({ block: 'nearest' });
 	}
 
 	async function selectStep(id: string) {
 		if (busy || result) return;
-		if (id === 'domain-review') { await stageAndReview(); return; }
-		if (id === 'domain-certificate' && !validateGroups(['domain'])) { await focusFirstError(); return; }
+		if (id === 'domain-review') {
+			await stageAndReview();
+			return;
+		}
+		if (id === 'domain-certificate' && !validateGroups(['domain'])) {
+			await focusFirstError();
+			return;
+		}
 		step = id;
 	}
 
 	function describeFailure(e: unknown, fallback: string) {
-		if (e instanceof ApiError && e.code === 'ERR_VERSION_CONFLICT') { conflict = true; return rv2('conflict'); }
+		if (e instanceof ApiError && e.code === 'ERR_VERSION_CONFLICT') {
+			conflict = true;
+			return rv2('conflict');
+		}
 		const base = errorMessage(e, fallback);
 		return e instanceof ApiError && e.operationId ? `${base} (${rv2('operation')} ${e.operationId})` : base;
 	}
 
 	async function stageAndReview() {
 		if (busy || !editable) return;
-		if (!validateGroups(['domain', 'certificate'])) { await focusFirstError(); return; }
-		busy = true; error = ''; conflict = false;
+		if (!validateGroups(['domain', 'certificate'])) {
+			await focusFirstError();
+			return;
+		}
+		busy = true;
+		error = '';
+		conflict = false;
 		try {
-			const preview = await putDomain(form.name, toInput($state.snapshot(form)), version(), { dryRun: true, signal: controller.signal });
+			const preview = await putDomain(form.name, toInput($state.snapshot(form)), version(), {
+				dryRun: true,
+				signal: controller.signal,
+			});
 			if (disposed) return;
 			step = 'domain-review';
-			review = preview.preview ?? null; applyKey = newIdempotencyKey();
+			review = preview.preview ?? null;
+			applyKey = newIdempotencyKey();
 		} catch (e) {
 			if (disposed) return;
 			if (e instanceof ApiError && (e.status === 422 || e.status === 400)) {
@@ -257,7 +343,8 @@
 		busy = true;
 		try {
 			existing = await listDomains(controller.signal);
-			conflict = false; error = '';
+			conflict = false;
+			error = '';
 		} catch (e) {
 			error = describeFailure(e, rv2('reviewFailed'));
 		} finally {
@@ -267,23 +354,38 @@
 
 	async function apply() {
 		if (!review || busy || serverErrors.length || mountsMissing) return;
-		busy = true; error = '';
+		busy = true;
+		error = '';
 		try {
 			// Same body + key on every retry of an uncertain attempt.
-			const saved = await putDomain(form.name, toInput($state.snapshot(form)), version(), { idempotencyKey: applyKey, signal: controller.signal });
+			const saved = await putDomain(form.name, toInput($state.snapshot(form)), version(), {
+				idempotencyKey: applyKey,
+				signal: controller.signal,
+			});
 			if (disposed) return;
-			result = operationOf(saved, t('writeV2.noChange')); manualRestart = needsManualRestart(saved); uncertain = false; staged = saved.resource ?? null;
+			result = operationOf(saved, t('writeV2.noChange'));
+			manualRestart = needsManualRestart(saved);
+			uncertain = false;
+			staged = saved.resource ?? null;
 			navigationGuard.setDirty(false);
 			onchanged?.();
 			// Applied: back to the table; the outcome is announced as a flash.
-			if (announceApplied(result, manualRestart, form.name)) { navigate(parent); return; }
+			if (announceApplied(result, manualRestart, form.name)) {
+				navigate(parent);
+				return;
+			}
 		} catch (e) {
 			if (disposed) return;
 			if (e instanceof NetworkError) {
 				uncertain = true;
 				error = rv2('applyUncertain');
 			} else {
-				if (e instanceof ApiError && [404, 409, 410, 412, 422, 428].includes(e.status)) { review = null; applyKey = ''; uncertain = false; step = 'domain-certificate'; }
+				if (e instanceof ApiError && [404, 409, 410, 412, 422, 428].includes(e.status)) {
+					review = null;
+					applyKey = '';
+					uncertain = false;
+					step = 'domain-certificate';
+				}
 				error = describeFailure(e, rv2('applyFailed'));
 			}
 		} finally {
@@ -298,7 +400,6 @@
 			navigate(parent);
 		});
 	}
-
 </script>
 
 <ResourceDialog title={u(creating ? 'add' : 'edit')} closeLabel={t('common.close')} onclose={close} {suspended}>
@@ -330,71 +431,192 @@
 				</div>
 			{/if}
 
-			<div id="panel-domain-identity" role="tabpanel" aria-labelledby="tab-domain-identity" hidden={step !== 'domain-identity'} class="stack">
+			<div
+				id="panel-domain-identity"
+				role="tabpanel"
+				aria-labelledby="tab-domain-identity"
+				hidden={step !== 'domain-identity'}
+				class="stack"
+			>
 				<Field id="domain-main" label={u('domainName')} required help={u('domainHelp')} error={fields.main}>
 					{#snippet children(f)}
-						<input id={f.id} value={form.main} oninput={(e) => setMain(e.currentTarget.value)} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} autocomplete="off" spellcheck="false" placeholder="example.com" />
+						<input
+							id={f.id}
+							value={form.main}
+							oninput={(e) => setMain(e.currentTarget.value)}
+							disabled={locked || !editable}
+							aria-invalid={f.invalid || undefined}
+							aria-describedby={f.describedBy}
+							autocomplete="off"
+							spellcheck="false"
+							placeholder="example.com"
+						/>
 					{/snippet}
 				</Field>
 				<Field id="domain-sans" label={u('alternativeNames')} help={u('sansHelp')} error={fields.sans}>
 					{#snippet children(f)}
-						<textarea id={f.id} value={form.sans} oninput={(e) => { form.sans = e.currentTarget.value; invalidate(); }} disabled={locked || !editable} aria-invalid={f.invalid || undefined} aria-describedby={f.describedBy} rows="3" placeholder="www.example.com" spellcheck="false"></textarea>
+						<textarea
+							id={f.id}
+							value={form.sans}
+							oninput={(e) => {
+								form.sans = e.currentTarget.value;
+								invalidate();
+							}}
+							disabled={locked || !editable}
+							aria-invalid={f.invalid || undefined}
+							aria-describedby={f.describedBy}
+							rows="3"
+							placeholder="www.example.com"
+							spellcheck="false"></textarea>
 					{/snippet}
 				</Field>
 			</div>
 
-			<div id="panel-domain-certificate" role="tabpanel" aria-labelledby="tab-domain-certificate" hidden={step !== 'domain-certificate'} class="stack">
+			<div
+				id="panel-domain-certificate"
+				role="tabpanel"
+				aria-labelledby="tab-domain-certificate"
+				hidden={step !== 'domain-certificate'}
+				class="stack"
+			>
 				<div id="domain-method">
-					<RadioCards legend={u('method')} required value={form.method} name="domain-method-group" disabled={locked || !editable} error={fields.method} onchange={chooseMethod}
-						options={[{ value: 'resolver', label: u('resolverMethod'), description: u('resolverHint') }, { value: 'files', label: u('fileMethod'), description: u('fileHint') }]} />
+					<RadioCards
+						legend={u('method')}
+						required
+						value={form.method}
+						name="domain-method-group"
+						disabled={locked || !editable}
+						error={fields.method}
+						onchange={chooseMethod}
+						options={[
+							{ value: 'resolver', label: u('resolverMethod'), description: u('resolverHint') },
+							{ value: 'files', label: u('fileMethod'), description: u('fileHint') },
+						]}
+					/>
 				</div>
-				{#if choicesError}<Notice tone="warning" message={choicesError}><Button size="sm" onclick={loadChoices} disabled={choicesLoading}>{t('common.retry')}</Button></Notice>{/if}
+				{#if choicesError}<Notice tone="warning" message={choicesError}>
+						<Button size="sm" onclick={loadChoices} disabled={choicesLoading}>{t('common.retry')}</Button>
+					</Notice>{/if}
 				{#if choicesLoading}
 					<p role="status" class="muted">{u('loadingChoices')}</p>
 				{:else if form.method}
-					<Field id="domain-reference" label={u(form.method === 'resolver' ? 'resolver' : 'certificate')} required help={form.method === 'resolver' ? u('resolverHelp') : c('suitableCertificates')} error={fields.reference}>
+					<Field
+						id="domain-reference"
+						label={u(form.method === 'resolver' ? 'resolver' : 'certificate')}
+						required
+						help={form.method === 'resolver' ? u('resolverHelp') : c('suitableCertificates')}
+						error={fields.reference}
+					>
 						{#snippet children(f)}
-							<SearchableSelect id={f.id} value={form.reference} {options} onchange={(v) => { form.reference = v; invalidate(); }} placeholder={u('selectExisting')} searchPlaceholder={u('searchChoices')} emptyMessage={u('noOptions')} disabled={locked || !editable || !options.length} ariaInvalid={f.invalid} ariaDescribedby={f.describedBy} />
+							<SearchableSelect
+								id={f.id}
+								value={form.reference}
+								{options}
+								onchange={(v) => {
+									form.reference = v;
+									invalidate();
+								}}
+								placeholder={u('selectExisting')}
+								searchPlaceholder={u('searchChoices')}
+								emptyMessage={u('noOptions')}
+								disabled={locked || !editable || !options.length}
+								ariaInvalid={f.invalid}
+								ariaDescribedby={f.describedBy}
+							/>
 						{/snippet}
 					</Field>
 					{#if !options.length}
 						<Notice message={u(form.method === 'resolver' ? 'noResolvers' : 'noCertificates')} />
-						<div><Button onclick={() => navigate(form.method === 'resolver' ? '/resolvers' : '/certificates/uploaded')}>{c(form.method === 'resolver' ? 'openResolvers' : 'openUploaded')}</Button></div>
+						<div>
+							<Button onclick={() => navigate(form.method === 'resolver' ? '/resolvers' : '/certificates/uploaded')}>
+								{c(form.method === 'resolver' ? 'openResolvers' : 'openUploaded')}
+							</Button>
+						</div>
 					{/if}
 				{/if}
 			</div>
 
-			<div id="panel-domain-review" role="tabpanel" aria-labelledby="tab-domain-review" hidden={step !== 'domain-review'} class="stack">
+			<div
+				id="panel-domain-review"
+				role="tabpanel"
+				aria-labelledby="tab-domain-review"
+				hidden={step !== 'domain-review'}
+				class="stack"
+			>
 				{#if result}
-					<Notice tone={operationTone(result.status)} title={t('operationV2.status.' + result.status)} message={result.summary}>
+					<Notice
+						tone={operationTone(result.status)}
+						title={t('operationV2.status.' + result.status)}
+						message={result.summary}
+					>
 						{#if result.id}<span class="muted">{t('operationV2.id', { id: result.id })}</span>{/if}
 					</Notice>
 					{#if manualRestart}<Notice tone="warning" message={t('writeV2.manualRestart')} />{/if}
 				{:else if review}
 					<SummaryList>
-						<div><dt>{u('domainName')}</dt><dd>{staged?.config.main ?? form.main}</dd></div>
-						<div><dt>{c('additionalNames')}</dt><dd>{(staged?.config.sans ?? parseNames(form.sans)).join(', ') || '—'}</dd></div>
-						<div><dt>{u('method')}</dt><dd>{u(form.method === 'resolver' ? 'resolverMethod' : 'fileMethod')}</dd></div>
-						<div><dt>{c('reference')}</dt><dd>{form.reference}</dd></div>
-						{#if staged?.updated_at}<div><dt>{u('updated')}</dt><dd><RelativeTime value={staged.updated_at} /></dd></div>{/if}
-						<div><dt>{rv2('pendingTotal')}</dt><dd>{review.changes?.length ?? 0}</dd></div>
+						<div>
+							<dt>{u('domainName')}</dt>
+							<dd>{staged?.config.main ?? form.main}</dd>
+						</div>
+						<div>
+							<dt>{c('additionalNames')}</dt>
+							<dd>{(staged?.config.sans ?? parseNames(form.sans)).join(', ') || '—'}</dd>
+						</div>
+						<div>
+							<dt>{u('method')}</dt>
+							<dd>{u(form.method === 'resolver' ? 'resolverMethod' : 'fileMethod')}</dd>
+						</div>
+						<div>
+							<dt>{c('reference')}</dt>
+							<dd>{form.reference}</dd>
+						</div>
+						{#if staged?.updated_at}<div>
+								<dt>{u('updated')}</dt>
+								<dd><RelativeTime value={staged.updated_at} /></dd>
+							</div>{/if}
+						<div>
+							<dt>{rv2('pendingTotal')}</dt>
+							<dd>{review.changes?.length ?? 0}</dd>
+						</div>
 					</SummaryList>
 					{#if serverErrors.length}
 						<Notice tone="error" title={rv2('serverErrors')}>
-							<ul class="reasons">{#each serverErrors as ve}<li>{ve.item_id}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}</ul>
+							<ul class="reasons">
+								{#each serverErrors as ve}<li>{ve.item_id}{ve.field ? ' · ' + ve.field : ''}: {ve.message}</li>{/each}
+							</ul>
 						</Notice>
 					{/if}
 					{#if review.requires_restart}
 						<Notice tone="warning" message={t('resolverUI.lifecycleHelp')}>
-							{#if review.restart_reasons?.length}<ul class="reasons">{#each review.restart_reasons as reason}<li>{reason}</li>{/each}</ul>{/if}
+							{#if review.restart_reasons?.length}<ul class="reasons">
+									{#each review.restart_reasons as reason}<li>{reason}</li>{/each}
+								</ul>{/if}
 						</Notice>
 					{/if}
-					{#if mountsMissing}<Notice tone="warning" title={rv2('mounts.blockedTitle')} message={rv2('mounts.blocked')} />{/if}
-					{#if review.domain_diff}<CodePreview label={v2('domainFileDiff')} code={review.domain_diff} language="diff" />{/if}
-					{#if review.static_diff}<CodePreview label={rv2('diff.static')} code={review.static_diff} language="diff" />{/if}
-					{#if review.dynamic_diff}<CodePreview label={rv2('diff.dynamic')} code={review.dynamic_diff} language="diff" />{/if}
+					{#if mountsMissing}<Notice
+							tone="warning"
+							title={rv2('mounts.blockedTitle')}
+							message={rv2('mounts.blocked')}
+						/>{/if}
+					{#if review.domain_diff}<CodePreview
+							label={v2('domainFileDiff')}
+							code={review.domain_diff}
+							language="diff"
+						/>{/if}
+					{#if review.static_diff}<CodePreview
+							label={rv2('diff.static')}
+							code={review.static_diff}
+							language="diff"
+						/>{/if}
+					{#if review.dynamic_diff}<CodePreview
+							label={rv2('diff.dynamic')}
+							code={review.dynamic_diff}
+							language="diff"
+						/>{/if}
 				{:else if reviewError}
-					<Notice tone="error" message={reviewError}><Button size="sm" onclick={stageAndReview}>{t('common.retry')}</Button></Notice>
+					<Notice tone="error" message={reviewError}>
+						<Button size="sm" onclick={stageAndReview}>{t('common.retry')}</Button>
+					</Notice>
 				{:else}
 					<p role="status">{rv2('staging')}</p>
 				{/if}
@@ -408,26 +630,80 @@
 			{#if step === 'domain-review'}
 				<Button onclick={() => (step = 'domain-certificate')} disabled={busy}>{u('back')}</Button>
 				{#if review}
-					<Button variant="primary" onclick={apply} pending={busy} disabled={busy || serverErrors.length > 0 || mountsMissing}>{u(busy ? 'applying' : uncertain ? 'retryApply' : 'apply')}</Button>
+					<Button
+						variant="primary"
+						onclick={apply}
+						pending={busy}
+						disabled={busy || serverErrors.length > 0 || mountsMissing}
+					>
+						{u(busy ? 'applying' : uncertain ? 'retryApply' : 'apply')}
+					</Button>
 				{/if}
 			{:else if step === 'domain-certificate'}
 				<Button onclick={() => (step = 'domain-identity')} disabled={busy}>{u('back')}</Button>
-				<Button variant="primary" onclick={stageAndReview} pending={busy} disabled={busy || choicesLoading}>{rv2('stageReview')}</Button>
+				<Button variant="primary" onclick={stageAndReview} pending={busy} disabled={busy || choicesLoading}>
+					{rv2('stageReview')}
+				</Button>
 			{:else}
-				<Button variant="primary" onclick={() => selectStep('domain-certificate')} disabled={busy}>{u('continue')}</Button>
+				<Button variant="primary" onclick={() => selectStep('domain-certificate')} disabled={busy}>
+					{u('continue')}
+				</Button>
 			{/if}
 		{/if}
 	{/snippet}
 </ResourceDialog>
 
 <style>
-	.stack, .stack:not([hidden]) { display: flex; flex-direction: column; gap: 24px; }
-	.stack[hidden] { display: none; }
-	.muted { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 21px; }
-	.reasons { margin: 8px 0 0; padding-left: 20px; font-size: 14px; line-height: 22px; }
-	textarea { resize: vertical; min-height: 88px; }
-	.validation-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--danger-text) 30%, transparent); border-radius: var(--radius-card); background: var(--danger-bg); color: var(--danger-text); font-size: 13px; line-height: 18px; }
-	.validation-banner span { flex: 1; }
-	.validation-banner button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 2px 4px; }
-	.validation-banner button:hover { text-decoration: underline; }
+	.stack,
+	.stack:not([hidden]) {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	.stack[hidden] {
+		display: none;
+	}
+	.muted {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 14px;
+		line-height: 21px;
+	}
+	.reasons {
+		margin: 8px 0 0;
+		padding-left: 20px;
+		font-size: 14px;
+		line-height: 22px;
+	}
+	textarea {
+		resize: vertical;
+		min-height: 88px;
+	}
+	.validation-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 14px;
+		border: 1px solid color-mix(in srgb, var(--danger-text) 30%, transparent);
+		border-radius: var(--radius-card);
+		background: var(--danger-bg);
+		color: var(--danger-text);
+		font-size: 13px;
+		line-height: 18px;
+	}
+	.validation-banner span {
+		flex: 1;
+	}
+	.validation-banner button {
+		border: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 2px 4px;
+	}
+	.validation-banner button:hover {
+		text-decoration: underline;
+	}
 </style>

@@ -2,50 +2,112 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import MiddlewaresPage from '../src/features/middlewares/MiddlewaresPage.svelte';
-import { MIDDLEWARE_BASE, TCP_TYPES, externalType, middlewareProtocolOf, nativeSchema } from '../src/features/middlewares/models';
+import {
+	MIDDLEWARE_BASE,
+	TCP_TYPES,
+	externalType,
+	middlewareProtocolOf,
+	nativeSchema,
+} from '../src/features/middlewares/models';
 import { validateForm, flattenSchemaFields } from '../src/features/middlewares/validation';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
-const preview = () => ({ changes: [{ action: 'created', id: 'middleware:x', kind: 'middleware', name: 'x', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+m: {}', requires_restart: false });
-const operation = () => ({ id: 9, kind: 'middleware.create', target: 'x', status: 'succeeded', summary: 'Applied 1 change', requires_restart: false, created_at: 'now' });
-const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({ id: kind + ':' + name, name, version, origin: 'managed', provider: 'file', status: 'active', read_only: false, live_health: 'unknown', updated_at: '2026-01-01T00:00:00Z', config, ...extra });
+const preview = () => ({
+	changes: [{ action: 'created', id: 'middleware:x', kind: 'middleware', name: 'x', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+m: {}',
+	requires_restart: false,
+});
+const operation = () => ({
+	id: 9,
+	kind: 'middleware.create',
+	target: 'x',
+	status: 'succeeded',
+	summary: 'Applied 1 change',
+	requires_restart: false,
+	created_at: 'now',
+});
+const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({
+	id: kind + ':' + name,
+	name,
+	version,
+	origin: 'managed',
+	provider: 'file',
+	status: 'active',
+	read_only: false,
+	live_health: 'unknown',
+	updated_at: '2026-01-01T00:00:00Z',
+	config,
+	...extra,
+});
 const none = { routers: [], chains: [] };
-const httpMw = (name: string, version = 1) => envelope('middleware', name, { protocol: 'http', type: 'addPrefix', spec: { prefix: '/api' }, used_by: none }, version);
-const tcpMw = (name: string, type: string, spec: unknown, version = 1, used_by: unknown = none, extra = {}) => envelope('middleware', name, { protocol: 'tcp', type, spec, used_by }, version, extra);
+const httpMw = (name: string, version = 1) =>
+	envelope(
+		'middleware',
+		name,
+		{ protocol: 'http', type: 'addPrefix', spec: { prefix: '/api' }, used_by: none },
+		version,
+	);
+const tcpMw = (name: string, type: string, spec: unknown, version = 1, used_by: unknown = none, extra = {}) =>
+	envelope('middleware', name, { protocol: 'tcp', type, spec, used_by }, version, extra);
 const cap = (version = 1, used_by: unknown = none) => tcpMw('cap', 'inFlightConn', { amount: 10 }, version, used_by);
 const office = (version = 1) => tcpMw('office', 'ipAllowList', { sourceRange: ['10.0.0.0/8', '192.168.1.7'] }, version);
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const base = (mws: unknown, chains: unknown = []) => ({
 	'GET /api/v1/middlewares': () => json(mws),
 	'GET /api/v1/chains': () => json(chains),
-	'GET /api/v1/services': () => json([])
+	'GET /api/v1/services': () => json([]),
 });
-const dry = (name: string) => ({ [`PUT /api/v1/middlewares/${name}?dry_run=true`]: () => json({ preview: preview(), restart_required: false }) });
+const dry = (name: string) => ({
+	[`PUT /api/v1/middlewares/${name}?dry_run=true`]: () => json({ preview: preview(), restart_required: false }),
+});
 const puts = () => calls.filter((c) => c.method === 'PUT');
 const rowOf = (name: string) => screen.getAllByText(name)[0].closest('tr') as HTMLElement;
 const button = (name: string | RegExp) => screen.getByRole('button', { name });
@@ -75,9 +137,15 @@ describe('model', () => {
 	it('needs a connection limit of 1 or more', () => {
 		const fields = flattenSchemaFields(nativeSchema.tcp.inFlightConn);
 		const copy = (k: string) => k;
-		expect(validateForm('tcp', 'inFlightConn', fields, {}, {}, { users: [], mode: 'none' }, [], 'cap', copy)).toEqual({ amount: 'requiredField' });
-		expect(validateForm('tcp', 'inFlightConn', fields, {}, { amount: 0 }, { users: [], mode: 'none' }, [], 'cap', copy)).toEqual({ amount: 'positiveNumber' });
-		expect(validateForm('tcp', 'inFlightConn', fields, {}, { amount: 5 }, { users: [], mode: 'none' }, [], 'cap', copy)).toEqual({});
+		expect(validateForm('tcp', 'inFlightConn', fields, {}, {}, { users: [], mode: 'none' }, [], 'cap', copy)).toEqual({
+			amount: 'requiredField',
+		});
+		expect(
+			validateForm('tcp', 'inFlightConn', fields, {}, { amount: 0 }, { users: [], mode: 'none' }, [], 'cap', copy),
+		).toEqual({ amount: 'positiveNumber' });
+		expect(
+			validateForm('tcp', 'inFlightConn', fields, {}, { amount: 5 }, { users: [], mode: 'none' }, [], 'cap', copy),
+		).toEqual({});
 	});
 });
 
@@ -121,7 +189,12 @@ describe('one list for both protocols', () => {
 		expect(paths).toEqual(['/tcp-middlewares/cap', '/tcp-middlewares/cap/edit', '/middlewares/strip']);
 	});
 	it('lists the TCP routers that use a TCP middleware and opens them on the TCP router page', async () => {
-		const used = { routers: [{ name: 'pg', rule: 'HostSNI(`*`)', entry_points: ['postgres'], service: 'db', tls: false, read_only: false }], chains: [] };
+		const used = {
+			routers: [
+				{ name: 'pg', rule: 'HostSNI(`*`)', entry_points: ['postgres'], service: 'db', tls: false, read_only: false },
+			],
+			chains: [],
+		};
 		handlers = base([cap(1, used)]);
 		const paths: string[] = [];
 		render(MiddlewaresPage, { navigate: (p: string) => paths.push(p) });
@@ -133,7 +206,11 @@ describe('one list for both protocols', () => {
 		expect(paths).toContain('/tcp-routers/pg');
 	});
 	it('deletes a TCP middleware with its version, and shows a refusal', async () => {
-		handlers = { ...base([cap(4)]), 'DELETE /api/v1/middlewares/cap': () => json({ code: 'ERR_CONFLICT', message: 'used by router pg', operation_id: 'o', retryable: false }, 409) };
+		handlers = {
+			...base([cap(4)]),
+			'DELETE /api/v1/middlewares/cap': () =>
+				json({ code: 'ERR_CONFLICT', message: 'used by router pg', operation_id: 'o', retryable: false }, 409),
+		};
 		render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('cap').length).toBeGreaterThan(0));
 		await fireEvent.click(within(rowOf('cap')).getByRole('menuitem', { name: 'Delete' }));
@@ -151,7 +228,9 @@ describe('choosing the protocol in the create dialog', () => {
 	const typeOptions = async () => {
 		await fireEvent.click(document.getElementById('middleware-type')!);
 		const listbox = await waitFor(() => document.getElementById('middleware-type-listbox')!);
-		const options = within(listbox).getAllByRole('option').map((o) => o.textContent ?? '');
+		const options = within(listbox)
+			.getAllByRole('option')
+			.map((o) => o.textContent ?? '');
 		await fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
 		return options;
 	};
@@ -216,7 +295,9 @@ describe('creating a TCP middleware', () => {
 		expect(screen.getByText(/Only TCP routers can use it/)).toBeTruthy();
 		await fireEvent.click(document.getElementById('middleware-type')!);
 		const listbox = await waitFor(() => document.getElementById('middleware-type-listbox')!);
-		const options = within(listbox).getAllByRole('option').map((o) => o.textContent ?? '');
+		const options = within(listbox)
+			.getAllByRole('option')
+			.map((o) => o.textContent ?? '');
 		expect(options).toHaveLength(2);
 		expect(options[0]).toContain('In-flight connections');
 		expect(options[1]).toContain('IP allow list');
@@ -224,8 +305,9 @@ describe('creating a TCP middleware', () => {
 	});
 	it('limits connections: previews and applies with the TCP protocol, a create precondition and one key', async () => {
 		handlers = {
-			...base([]), ...dry('cap'),
-			'PUT /api/v1/middlewares/cap': () => json({ operation: operation(), resource: cap(), restart_required: false })
+			...base([]),
+			...dry('cap'),
+			'PUT /api/v1/middlewares/cap': () => json({ operation: operation(), resource: cap(), restart_required: false }),
 		};
 		await openCreateTcp();
 		await fireEvent.input(document.getElementById('middleware-name')!, { target: { value: 'cap' } });
@@ -267,7 +349,19 @@ describe('creating a TCP middleware', () => {
 		expect(puts()).toHaveLength(0);
 	});
 	it('shows the server refusal and applies nothing', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/middlewares/cap?dry_run=true': () => json({ code: 'ERR_VALIDATION', message: "unsupported or empty middleware type: amount must be a positive whole number", operation_id: 'op', retryable: false }, 422) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/middlewares/cap?dry_run=true': () =>
+				json(
+					{
+						code: 'ERR_VALIDATION',
+						message: 'unsupported or empty middleware type: amount must be a positive whole number',
+						operation_id: 'op',
+						retryable: false,
+					},
+					422,
+				),
+		};
 		await openCreateTcp();
 		await fireEvent.input(document.getElementById('middleware-name')!, { target: { value: 'cap' } });
 		await chooseType(/In-flight connections/);
@@ -287,10 +381,18 @@ describe('editing and viewing a TCP middleware', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(puts()).toHaveLength(1));
 		expect(puts()[0].headers['if-match']).toBe('"5"');
-		expect(puts()[0].body).toEqual({ protocol: 'tcp', type: 'ipAllowList', spec: { sourceRange: ['10.0.0.0/8', '192.168.1.7'] } });
+		expect(puts()[0].body).toEqual({
+			protocol: 'tcp',
+			type: 'ipAllowList',
+			spec: { sourceRange: ['10.0.0.0/8', '192.168.1.7'] },
+		});
 	});
 	it('reports a version conflict without applying', async () => {
-		handlers = { ...base([cap(2)]), 'PUT /api/v1/middlewares/cap?dry_run=true': () => json({ code: 'ERR_VERSION_CONFLICT', message: 'changed', operation_id: 'o', retryable: false }, 409) };
+		handlers = {
+			...base([cap(2)]),
+			'PUT /api/v1/middlewares/cap?dry_run=true': () =>
+				json({ code: 'ERR_VERSION_CONFLICT', message: 'changed', operation_id: 'o', retryable: false }, 409),
+		};
 		render(MiddlewaresPage, { navigate: () => {}, protocol: 'tcp', mode: 'edit', name: 'cap' });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(screen.getByRole('button', { name: /Refresh/ })).toBeTruthy());
@@ -306,8 +408,14 @@ describe('editing and viewing a TCP middleware', () => {
 		await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Edit' }));
 		expect(paths).toEqual(['/tcp-middlewares/cap/edit']);
 	});
-	it('shows Traefik\'s own TCP middleware read-only', async () => {
-		handlers = base([tcpMw('limit@docker', 'external', { inFlightConn: { amount: 5 } }, 0, none, { origin: 'external', provider: 'docker', read_only: true })]);
+	it("shows Traefik's own TCP middleware read-only", async () => {
+		handlers = base([
+			tcpMw('limit@docker', 'external', { inFlightConn: { amount: 5 } }, 0, none, {
+				origin: 'external',
+				provider: 'docker',
+				read_only: true,
+			}),
+		]);
 		render(MiddlewaresPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('limit@docker').length).toBeGreaterThan(0));
 		expect(within(rowOf('limit@docker')).getByText('TCP')).toBeTruthy();

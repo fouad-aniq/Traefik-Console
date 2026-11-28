@@ -46,11 +46,22 @@
 
 <div class="map" bind:this={host}>
 	{#if world}
-		<svg viewBox="0 0 {world.width} {world.height}" role="img" aria-label={c('mapLabel', { count: counts.size })} onpointermove={pointer} onpointerleave={() => (hover = null)}>
+		<svg
+			viewBox="0 0 {world.width} {world.height}"
+			role="img"
+			aria-label={c('mapLabel', { count: counts.size })}
+			onpointermove={pointer}
+			onpointerleave={() => (hover = null)}
+		>
 			<g>
 				{#each world.countries as shape, i (shape.code + i)}
 					{@const count = counts.get(shape.code) ?? 0}
-					<path d={shape.d} data-code={shape.code} class="land level-{heatLevel(count, max)}" class:active={hover?.code === shape.code}>
+					<path
+						d={shape.d}
+						data-code={shape.code}
+						class="land level-{heatLevel(count, max)}"
+						class:active={hover?.code === shape.code}
+					>
 						<title>{label(shape.code)}: {c('alerts', { count })}</title>
 					</path>
 				{/each}
@@ -59,7 +70,13 @@
 				{#each top as item, index (item.key)}
 					{@const shape = world.countries.find((s) => s.code === item.key)}
 					{#if shape}
-						<circle cx={shape.c[0]} cy={shape.c[1]} r={6 + 10 * (item.count / (max || 1))} class="pulse" style="animation-delay:{index * 300}ms" />
+						<circle
+							cx={shape.c[0]}
+							cy={shape.c[1]}
+							r={6 + 10 * (item.count / (max || 1))}
+							class="pulse"
+							style="animation-delay:{index * 300}ms"
+						/>
 						<circle cx={shape.c[0]} cy={shape.c[1]} r="3.5" class="dot" />
 					{/if}
 				{/each}
@@ -89,32 +106,160 @@
 </div>
 
 <style>
-	.map { position: relative; width: 100%; }
-	svg { display: block; width: 100%; height: auto; }
-	.land { stroke: var(--surface); stroke-width: 0.6; transition: fill 160ms ease, opacity 160ms ease; cursor: default; }
-	.land.active { stroke: var(--text); stroke-width: 1.2; }
-	.level-0 { --heat: var(--surface-muted); }
-	.level-1 { --heat: color-mix(in srgb, var(--danger-text) 22%, var(--surface-muted)); }
-	.level-2 { --heat: color-mix(in srgb, var(--danger-text) 40%, var(--surface-muted)); }
-	.level-3 { --heat: color-mix(in srgb, var(--danger-text) 58%, var(--surface-muted)); }
-	.level-4 { --heat: color-mix(in srgb, var(--danger-text) 76%, var(--surface-muted)); }
-	.level-5 { --heat: var(--danger-text); }
-	.land { fill: var(--heat); }
-	.legend.faded { opacity: 0.5; }
-	.swatch { background: var(--heat); }
-	.dot { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; pointer-events: none; }
-	.pulse { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); stroke-width: 1; pointer-events: none; transform-box: fill-box; transform-origin: center; animation: pulse 2.4s ease-out infinite; }
-	@keyframes pulse { 0% { opacity: 0.9; transform: scale(0.4); } 100% { opacity: 0; transform: scale(1.3); } }
-	@media (prefers-reduced-motion: reduce) { .pulse { animation: none; opacity: 0.35; } }
-	.tip { position: absolute; transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; background: var(--text); color: var(--surface); padding: 6px 10px; border-radius: 6px; font-size: 13px; line-height: 18px; display: grid; white-space: nowrap; z-index: 2; box-shadow: 0 4px 14px rgb(0 0 0 / 0.18); }
-	.tip span { opacity: 0.8; font-variant-numeric: tabular-nums; }
-	.placeholder { aspect-ratio: 960 / 470; border-radius: 8px; background: linear-gradient(90deg, var(--surface-muted), var(--canvas), var(--surface-muted)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; color: transparent; }
-	@keyframes shimmer { to { background-position: -200% 0; } }
-	@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }
-	.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
-	.legend.faded { opacity: 0.5; }
-	.swatch { width: 22px; height: 10px; border-radius: 2px; display: inline-block; }
-	.unknown { margin-left: 12px; }
-	.empty { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); margin: 0; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; color: var(--text-muted); white-space: nowrap; }
-	.muted { color: var(--text-muted); font-size: 13px; margin: 0; }
+	.map {
+		position: relative;
+		width: 100%;
+	}
+	svg {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+	.land {
+		stroke: var(--surface);
+		stroke-width: 0.6;
+		transition:
+			fill 160ms ease,
+			opacity 160ms ease;
+		cursor: default;
+	}
+	.land.active {
+		stroke: var(--text);
+		stroke-width: 1.2;
+	}
+	.level-0 {
+		--heat: var(--surface-muted);
+	}
+	.level-1 {
+		--heat: color-mix(in srgb, var(--danger-text) 22%, var(--surface-muted));
+	}
+	.level-2 {
+		--heat: color-mix(in srgb, var(--danger-text) 40%, var(--surface-muted));
+	}
+	.level-3 {
+		--heat: color-mix(in srgb, var(--danger-text) 58%, var(--surface-muted));
+	}
+	.level-4 {
+		--heat: color-mix(in srgb, var(--danger-text) 76%, var(--surface-muted));
+	}
+	.level-5 {
+		--heat: var(--danger-text);
+	}
+	.land {
+		fill: var(--heat);
+	}
+	.legend.faded {
+		opacity: 0.5;
+	}
+	.swatch {
+		background: var(--heat);
+	}
+	.dot {
+		fill: var(--accent);
+		stroke: var(--surface);
+		stroke-width: 1.5;
+		pointer-events: none;
+	}
+	.pulse {
+		fill: color-mix(in srgb, var(--accent) 30%, transparent);
+		stroke: var(--accent);
+		stroke-width: 1;
+		pointer-events: none;
+		transform-box: fill-box;
+		transform-origin: center;
+		animation: pulse 2.4s ease-out infinite;
+	}
+	@keyframes pulse {
+		0% {
+			opacity: 0.9;
+			transform: scale(0.4);
+		}
+		100% {
+			opacity: 0;
+			transform: scale(1.3);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.pulse {
+			animation: none;
+			opacity: 0.35;
+		}
+	}
+	.tip {
+		position: absolute;
+		transform: translate(-50%, calc(-100% - 12px));
+		pointer-events: none;
+		background: var(--text);
+		color: var(--surface);
+		padding: 6px 10px;
+		border-radius: 6px;
+		font-size: 13px;
+		line-height: 18px;
+		display: grid;
+		white-space: nowrap;
+		z-index: 2;
+		box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+	}
+	.tip span {
+		opacity: 0.8;
+		font-variant-numeric: tabular-nums;
+	}
+	.placeholder {
+		aspect-ratio: 960 / 470;
+		border-radius: 8px;
+		background: linear-gradient(90deg, var(--surface-muted), var(--canvas), var(--surface-muted));
+		background-size: 200% 100%;
+		animation: shimmer 1.4s linear infinite;
+		color: transparent;
+	}
+	@keyframes shimmer {
+		to {
+			background-position: -200% 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.placeholder {
+			animation: none;
+		}
+	}
+	.legend {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		margin-top: 12px;
+		font-size: 12px;
+		color: var(--text-muted);
+	}
+	.legend.faded {
+		opacity: 0.5;
+	}
+	.swatch {
+		width: 22px;
+		height: 10px;
+		border-radius: 2px;
+		display: inline-block;
+	}
+	.unknown {
+		margin-left: 12px;
+	}
+	.empty {
+		position: absolute;
+		left: 50%;
+		bottom: 8%;
+		transform: translateX(-50%);
+		margin: 0;
+		padding: 6px 12px;
+		border-radius: 999px;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		font-size: 13px;
+		color: var(--text-muted);
+		white-space: nowrap;
+	}
+	.muted {
+		color: var(--text-muted);
+		font-size: 13px;
+		margin: 0;
+	}
 </style>

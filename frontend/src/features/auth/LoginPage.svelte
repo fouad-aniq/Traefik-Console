@@ -36,9 +36,24 @@
 	let timer: ReturnType<typeof setInterval> | undefined;
 	onDestroy(() => clearInterval(timer));
 
-	const EXTERNAL_CODES = ['not_allowed', 'no_identity', 'provider_denied', 'provider_error', 'provider_unreachable', 'invalid_state', 'invalid_token', 'not_configured', 'rate_limited', 'busy', 'setup_required', 'server_error'];
+	const EXTERNAL_CODES = [
+		'not_allowed',
+		'no_identity',
+		'provider_denied',
+		'provider_error',
+		'provider_unreachable',
+		'invalid_state',
+		'invalid_token',
+		'not_configured',
+		'rate_limited',
+		'busy',
+		'setup_required',
+		'server_error',
+	];
 	const externalMessage = $derived(
-		externalError ? t('authScreens.external.' + (EXTERNAL_CODES.includes(externalError) ? externalError : 'server_error')) : ''
+		externalError
+			? t('authScreens.external.' + (EXTERNAL_CODES.includes(externalError) ? externalError : 'server_error'))
+			: '',
 	);
 
 	const notice = $derived(auth.notice ? t('authScreens.login.notice.' + auth.notice) : '');
@@ -77,9 +92,10 @@
 			if (err instanceof ApiError && err.code === 'AUTH_RATE_LIMITED' && err.retryAfter) {
 				countdown(err.retryAfter);
 			}
-			error = err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS'
-				? t('authScreens.login.invalid')
-				: errorMessage(err, t('authScreens.login.failed'));
+			error =
+				err instanceof ApiError && err.code === 'AUTH_INVALID_CREDENTIALS'
+					? t('authScreens.login.invalid')
+					: errorMessage(err, t('authScreens.login.failed'));
 			queueMicrotask(() => document.getElementById('login-password')?.focus());
 		} finally {
 			pending = false;
@@ -93,10 +109,22 @@
 		{#if externalMessage}<Notice type="error" title={t('authScreens.external.title')} message={externalMessage} />{/if}
 
 		<form class="auth-form" onsubmit={submit} novalidate>
-			{#if error}<Notice type="error" message={retryIn > 0 ? t('authScreens.login.locked', { seconds: retryIn }) : error} />{/if}
+			{#if error}<Notice
+					type="error"
+					message={retryIn > 0 ? t('authScreens.login.locked', { seconds: retryIn }) : error}
+				/>{/if}
 			<Field id="login-username" label={t('authScreens.usernameLabel')}>
 				{#snippet children({ id, describedBy, invalid })}
-					<input {id} bind:value={username} autocomplete="username" spellcheck="false" autocapitalize="off" aria-describedby={describedBy} aria-invalid={invalid} maxlength={64} />
+					<input
+						{id}
+						bind:value={username}
+						autocomplete="username"
+						spellcheck="false"
+						autocapitalize="off"
+						aria-describedby={describedBy}
+						aria-invalid={invalid}
+						maxlength={64}
+					/>
 				{/snippet}
 			</Field>
 			<Field id="login-password" label={t('authScreens.passwordLabel')}>
@@ -104,7 +132,15 @@
 					<PasswordInput {id} bind:value={password} {describedBy} {invalid} />
 				{/snippet}
 			</Field>
-			<Button type="submit" variant="primary" {pending} pendingLabel={t('authScreens.login.signingIn')} disabled={retryIn > 0}>{t('authScreens.login.submit')}</Button>
+			<Button
+				type="submit"
+				variant="primary"
+				{pending}
+				pendingLabel={t('authScreens.login.signingIn')}
+				disabled={retryIn > 0}
+			>
+				{t('authScreens.login.submit')}
+			</Button>
 		</form>
 
 		{#if auth.providers.length}
@@ -121,20 +157,34 @@
 	</div>
 
 	{#snippet below()}
-	<div class="forgot">
-			<button type="button" class="link" aria-expanded={showRecovery} aria-controls="recovery-help" onclick={() => (showRecovery = !showRecovery)}>
+		<div class="forgot">
+			<button
+				type="button"
+				class="link"
+				aria-expanded={showRecovery}
+				aria-controls="recovery-help"
+				onclick={() => (showRecovery = !showRecovery)}
+			>
 				{t('authScreens.login.forgotLink')}
 			</button>
 			{#if showRecovery}
 				<section id="recovery-help" class="recovery" aria-labelledby="recovery-title">
 					<header>
 						<h2 id="recovery-title">{t('authScreens.login.lockedTitle')}</h2>
-						<button type="button" class="close" aria-label={t('common.close')} onclick={() => (showRecovery = false)}><X size={16} aria-hidden="true" /></button>
+						<button type="button" class="close" aria-label={t('common.close')} onclick={() => (showRecovery = false)}>
+							<X size={16} aria-hidden="true" />
+						</button>
 					</header>
 					<p>{t('authScreens.login.lockedHelp')}</p>
 					<div class="command">
 						<code>{RESET_COMMAND}</code>
-						<button type="button" class="copy" onclick={copyCommand} aria-label={t('authScreens.login.copyCommand')} title={t('authScreens.login.copyCommand')}>
+						<button
+							type="button"
+							class="copy"
+							onclick={copyCommand}
+							aria-label={t('authScreens.login.copyCommand')}
+							title={t('authScreens.login.copyCommand')}
+						>
 							{#if copied}<Check size={16} aria-hidden="true" />{:else}<Copy size={16} aria-hidden="true" />{/if}
 						</button>
 					</div>
@@ -147,28 +197,149 @@
 </AuthLayout>
 
 <style>
-	.stack { display: flex; flex-direction: column; gap: 20px; margin-top: 28px; }
-	.auth-form { display: flex; flex-direction: column; gap: 20px; }
-	.auth-form :global(.field) { max-width: none; }
-	.auth-form > :global(button[type='submit']) { width: 100%; }
-	.providers { display: flex; flex-direction: column; gap: 10px; }
-	.external { width: 100%; font-weight: 500; }
-	.or { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; color: var(--text-muted); font-size: 13px; }
-	.or::before, .or::after { content: ''; border-top: 1px solid var(--border); }
-	.forgot { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 16px; }
-	.link { padding: 2px 0; border: none; background: none; color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; }
-	.link:hover { text-decoration: underline; }
-	.recovery { align-self: stretch; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--canvas); }
-	.recovery header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-	.recovery h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
-	.recovery p { margin: 6px 0 0; font-size: 14px; line-height: 21px; color: var(--text-muted); }
-	.recovery p.small { font-size: 13px; }
-	.close { display: grid; place-items: center; width: 28px; height: 28px; border: none; border-radius: var(--radius-control); background: transparent; color: var(--text-muted); cursor: pointer; }
-	.close:hover { background: var(--surface-muted); color: var(--text); }
-	.command { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 4px 4px 4px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
-	.command code { flex: 1; min-width: 0; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
-	.copy { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: none; border-radius: var(--radius-control); background: transparent; color: var(--text-muted); cursor: pointer; }
-	.copy:hover { background: var(--surface-muted); color: var(--text); }
-	.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-	.stack :global(.notice p) { margin: 0; }
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		margin-top: 28px;
+	}
+	.auth-form {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+	.auth-form :global(.field) {
+		max-width: none;
+	}
+	.auth-form > :global(button[type='submit']) {
+		width: 100%;
+	}
+	.providers {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.external {
+		width: 100%;
+		font-weight: 500;
+	}
+	.or {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: center;
+		gap: 12px;
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+	.or::before,
+	.or::after {
+		content: '';
+		border-top: 1px solid var(--border);
+	}
+	.forgot {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+		margin-top: 16px;
+	}
+	.link {
+		padding: 2px 0;
+		border: none;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: 14px;
+		cursor: pointer;
+	}
+	.link:hover {
+		text-decoration: underline;
+	}
+	.recovery {
+		align-self: stretch;
+		padding: 14px 16px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		background: var(--canvas);
+	}
+	.recovery header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+	.recovery h2 {
+		margin: 0;
+		font-size: 14px;
+		line-height: 20px;
+		font-weight: 600;
+	}
+	.recovery p {
+		margin: 6px 0 0;
+		font-size: 14px;
+		line-height: 21px;
+		color: var(--text-muted);
+	}
+	.recovery p.small {
+		font-size: 13px;
+	}
+	.close {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border: none;
+		border-radius: var(--radius-control);
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.close:hover {
+		background: var(--surface-muted);
+		color: var(--text);
+	}
+	.command {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 10px;
+		padding: 4px 4px 4px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface);
+	}
+	.command code {
+		flex: 1;
+		min-width: 0;
+		font-size: 13px;
+		line-height: 20px;
+		overflow-wrap: anywhere;
+	}
+	.copy {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 32px;
+		height: 32px;
+		border: none;
+		border-radius: var(--radius-control);
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.copy:hover {
+		background: var(--surface-muted);
+		color: var(--text);
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.stack :global(.notice p) {
+		margin: 0;
+	}
 </style>

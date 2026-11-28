@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import App from '../src/App.svelte';
@@ -16,16 +18,38 @@ let handlers: Record<string, (body: any) => Response> = {};
 
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
 	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
-const session = { user: { username: 'admin', method: 'password' }, csrf: 'csrf-123', expires_at: '2099-01-01T00:00:00Z' };
-const status = (over: Record<string, unknown>) => () => json({ setup_required: false, authenticated: false, providers: [], ...over });
-const configState = { drifted: false, drifted_files: null, restart_required: false, running_operation: false, archived_drafts: 0, archived_secret_drafts: 0, plugin_updates: 0 };
+const session = {
+	user: { username: 'admin', method: 'password' },
+	csrf: 'csrf-123',
+	expires_at: '2099-01-01T00:00:00Z',
+};
+const status = (over: Record<string, unknown>) => () =>
+	json({ setup_required: false, authenticated: false, providers: [], ...over });
+const configState = {
+	drifted: false,
+	drifted_files: null,
+	restart_required: false,
+	running_operation: false,
+	archived_drafts: 0,
+	archived_secret_drafts: 0,
+	plugin_updates: 0,
+};
 
 beforeEach(() => {
 	calls = [];
 	handlers = { 'GET /api/v1/config/state': () => json(configState) };
 	window.location.hash = '#/';
 	localStorage.clear();
-	window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as typeof window.matchMedia;
+	window.matchMedia = ((query: string) => ({
+		matches: false,
+		media: query,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		onchange: null,
+		dispatchEvent: () => false,
+	})) as typeof window.matchMedia;
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const method = init.method ?? 'GET';
 		const body = typeof init.body === 'string' ? JSON.parse(init.body) : undefined;
@@ -76,7 +100,9 @@ describe('setup', () => {
 		handlers['GET /api/v1/auth/status'] = status({ setup_required: true });
 		handlers['POST /api/v1/auth/setup'] = () => json(session);
 		render(App);
-		await fireEvent.input(await screen.findByLabelText(/Setup token/), { target: { value: 'TCS-ABCD-EFGH-IJKL-MN23' } });
+		await fireEvent.input(await screen.findByLabelText(/Setup token/), {
+			target: { value: 'TCS-ABCD-EFGH-IJKL-MN23' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await fireEvent.input(screen.getByLabelText(/^Password/), { target: { value: 'a long enough password' } });
 		await fireEvent.input(screen.getByLabelText(/Repeat password/), { target: { value: 'a different password!' } });
@@ -88,7 +114,11 @@ describe('setup', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Create administrator' }));
 		await waitFor(() => expect(auth.phase).toBe('ready'));
 		const setup = calls.find((c) => c.path === '/api/v1/auth/setup')!;
-		expect(setup.body).toEqual({ setup_token: 'TCS-ABCD-EFGH-IJKL-MN23', username: 'admin', password: 'a long enough password' });
+		expect(setup.body).toEqual({
+			setup_token: 'TCS-ABCD-EFGH-IJKL-MN23',
+			username: 'admin',
+			password: 'a long enough password',
+		});
 	});
 
 	it('checks the token shape before continuing', async () => {
@@ -104,9 +134,12 @@ describe('setup', () => {
 
 	it('returns to the token step when the server rejects the token', async () => {
 		handlers['GET /api/v1/auth/status'] = status({ setup_required: true });
-		handlers['POST /api/v1/auth/setup'] = () => json({ code: 'AUTH_INVALID_SETUP_TOKEN', message: 'bad', field_errors: { setup_token: 'bad' } }, 401);
+		handlers['POST /api/v1/auth/setup'] = () =>
+			json({ code: 'AUTH_INVALID_SETUP_TOKEN', message: 'bad', field_errors: { setup_token: 'bad' } }, 401);
 		render(App);
-		await fireEvent.input(await screen.findByLabelText(/Setup token/), { target: { value: 'TCS-WRON-GWRO-NGWR-ONG2' } });
+		await fireEvent.input(await screen.findByLabelText(/Setup token/), {
+			target: { value: 'TCS-WRON-GWRO-NGWR-ONG2' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await fireEvent.input(screen.getByLabelText(/^Password/), { target: { value: 'a long enough password' } });
 		await fireEvent.input(screen.getByLabelText(/Repeat password/), { target: { value: 'a long enough password' } });
@@ -133,12 +166,18 @@ describe('sign-in and session', () => {
 		await api.post('/api/v1/snapshots', { name: 'x' });
 		await api.get('/api/v1/routers');
 		expect(calls.find((c) => c.path === '/api/v1/snapshots')!.headers.get('X-CSRF-Token')).toBe('csrf-123');
-		expect(calls.filter((c) => c.path === '/api/v1/routers').at(-1)!.headers.get('X-CSRF-Token')).toBeNull();
+		expect(
+			calls
+				.filter((c) => c.path === '/api/v1/routers')
+				.at(-1)!
+				.headers.get('X-CSRF-Token'),
+		).toBeNull();
 	});
 
 	it('shows the server message on a wrong password and counts down a lockout', async () => {
 		handlers['GET /api/v1/auth/status'] = status({});
-		handlers['POST /api/v1/auth/login'] = () => json({ code: 'AUTH_RATE_LIMITED', message: 'slow down' }, 429, { 'Retry-After': '30' });
+		handlers['POST /api/v1/auth/login'] = () =>
+			json({ code: 'AUTH_RATE_LIMITED', message: 'slow down' }, 429, { 'Retry-After': '30' });
 		render(App);
 		await fireEvent.input(await screen.findByLabelText('Username'), { target: { value: 'admin' } });
 		await fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'nope' } });
@@ -194,10 +233,14 @@ describe('sign-in and session', () => {
 		render(App);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Okta' }));
 		const issuer = screen.getByLabelText(/Issuer URL/, { selector: 'input, select, textarea' }) as HTMLInputElement;
-		expect((screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }) as HTMLSelectElement).value).toBe('oidc');
+		expect((screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }) as HTMLSelectElement).value).toBe(
+			'oidc',
+		);
 		expect(issuer.value).toBe('');
 		expect(issuer.placeholder).toBe('https://your-org.okta.com/oauth2/default');
-		expect((screen.getByLabelText(/Button label/, { selector: 'input, select, textarea' }) as HTMLInputElement).value).toBe('Okta');
+		expect(
+			(screen.getByLabelText(/Button label/, { selector: 'input, select, textarea' }) as HTMLInputElement).value,
+		).toBe('Okta');
 		await waitFor(() => expect(document.activeElement).toBe(issuer));
 	});
 
@@ -207,13 +250,20 @@ describe('sign-in and session', () => {
 		window.location.hash = '#/settings/security/providers/new';
 		render(App);
 		expect(await screen.findByLabelText(/Issuer URL/, { selector: 'input, select, textarea' })).toBeTruthy();
-		await fireEvent.change(screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }), { target: { value: 'oauth2' } });
+		await fireEvent.change(screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }), {
+			target: { value: 'oauth2' },
+		});
 		expect(screen.queryByLabelText(/Issuer URL/, { selector: 'input, select, textarea' })).toBeNull();
 		expect(screen.getByLabelText(/Authorization URL/, { selector: 'input, select, textarea' })).toBeTruthy();
 	});
 
 	it('shows one button per provider and explains a refused external sign-in', async () => {
-		handlers['GET /api/v1/auth/status'] = status({ providers: [{ id: 'authentik', display_name: 'Authentik' }, { id: 'github', display_name: 'GitHub' }] });
+		handlers['GET /api/v1/auth/status'] = status({
+			providers: [
+				{ id: 'authentik', display_name: 'Authentik' },
+				{ id: 'github', display_name: 'GitHub' },
+			],
+		});
 		window.location.hash = '#/login?error=not_allowed';
 		render(App);
 		const link = await screen.findByRole('link', { name: 'Sign in with Authentik' });
@@ -221,17 +271,29 @@ describe('sign-in and session', () => {
 		// Provider buttons come after the password form.
 		const submit = screen.getByRole('button', { name: 'Sign in' });
 		expect(submit.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(screen.getByRole('link', { name: 'Sign in with GitHub' }).getAttribute('href')).toBe('/api/v1/auth/oauth/start?provider=github');
+		expect(screen.getByRole('link', { name: 'Sign in with GitHub' }).getAttribute('href')).toBe(
+			'/api/v1/auth/oauth/start?provider=github',
+		);
 		expect(screen.getByText(/not on this console's allow list/)).toBeTruthy();
 	});
 });
 
 describe('security page', () => {
 	const provider = {
-		id: 'github', kind: 'oauth2', display_name: 'GitHub', issuer: '', authorize_url: 'https://github.com/login/oauth/authorize',
-		token_url: 'https://github.com/login/oauth/access_token', userinfo_url: 'https://api.github.com/user', client_id: 'abc',
-		scopes: ['read:user'], identity_claim: 'login', allowed_identities: ['octocat'], redirect_url: 'http://localhost/api/v1/auth/oauth/callback',
-		credential_stored: true, updated_at: '2026-11-23T10:00:00Z'
+		id: 'github',
+		kind: 'oauth2',
+		display_name: 'GitHub',
+		issuer: '',
+		authorize_url: 'https://github.com/login/oauth/authorize',
+		token_url: 'https://github.com/login/oauth/access_token',
+		userinfo_url: 'https://api.github.com/user',
+		client_id: 'abc',
+		scopes: ['read:user'],
+		identity_claim: 'login',
+		allowed_identities: ['octocat'],
+		redirect_url: 'http://localhost/api/v1/auth/oauth/callback',
+		credential_stored: true,
+		updated_at: '2026-11-23T10:00:00Z',
 	};
 	beforeEach(() => {
 		handlers['GET /api/v1/auth/status'] = status({ authenticated: true, session });
@@ -252,9 +314,18 @@ describe('security page', () => {
 
 	it('adds a provider only after the password is confirmed in a dialog', async () => {
 		let saved: any;
-		handlers['GET /api/v1/auth/providers'] = () => json({ items: saved ? [{ ...provider, ...saved, id: 'github' }] : [] });
+		handlers['GET /api/v1/auth/providers'] = () =>
+			json({ items: saved ? [{ ...provider, ...saved, id: 'github' }] : [] });
 		handlers['POST /api/v1/auth/providers'] = (body) => {
-			if (body.current_password !== 'correct horse battery') return json({ code: 'AUTH_INVALID_CREDENTIALS', message: 'The current password is incorrect.', field_errors: { current_password: 'The current password is incorrect.' } }, 422);
+			if (body.current_password !== 'correct horse battery')
+				return json(
+					{
+						code: 'AUTH_INVALID_CREDENTIALS',
+						message: 'The current password is incorrect.',
+						field_errors: { current_password: 'The current password is incorrect.' },
+					},
+					422,
+				);
 			saved = body;
 			return json({ ...provider, display_name: body.display_name }, 201);
 		};
@@ -266,17 +337,29 @@ describe('security page', () => {
 		expect(screen.queryByRole('button', { name: 'OpenID Connect' })).toBeNull();
 		expect(screen.getByRole('button', { name: 'Okta' })).toBeTruthy();
 		await fireEvent.click(githubTemplate);
-		expect((screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }) as HTMLSelectElement).value).toBe('oauth2');
-		expect((screen.getByLabelText(/Token URL/, { selector: 'input, select, textarea' }) as HTMLInputElement).value).toBe('https://github.com/login/oauth/access_token');
+		expect((screen.getByLabelText(/^Type/, { selector: 'input, select, textarea' }) as HTMLSelectElement).value).toBe(
+			'oauth2',
+		);
+		expect(
+			(screen.getByLabelText(/Token URL/, { selector: 'input, select, textarea' }) as HTMLInputElement).value,
+		).toBe('https://github.com/login/oauth/access_token');
 		expect(screen.queryByText('Advanced')).toBeNull();
 		// Every field explains itself through an info tip wired to the control.
 		const info = screen.getByRole('button', { name: 'About Client ID' });
-		expect(screen.getByLabelText(/Client ID/, { selector: 'input, select, textarea' }).getAttribute('aria-describedby')).toContain('prov-client-info');
+		expect(
+			screen.getByLabelText(/Client ID/, { selector: 'input, select, textarea' }).getAttribute('aria-describedby'),
+		).toContain('prov-client-info');
 		await fireEvent.mouseEnter(info);
 		expect(info.getAttribute('aria-expanded')).toBe('true');
-		await fireEvent.input(screen.getByLabelText(/Client ID/, { selector: 'input, select, textarea' }), { target: { value: 'abc' } });
-		await fireEvent.input(screen.getByLabelText(/Client secret/, { selector: 'input, select, textarea' }), { target: { value: 'shh' } });
-		await fireEvent.input(screen.getByLabelText(/Allowed accounts/, { selector: 'input, select, textarea' }), { target: { value: 'octocat' } });
+		await fireEvent.input(screen.getByLabelText(/Client ID/, { selector: 'input, select, textarea' }), {
+			target: { value: 'abc' },
+		});
+		await fireEvent.input(screen.getByLabelText(/Client secret/, { selector: 'input, select, textarea' }), {
+			target: { value: 'shh' },
+		});
+		await fireEvent.input(screen.getByLabelText(/Allowed accounts/, { selector: 'input, select, textarea' }), {
+			target: { value: 'octocat' },
+		});
 		expect(screen.queryByText(/Offer this sign-in/)).toBeNull();
 		await fireEvent.click(screen.getAllByRole('button', { name: 'Add provider' }).at(-1)!);
 
@@ -289,16 +372,45 @@ describe('security page', () => {
 		await fireEvent.input(field, { target: { value: 'correct horse battery' } });
 		await fireEvent.click(screen.getAllByRole('button', { name: 'Add provider' }).at(-1)!);
 		await waitFor(() => expect(window.location.hash).toBe('#/settings/security/providers'));
-		expect(saved).toMatchObject({ kind: 'oauth2', display_name: 'GitHub', client_id: 'abc', client_secret: 'shh', allowed_identities: ['octocat'], identity_claim: 'login', token_url: 'https://github.com/login/oauth/access_token' });
+		expect(saved).toMatchObject({
+			kind: 'oauth2',
+			display_name: 'GitHub',
+			client_id: 'abc',
+			client_secret: 'shh',
+			allowed_identities: ['octocat'],
+			identity_claim: 'login',
+			token_url: 'https://github.com/login/oauth/access_token',
+		});
 		expect(saved.enabled).toBeUndefined();
 	});
 
 	it('signs out one other session from the sessions table', async () => {
 		const ua = 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0 Safari/537.36';
-		handlers['GET /api/v1/auth/sessions'] = () => json({ items: [
-			{ id: 'me', method: 'password', provider: '', ip: '10.0.0.2', user_agent: ua, signed_in_at: '2026-11-23T10:00:00Z', last_seen_at: '2026-11-23T10:00:00Z', current: true },
-			{ id: 'other', method: 'oauth', provider: 'GitHub', ip: '10.0.0.9', user_agent: 'Mozilla/5.0 (Windows NT 10.0) Firefox/140.0', signed_in_at: '2026-11-23T09:00:00Z', last_seen_at: '2026-11-23T09:30:00Z', current: false }
-		] });
+		handlers['GET /api/v1/auth/sessions'] = () =>
+			json({
+				items: [
+					{
+						id: 'me',
+						method: 'password',
+						provider: '',
+						ip: '10.0.0.2',
+						user_agent: ua,
+						signed_in_at: '2026-11-23T10:00:00Z',
+						last_seen_at: '2026-11-23T10:00:00Z',
+						current: true,
+					},
+					{
+						id: 'other',
+						method: 'oauth',
+						provider: 'GitHub',
+						ip: '10.0.0.9',
+						user_agent: 'Mozilla/5.0 (Windows NT 10.0) Firefox/140.0',
+						signed_in_at: '2026-11-23T09:00:00Z',
+						last_seen_at: '2026-11-23T09:30:00Z',
+						current: false,
+					},
+				],
+			});
 		handlers['POST /api/v1/auth/sessions/other/revoke'] = () => json({ revoked: true });
 		window.location.hash = '#/settings/security/sessions';
 		render(App);

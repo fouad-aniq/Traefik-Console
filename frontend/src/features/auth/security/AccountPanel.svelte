@@ -11,13 +11,32 @@
 
 <div class="stack">
 	<SummaryList>
-		<div><dt>{t('authScreens.usernameLabel')}</dt><dd><strong>{user?.username}</strong> <StatusBadge size="sm" tone="neutral" text={s('role')} /></dd></div>
-		<div><dt>{s('signedInWith')}</dt><dd>{user?.method === 'oauth' ? (user.provider || s('methodOauth')) : s('methodPassword')}</dd></div>
-		<div><dt>{s('sessionEnds')}</dt><dd>{#if auth.session}<RelativeTime value={auth.session.expires_at} />{/if}</dd></div>
-		<div><dt>{s('providersLabel')}</dt><dd>{auth.providers.length ? auth.providers.map((p) => p.display_name).join(', ') : s('providersNone')}</dd></div>
+		<div>
+			<dt>{t('authScreens.usernameLabel')}</dt>
+			<dd><strong>{user?.username}</strong> <StatusBadge size="sm" tone="neutral" text={s('role')} /></dd>
+		</div>
+		<div>
+			<dt>{s('signedInWith')}</dt>
+			<dd>{user?.method === 'oauth' ? user.provider || s('methodOauth') : s('methodPassword')}</dd>
+		</div>
+		<div>
+			<dt>{s('sessionEnds')}</dt>
+			<dd>
+				{#if auth.session}<RelativeTime value={auth.session.expires_at} />{/if}
+			</dd>
+		</div>
+		<div>
+			<dt>{s('providersLabel')}</dt>
+			<dd>{auth.providers.length ? auth.providers.map((p) => p.display_name).join(', ') : s('providersNone')}</dd>
+		</div>
 	</SummaryList>
 </div>
 
 <style>
-	.stack { display: flex; flex-direction: column; gap: 20px; max-width: 880px; }
+	.stack {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		max-width: 880px;
+	}
 </style>

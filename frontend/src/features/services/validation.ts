@@ -1,10 +1,21 @@
 import { MAX_SERVERS, NAME_PATTERN, SCHEMES, type ServiceForm } from './models';
 
 export interface ServiceMessages {
-	invalidName: string; nameTaken: string; invalidUrl: string; urlQuery: string; urlScheme: string;
-	serverCount: string; duplicateUrl: string; invalidPath: string; invalidDuration: string;
+	invalidName: string;
+	nameTaken: string;
+	invalidUrl: string;
+	urlQuery: string;
+	urlScheme: string;
+	serverCount: string;
+	duplicateUrl: string;
+	invalidPath: string;
+	invalidDuration: string;
 	/** TCP/UDP (optional so older callers keep working). */
-	invalidAddress?: string; invalidPort?: string; invalidServerName?: string; expectNeedsSend?: string; invalidPayload?: string;
+	invalidAddress?: string;
+	invalidPort?: string;
+	invalidServerName?: string;
+	expectNeedsSend?: string;
+	invalidPayload?: string;
 }
 export type ServiceErrors = Record<string, string>;
 
@@ -19,7 +30,11 @@ export function backendError(value: string, m: ServiceMessages): string {
 	const port = /^[a-z0-9+.-]+:\/\/(?:\[[^\]]*\]|[^:/?#]*):([^/?#]*)/i.exec(v)?.[1];
 	if (port !== undefined && !validPort(port)) return m.invalidPort ?? m.invalidUrl;
 	let u: URL;
-	try { u = new URL(v); } catch { return m.invalidUrl; }
+	try {
+		u = new URL(v);
+	} catch {
+		return m.invalidUrl;
+	}
 	if (!SCHEMES.includes(u.protocol.slice(0, -1) as (typeof SCHEMES)[number])) return m.urlScheme;
 	if (!u.hostname || u.username || u.password || u.hash || v.includes('#')) return m.invalidUrl;
 	if (u.search || v.includes('?')) return m.urlQuery;
@@ -37,7 +52,7 @@ export function addressError(value: string, m: ServiceMessages): string {
 	return '';
 }
 
-const UNIT_MS: Record<string, number> = { ns: 1e-6, us: 1e-3, 'µs': 1e-3, ms: 1, s: 1000, m: 60000, h: 3600000 };
+const UNIT_MS: Record<string, number> = { ns: 1e-6, us: 1e-3, µs: 1e-3, ms: 1, s: 1000, m: 60000, h: 3600000 };
 /** Go time.ParseDuration subset: positive and at most one hour (core-v2 limit). */
 export function durationError(value: string): boolean {
 	const v = value.trim();
@@ -48,7 +63,11 @@ export function durationError(value: string): boolean {
 	return !(total > 0 && total <= 3600000);
 }
 
-export function serviceErrors(f: ServiceForm, ctx: { creating: boolean; existingNames: string[] }, m: ServiceMessages): ServiceErrors {
+export function serviceErrors(
+	f: ServiceForm,
+	ctx: { creating: boolean; existingNames: string[] },
+	m: ServiceMessages,
+): ServiceErrors {
 	const e: ServiceErrors = {};
 	if (!NAME_PATTERN.test(f.name)) e.name = m.invalidName;
 	else if (ctx.creating && ctx.existingNames.includes(f.name)) e.name = m.nameTaken;
@@ -71,7 +90,8 @@ export function serviceErrors(f: ServiceForm, ctx: { creating: boolean; existing
 		if (durationError(f.healthTimeout)) e.healthTimeout = m.invalidDuration;
 	}
 	if (f.protocol === 'tcp') {
-		if (f.tls && f.serverName.trim() && !/^[A-Za-z0-9*]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/.test(f.serverName.trim())) e.serverName = m.invalidServerName ?? m.invalidUrl;
+		if (f.tls && f.serverName.trim() && !/^[A-Za-z0-9*]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/.test(f.serverName.trim()))
+			e.serverName = m.invalidServerName ?? m.invalidUrl;
 		if (durationError(f.dialTimeout)) e.dialTimeout = m.invalidDuration;
 		if (durationError(f.terminationDelay)) e.terminationDelay = m.invalidDuration;
 		if (f.healthEnabled) {

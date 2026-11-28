@@ -13,7 +13,7 @@
 		pendingLabel = '',
 		label = '',
 		onclick,
-		children
+		children,
 	}: {
 		variant?: Variant;
 		size?: Size;
@@ -30,7 +30,7 @@
 		primary: 'btn-primary',
 		secondary: 'btn-secondary',
 		danger: 'btn-danger',
-		ghost: 'btn-ghost'
+		ghost: 'btn-ghost',
 	};
 </script>
 

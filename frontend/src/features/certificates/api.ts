@@ -6,9 +6,15 @@ import type { AcmeCertificate, AcmeInventory, AcmeObservation, CertificateResour
 export const listCertificates = async (signal?: AbortSignal) =>
 	list(await api.get<CertificateResource[] | null>('/api/v1/certificates', { signal }));
 
-export async function getInventory(signal?: AbortSignal): Promise<{ certificates: AcmeCertificate[]; observations: AcmeObservation[]; partial: boolean }> {
+export async function getInventory(
+	signal?: AbortSignal,
+): Promise<{ certificates: AcmeCertificate[]; observations: AcmeObservation[]; partial: boolean }> {
 	const result = await api.get<AcmeInventory>('/api/v1/acme/certificates', { signal });
-	return { certificates: list(result.certificates), observations: list(result.observations), partial: !!result.partial };
+	return {
+		certificates: list(result.certificates),
+		observations: list(result.observations),
+		partial: !!result.partial,
+	};
 }
 
 export interface CertificateInput {

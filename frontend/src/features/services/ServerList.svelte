@@ -52,13 +52,40 @@
 
 <style>
 	/* The first address shrinks with an ellipsis; the count and icon always stay visible. */
-	.trigger { display: flex; align-items: center; gap: 6px; min-width: 0; line-height: 20px; }
-	.trigger .url { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.more { flex: none; color: var(--text-muted); font-size: 13px; }
-	.trigger :global(svg) { flex: none; color: var(--text-muted); }
-	.none { color: var(--text-muted); }
+	.trigger {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+		line-height: 20px;
+	}
+	.trigger .url {
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.more {
+		flex: none;
+		color: var(--text-muted);
+		font-size: 13px;
+	}
+	.trigger :global(svg) {
+		flex: none;
+		color: var(--text-muted);
+	}
+	.none {
+		color: var(--text-muted);
+	}
 
-	.panel { display: flex; flex-direction: column; gap: 10px; min-width: 240px; max-width: 420px; }
+	.panel {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		min-width: 240px;
+		max-width: 420px;
+	}
 	.panel-title {
 		margin: 0;
 		font-size: 11px;
@@ -69,8 +96,23 @@
 		color: var(--text-muted);
 	}
 	/* Many servers scroll inside the panel instead of covering the page. */
-	.list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-	.list li { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 20px; }
+	.list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 320px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.list li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 13px;
+		line-height: 20px;
+	}
 	.scheme {
 		flex: none;
 		min-width: 44px;
@@ -83,5 +125,9 @@
 		line-height: 20px;
 		text-align: center;
 	}
-	.address { font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+	.address {
+		font-weight: 500;
+		color: var(--text);
+		overflow-wrap: anywhere;
+	}
 </style>

@@ -11,11 +11,26 @@ export const KINDS: Kind[] = ['http', 'https', 'tcp', 'udp'];
 export const protocolsOf = (kind: Kind): Protocol[] => (kind === 'udp' ? ['udp'] : ['tcp']);
 /** Web types have HTTP behaviour (redirect, middlewares, HTTP/3, forwarded headers, request limits). */
 export const isWeb = (kind: Kind) => kind === 'http' || kind === 'https';
-export type EncodedCharacter = 'slash' | 'backSlash' | 'nullCharacter' | 'semicolon' | 'percent' | 'questionMark' | 'hash';
-export const ENCODED_CHARACTERS: EncodedCharacter[] = ['slash', 'backSlash', 'nullCharacter', 'semicolon', 'percent', 'questionMark', 'hash'];
+export type EncodedCharacter =
+	'slash' | 'backSlash' | 'nullCharacter' | 'semicolon' | 'percent' | 'questionMark' | 'hash';
+export const ENCODED_CHARACTERS: EncodedCharacter[] = [
+	'slash',
+	'backSlash',
+	'nullCharacter',
+	'semicolon',
+	'percent',
+	'questionMark',
+	'hash',
+];
 
-export interface TrustConfig { insecure?: boolean; trusted_ips?: string[] }
-export interface ForwardedHeadersConfig extends TrustConfig { connection?: string[]; not_append_x_forwarded_for?: boolean }
+export interface TrustConfig {
+	insecure?: boolean;
+	trusted_ips?: string[];
+}
+export interface ForwardedHeadersConfig extends TrustConfig {
+	connection?: string[];
+	not_append_x_forwarded_for?: boolean;
+}
 export interface TransportConfig {
 	read_timeout?: string;
 	write_timeout?: string;
@@ -25,9 +40,21 @@ export interface TransportConfig {
 	keep_alive_max_time?: string;
 	keep_alive_max_requests?: number;
 }
-export interface RedirectConfig { to: string; scheme?: 'https' | 'http'; temporary?: boolean; priority?: number }
-export interface TLSDomainConfig { main: string; sans?: string[] }
-export interface TLSConfig { options?: string; cert_resolver?: string; domains?: TLSDomainConfig[] }
+export interface RedirectConfig {
+	to: string;
+	scheme?: 'https' | 'http';
+	temporary?: boolean;
+	priority?: number;
+}
+export interface TLSDomainConfig {
+	main: string;
+	sans?: string[];
+}
+export interface TLSConfig {
+	options?: string;
+	cert_resolver?: string;
+	domains?: TLSDomainConfig[];
+}
 export interface HTTPConfig {
 	redirect?: RedirectConfig;
 	middlewares?: string[];
@@ -38,9 +65,22 @@ export interface HTTPConfig {
 	max_header_bytes?: number;
 	alias_headers_strategy?: 'keep' | 'delete' | 'reject';
 }
-export interface HTTP2Config { max_concurrent_streams?: number; max_decoder_header_table_size?: number; max_encoder_header_table_size?: number }
-export interface ObservabilityConfig { disable_access_logs?: boolean; disable_metrics?: boolean; disable_tracing?: boolean; trace_verbosity?: 'minimal' | 'detailed' }
-export interface EntryPointUsage { routers?: string[]; resolvers?: string[]; entry_points?: string[] }
+export interface HTTP2Config {
+	max_concurrent_streams?: number;
+	max_decoder_header_table_size?: number;
+	max_encoder_header_table_size?: number;
+}
+export interface ObservabilityConfig {
+	disable_access_logs?: boolean;
+	disable_metrics?: boolean;
+	disable_tracing?: boolean;
+	trace_verbosity?: 'minimal' | 'detailed';
+}
+export interface EntryPointUsage {
+	routers?: string[];
+	resolvers?: string[];
+	entry_points?: string[];
+}
 
 /** Mirrors core-v2 `models.EntryPointConfig`. Request and response share the editable fields. */
 export interface EntryPointConfig {

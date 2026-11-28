@@ -35,10 +35,15 @@
 	}
 	onMount(load);
 
-	const filtered = $derived(rows.filter((r) => {
-		const q = search.trim().toLowerCase();
-		return (!outcome || r.outcome === outcome) && (!q || [eventLabel(r), r.detail, r.ip].some((v) => v.toLowerCase().includes(q)));
-	}));
+	const filtered = $derived(
+		rows.filter((r) => {
+			const q = search.trim().toLowerCase();
+			return (
+				(!outcome || r.outcome === outcome) &&
+				(!q || [eventLabel(r), r.detail, r.ip].some((v) => v.toLowerCase().includes(q)))
+			);
+		}),
+	);
 	const pageRows = $derived(filtered.slice((page - 1) * pageSize, page * pageSize));
 
 	const columns: DataTableColumn[] = [
@@ -46,11 +51,19 @@
 		{ id: 'outcome', label: a('colOutcome'), width: '130px' },
 		{ id: 'detail', label: a('colDetail') },
 		{ id: 'address', label: a('colAddress'), width: '150px' },
-		{ id: 'when', label: a('colWhen'), width: '150px' }
+		{ id: 'when', label: a('colWhen'), width: '150px' },
 	];
-	const filters: DataTableFilter[] = $derived([{ id: 'outcome', label: a('colOutcome'), options: [
-		{ value: '', label: a('all') }, { value: 'success', label: a('success') }, { value: 'failure', label: a('failure') }
-	] }]);
+	const filters: DataTableFilter[] = $derived([
+		{
+			id: 'outcome',
+			label: a('colOutcome'),
+			options: [
+				{ value: '', label: a('all') },
+				{ value: 'success', label: a('success') },
+				{ value: 'failure', label: a('failure') },
+			],
+		},
+	]);
 </script>
 
 <DataTable
@@ -58,16 +71,25 @@
 	rows={pageRows}
 	getRowId={(r: AuthEvent) => r.at + r.event + r.ip + r.detail}
 	searchValue={search}
-	onsearch={(v: string) => { search = v; page = 1; }}
+	onsearch={(v: string) => {
+		search = v;
+		page = 1;
+	}}
 	searchPlaceholder={a('search')}
 	{filters}
 	filterValues={{ outcome }}
-	onfilterchange={(_: string, v: string) => { outcome = v; page = 1; }}
+	onfilterchange={(_: string, v: string) => {
+		outcome = v;
+		page = 1;
+	}}
 	{page}
 	{pageSize}
 	total={filtered.length}
 	onpage={(v: number) => (page = v)}
-	onpagesize={(v: number) => { pageSize = v; page = 1; }}
+	onpagesize={(v: number) => {
+		pageSize = v;
+		page = 1;
+	}}
 	{loading}
 	error={!!error}
 	onretry={load}
@@ -77,7 +99,11 @@
 	{#snippet rowSnippet(row: AuthEvent)}
 		<td><strong class="event">{eventLabel(row)}</strong></td>
 		<td><StatusBadge size="sm" tone={row.outcome === 'failure' ? 'danger' : 'success'} text={a(row.outcome)} /></td>
-		<td>{#if row.detail}<ValueTooltip text={row.detail} truncate>{row.detail}</ValueTooltip>{:else}<span class="muted">—</span>{/if}</td>
+		<td>
+			{#if row.detail}<ValueTooltip text={row.detail} truncate>{row.detail}</ValueTooltip>{:else}<span class="muted">
+					—
+				</span>{/if}
+		</td>
 		<td><span class="mono">{row.ip || '—'}</span></td>
 		<td><RelativeTime value={row.at} /></td>
 	{/snippet}
@@ -85,12 +111,26 @@
 	{#snippet emptyState()}
 		<h2>{search || outcome ? a('noMatches') : a('empty')}</h2>
 		<p>{search || outcome ? a('adjustFilters') : a('emptyHelp')}</p>
-		{#if search || outcome}<Button onclick={() => { search = ''; outcome = ''; }}>{a('clearFilters')}</Button>{/if}
+		{#if search || outcome}<Button
+				onclick={() => {
+					search = '';
+					outcome = '';
+				}}
+			>
+				{a('clearFilters')}
+			</Button>{/if}
 	{/snippet}
 </DataTable>
 
 <style>
-	.event { font-weight: 600; }
-	.muted { color: var(--text-muted); }
-	.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
+	.event {
+		font-weight: 600;
+	}
+	.muted {
+		color: var(--text-muted);
+	}
+	.mono {
+		font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+		font-size: 13px;
+	}
 </style>

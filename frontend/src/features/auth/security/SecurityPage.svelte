@@ -21,7 +21,12 @@
 	import ActivityPanel from './ActivityPanel.svelte';
 	import { auth } from '../session.svelte';
 
-	let { navigate, tab, mode = 'list', id = '' }: {
+	let {
+		navigate,
+		tab,
+		mode = 'list',
+		id = '',
+	}: {
 		navigate: (path: string) => void;
 		tab: SecurityTab;
 		mode?: SecurityMode;
@@ -30,20 +35,31 @@
 
 	const s = (key: string, args?: Record<string, string | number>) => t('authScreens.security.' + key, args);
 	const BASE = '/settings/security';
-	const paths: Record<SecurityTab, string> = { account: BASE, providers: `${BASE}/providers`, sessions: `${BASE}/sessions`, activity: `${BASE}/activity` };
+	const paths: Record<SecurityTab, string> = {
+		account: BASE,
+		providers: `${BASE}/providers`,
+		sessions: `${BASE}/sessions`,
+		activity: `${BASE}/activity`,
+	};
 
 	const tabs = $derived([
 		{ id: 'account', label: s('tabs.account') },
-		{ id: 'providers', label: auth.providers.length ? s('tabs.providersCount', { count: auth.providers.length }) : s('tabs.providers') },
+		{
+			id: 'providers',
+			label: auth.providers.length ? s('tabs.providersCount', { count: auth.providers.length }) : s('tabs.providers'),
+		},
 		{ id: 'sessions', label: s('tabs.sessions') },
-		{ id: 'activity', label: s('tabs.activity') }
+		{ id: 'activity', label: s('tabs.activity') },
 	]);
 </script>
 
 <PageHeader title={s('title')} subtitle={s('subtitle')}>
 	{#snippet actions()}
 		{#if tab === 'account'}
-			<Button variant="primary" onclick={() => navigate(`${BASE}/password`)}><KeyRound size={16} aria-hidden="true" /> {s('changePassword')}</Button>
+			<Button variant="primary" onclick={() => navigate(`${BASE}/password`)}>
+				<KeyRound size={16} aria-hidden="true" />
+				{s('changePassword')}
+			</Button>
 		{/if}
 	{/snippet}
 </PageHeader>
@@ -69,5 +85,7 @@
 {/if}
 
 <style>
-	.resource-tabs { margin-bottom: 24px; }
+	.resource-tabs {
+		margin-bottom: 24px;
+	}
 </style>

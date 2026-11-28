@@ -19,7 +19,13 @@ export const deleteChain = (name: string, version: number, opts?: WriteOptions) 
 	removeResource('/api/v1/chains/' + encodeName(name), version, opts);
 
 /** Services back the errors.service reference picker. */
-export interface ServiceRef { name: string; read_only: boolean; config: { type?: string; protocol?: string } }
+export interface ServiceRef {
+	name: string;
+	read_only: boolean;
+	config: { type?: string; protocol?: string };
+}
 /** Only HTTP services can serve an errors middleware. */
 export const listServices = async (signal?: AbortSignal) =>
-	list(await api.get<ServiceRef[] | null>('/api/v1/services', { signal })).filter((s) => (s.config?.protocol ?? 'http') === 'http');
+	list(await api.get<ServiceRef[] | null>('/api/v1/services', { signal })).filter(
+		(s) => (s.config?.protocol ?? 'http') === 'http',
+	);

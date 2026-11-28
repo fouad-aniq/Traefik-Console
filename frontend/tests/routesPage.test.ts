@@ -2,46 +2,122 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 // The API client binds `fetch` at import time, so install a forwarding stub first.
 vi.hoisted(() => {
-	(globalThis as any).__mockFetch = async () => { throw new Error('no mock'); };
+	(globalThis as any).__mockFetch = async () => {
+		throw new Error('no mock');
+	};
 	globalThis.fetch = ((...args: unknown[]) => (globalThis as any).__mockFetch(...args)) as typeof fetch;
 });
 import RoutesPage from '../src/features/routes/RoutesPage.svelte';
 import RouteDialog from '../src/features/routes/RouteDialog.svelte';
 import ServiceDialog from '../src/features/services/ServiceDialog.svelte';
-import { customizeForm, formFrom, isExternalRef, newForm, previewRule, routerDefinition, toInput } from '../src/features/routes/models';
+import {
+	customizeForm,
+	formFrom,
+	isExternalRef,
+	newForm,
+	previewRule,
+	routerDefinition,
+	toInput,
+} from '../src/features/routes/models';
 import { routeErrors, subdomainError } from '../src/features/routes/validation';
 import { flashes } from '../src/shared/ui/flash.svelte';
 
-const preview = (extra = {}) => ({ changes: [{ action: 'created', id: 'router:my-route', kind: 'router', name: 'my-route', scope: 'dynamic' }], static_diff: '', dynamic_diff: '+r: {}', requires_restart: false, ...extra });
-const operation = (extra = {}) => ({ id: 7, kind: 'router.create', target: 'my-route', status: 'succeeded', summary: 'Applied 1 change', requires_restart: false, created_at: 'now', ...extra });
-const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({ id: `${kind}:${name}`, name, version, origin: 'managed', provider: 'file', status: 'active', read_only: false, live_health: 'loaded', updated_at: '2026-01-01T00:00:00Z', config, ...extra });
+const preview = (extra = {}) => ({
+	changes: [{ action: 'created', id: 'router:my-route', kind: 'router', name: 'my-route', scope: 'dynamic' }],
+	static_diff: '',
+	dynamic_diff: '+r: {}',
+	requires_restart: false,
+	...extra,
+});
+const operation = (extra = {}) => ({
+	id: 7,
+	kind: 'router.create',
+	target: 'my-route',
+	status: 'succeeded',
+	summary: 'Applied 1 change',
+	requires_restart: false,
+	created_at: 'now',
+	...extra,
+});
+const envelope = (kind: string, name: string, config: unknown, version = 1, extra = {}) => ({
+	id: `${kind}:${name}`,
+	name,
+	version,
+	origin: 'managed',
+	provider: 'file',
+	status: 'active',
+	read_only: false,
+	live_health: 'loaded',
+	updated_at: '2026-01-01T00:00:00Z',
+	config,
+	...extra,
+});
 const router = (name: string, config: Record<string, unknown> = {}, version = 1, extra = {}) =>
-	envelope('router', name, { entry_points: ['websecure'], domains: ['app.example.com'], rule: 'Host(`app.example.com`)', service: 'web', tls: { enabled: true, cert_resolver: 'le' }, ...config }, version, extra);
-const domain = envelope('domain', 'main-domain', { name: 'main-domain', main: '*.example.com', method: 'resolver', resolver: 'le', state: 'ready' });
+	envelope(
+		'router',
+		name,
+		{
+			entry_points: ['websecure'],
+			domains: ['app.example.com'],
+			rule: 'Host(`app.example.com`)',
+			service: 'web',
+			tls: { enabled: true, cert_resolver: 'le' },
+			...config,
+		},
+		version,
+		extra,
+	);
+const domain = envelope('domain', 'main-domain', {
+	name: 'main-domain',
+	main: '*.example.com',
+	method: 'resolver',
+	resolver: 'le',
+	state: 'ready',
+});
 const web = envelope('service', 'web', { servers: [{ url: 'http://app:8080' }] });
 const auth = envelope('middleware', 'auth', { type: 'basicAuth' });
 const resolver = envelope('resolver', 'le', { challenge: 'http01' });
 
-interface Call { method: string; path: string; headers: Record<string, string>; body?: any }
+interface Call {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+	body?: any;
+}
 let calls: Call[] = [];
 let handlers: Record<string, () => Response | Promise<Response>> = {};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) =>
+	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
 	flashes.splice(0);
 	calls = [];
-	HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
-	HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+	HTMLDialogElement.prototype.showModal ??= function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.close ??= function () {
+		this.removeAttribute('open');
+	};
 	(globalThis as any).__mockFetch = async (path: string, init: RequestInit = {}) => {
 		const headers: Record<string, string> = {};
-		(init.headers as Headers).forEach((v, k) => { headers[k.toLowerCase()] = v; });
-		calls.push({ method: init.method ?? 'GET', path, headers, body: init.body ? JSON.parse(String(init.body)) : undefined });
+		(init.headers as Headers).forEach((v, k) => {
+			headers[k.toLowerCase()] = v;
+		});
+		calls.push({
+			method: init.method ?? 'GET',
+			path,
+			headers,
+			body: init.body ? JSON.parse(String(init.body)) : undefined,
+		});
 		const key = `${init.method ?? 'GET'} ${path}`;
 		if (handlers[key]) return handlers[key]();
 		return json({ code: 'ERR_NOT_FOUND', message: 'nf', operation_id: 'op', retryable: false }, 404);
 	};
 });
-afterEach(() => { cleanup(); handlers = {}; });
+afterEach(() => {
+	cleanup();
+	handlers = {};
+});
 
 const base = (routers: unknown) => ({
 	'GET /api/v1/routers': () => json(routers),
@@ -50,7 +126,7 @@ const base = (routers: unknown) => ({
 	'GET /api/v1/middlewares': () => json([auth]),
 	'GET /api/v1/chains': () => json(null),
 	'GET /api/v1/resolvers': () => json([resolver]),
-	'GET /api/v1/entrypoints': () => json({ entry_points: ['web', 'websecure'] })
+	'GET /api/v1/entrypoints': () => json({ entry_points: ['web', 'websecure'] }),
 });
 
 async function pick(id: string, name: RegExp) {
@@ -59,36 +135,138 @@ async function pick(id: string, name: RegExp) {
 	await fireEvent.click(await within(listbox).findByRole('option', { name }));
 }
 
-const messages = { invalidName: 'n', nameTaken: 't', domainRequired: 'd', invalidSubdomain: 's', invalidHosts: 'h', invalidPathPrefix: 'p', ruleRequired: 'r', tooManyEntryPoints: 'e', serviceRequired: 'sv', duplicateMiddleware: 'dm', tooManyMiddlewares: 'tm', invalidPriority: 'pr', invalidTlsOptions: 'o' };
+const messages = {
+	invalidName: 'n',
+	nameTaken: 't',
+	domainRequired: 'd',
+	invalidSubdomain: 's',
+	invalidHosts: 'h',
+	invalidPathPrefix: 'p',
+	ruleRequired: 'r',
+	tooManyEntryPoints: 'e',
+	serviceRequired: 'sv',
+	duplicateMiddleware: 'dm',
+	tooManyMiddlewares: 'tm',
+	invalidPriority: 'pr',
+	invalidTlsOptions: 'o',
+};
 const ctx = { creating: true, existingNames: ['taken'], domainNames: ['main-domain'] };
 
 describe('model and validation', () => {
 	it('sends only the fields of the chosen match mode', () => {
-		expect(toInput({ ...newForm(), name: 'a', domainName: 'main-domain', subdomain: ' App ', service: 'web', pathPrefix: '/api' }))
-			.toEqual({ entry_points: [], domain_name: 'main-domain', subdomain: 'app', path_prefix: '/api', service: 'web' });
-		expect(toInput({ ...newForm(), name: 'a', mode: 'host', hosts: 'A.Example.com\napp.example.com', service: 'web', tlsEnabled: true, tlsResolver: 'le', priority: '10', middlewares: ['auth'], entryPoints: ['websecure'] }))
-			.toEqual({ entry_points: ['websecure'], domains: ['a.example.com', 'app.example.com'], service: 'web', priority: 10, middlewares: ['auth'], tls: { enabled: true, cert_resolver: 'le' } });
-		expect(toInput({ ...newForm(), name: 'a', mode: 'rule', customRule: ' Path(`/x`) ', service: 'web', tlsEnabled: false, pathPrefix: '/ignored' }))
-			.toEqual({ entry_points: [], custom_rule: 'Path(`/x`)', service: 'web' });
+		expect(
+			toInput({
+				...newForm(),
+				name: 'a',
+				domainName: 'main-domain',
+				subdomain: ' App ',
+				service: 'web',
+				pathPrefix: '/api',
+			}),
+		).toEqual({ entry_points: [], domain_name: 'main-domain', subdomain: 'app', path_prefix: '/api', service: 'web' });
+		expect(
+			toInput({
+				...newForm(),
+				name: 'a',
+				mode: 'host',
+				hosts: 'A.Example.com\napp.example.com',
+				service: 'web',
+				tlsEnabled: true,
+				tlsResolver: 'le',
+				priority: '10',
+				middlewares: ['auth'],
+				entryPoints: ['websecure'],
+			}),
+		).toEqual({
+			entry_points: ['websecure'],
+			domains: ['a.example.com', 'app.example.com'],
+			service: 'web',
+			priority: 10,
+			middlewares: ['auth'],
+			tls: { enabled: true, cert_resolver: 'le' },
+		});
+		expect(
+			toInput({
+				...newForm(),
+				name: 'a',
+				mode: 'rule',
+				customRule: ' Path(`/x`) ',
+				service: 'web',
+				tlsEnabled: false,
+				pathPrefix: '/ignored',
+			}),
+		).toEqual({ entry_points: [], custom_rule: 'Path(`/x`)', service: 'web' });
 	});
 	it('loads an existing router back into the right mode', () => {
-		expect(formFrom('a', { entry_points: null, domains: ['x.example.com'], rule: 'Host(`x.example.com`)', service: 'web', domain_name: 'main-domain', subdomain: 'x' }).mode).toBe('domain');
-		const host = formFrom('a', { entry_points: ['web'], domains: ['x.example.com'], rule: 'r', service: 'web', tls: { enabled: true, cert_resolver: 'le' } });
+		expect(
+			formFrom('a', {
+				entry_points: null,
+				domains: ['x.example.com'],
+				rule: 'Host(`x.example.com`)',
+				service: 'web',
+				domain_name: 'main-domain',
+				subdomain: 'x',
+			}).mode,
+		).toBe('domain');
+		const host = formFrom('a', {
+			entry_points: ['web'],
+			domains: ['x.example.com'],
+			rule: 'r',
+			service: 'web',
+			tls: { enabled: true, cert_resolver: 'le' },
+		});
 		expect(host).toMatchObject({ mode: 'host', hosts: 'x.example.com', tlsEnabled: true, tlsResolver: 'le' });
-		expect(formFrom('a', { entry_points: [], domains: null, rule: 'PathPrefix(`/x`)', custom_rule: 'PathPrefix(`/x`)', service: 'web' })).toMatchObject({ mode: 'rule', customRule: 'PathPrefix(`/x`)', tlsEnabled: false });
+		expect(
+			formFrom('a', {
+				entry_points: [],
+				domains: null,
+				rule: 'PathPrefix(`/x`)',
+				custom_rule: 'PathPrefix(`/x`)',
+				service: 'web',
+			}),
+		).toMatchObject({ mode: 'rule', customRule: 'PathPrefix(`/x`)', tlsEnabled: false });
 	});
 	it('previews the rule the way the backend compiles it', () => {
-		expect(previewRule({ ...newForm(), domainName: 'm', subdomain: 'app', pathPrefix: 'api' }, '*.example.com')).toBe('Host(`app.example.com`) && PathPrefix(`/api`)');
-		expect(previewRule({ ...newForm(), mode: 'host', hosts: 'a.example.com, b.example.com' }, undefined)).toBe('(Host(`a.example.com`) || Host(`b.example.com`))');
+		expect(previewRule({ ...newForm(), domainName: 'm', subdomain: 'app', pathPrefix: 'api' }, '*.example.com')).toBe(
+			'Host(`app.example.com`) && PathPrefix(`/api`)',
+		);
+		expect(previewRule({ ...newForm(), mode: 'host', hosts: 'a.example.com, b.example.com' }, undefined)).toBe(
+			'(Host(`a.example.com`) || Host(`b.example.com`))',
+		);
 	});
 	it('validates names, hosts, subdomain, priority and middleware duplicates', () => {
 		expect(subdomainError('a.b')).toBe(false);
 		expect(subdomainError('-bad')).toBe(true);
-		const bad = routeErrors({ ...newForm(), name: 'Bad Name', mode: 'host', hosts: '*.example.com', pathPrefix: 'x', priority: '1.5', middlewares: ['a', 'a'] }, ctx, messages);
-		expect(bad).toMatchObject({ name: 'n', hosts: 'h', pathPrefix: 'p', service: 'sv', priority: 'pr', middlewares: 'dm' });
-		expect(routeErrors({ ...newForm(), name: 'taken', domainName: 'nope', service: 'web' }, ctx, messages)).toMatchObject({ name: 't', domainName: 'd' });
-		expect(routeErrors({ ...newForm(), name: 'ok', domainName: 'main-domain', service: 'web' }, ctx, messages)).toEqual({});
-		expect(routeErrors({ ...newForm(), name: 'ok', mode: 'rule', customRule: '', service: 'web' }, ctx, messages)).toMatchObject({ customRule: 'r' });
+		const bad = routeErrors(
+			{
+				...newForm(),
+				name: 'Bad Name',
+				mode: 'host',
+				hosts: '*.example.com',
+				pathPrefix: 'x',
+				priority: '1.5',
+				middlewares: ['a', 'a'],
+			},
+			ctx,
+			messages,
+		);
+		expect(bad).toMatchObject({
+			name: 'n',
+			hosts: 'h',
+			pathPrefix: 'p',
+			service: 'sv',
+			priority: 'pr',
+			middlewares: 'dm',
+		});
+		expect(
+			routeErrors({ ...newForm(), name: 'taken', domainName: 'nope', service: 'web' }, ctx, messages),
+		).toMatchObject({ name: 't', domainName: 'd' });
+		expect(routeErrors({ ...newForm(), name: 'ok', domainName: 'main-domain', service: 'web' }, ctx, messages)).toEqual(
+			{},
+		);
+		expect(
+			routeErrors({ ...newForm(), name: 'ok', mode: 'rule', customRule: '', service: 'web' }, ctx, messages),
+		).toMatchObject({ customRule: 'r' });
 	});
 });
 
@@ -119,7 +297,8 @@ describe('list', () => {
 	it('deletes with the current version and surfaces a server conflict', async () => {
 		handlers = {
 			...base([router('shop', {}, 4)]),
-			'DELETE /api/v1/routers/shop': () => json({ code: 'ERR_VERSION_CONFLICT', message: 'route changed', operation_id: 'o', retryable: false }, 409)
+			'DELETE /api/v1/routers/shop': () =>
+				json({ code: 'ERR_VERSION_CONFLICT', message: 'route changed', operation_id: 'o', retryable: false }, 409),
 		};
 		render(RoutesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('shop')[0]).toBeTruthy());
@@ -139,7 +318,12 @@ describe('create flow', () => {
 		handlers = {
 			...base([]),
 			'PUT /api/v1/routers/my-route?dry_run=true': () => json({ preview: preview(), restart_required: false }),
-			'PUT /api/v1/routers/my-route': () => json({ operation: operation(), resource: router('my-route', { domain_name: 'main-domain', subdomain: 'app' }), restart_required: false })
+			'PUT /api/v1/routers/my-route': () =>
+				json({
+					operation: operation(),
+					resource: router('my-route', { domain_name: 'main-domain', subdomain: 'app' }),
+					restart_required: false,
+				}),
 		};
 		await openCreate();
 		await fireEvent.input(document.getElementById('route-name')!, { target: { value: 'my-route' } });
@@ -156,7 +340,13 @@ describe('create flow', () => {
 		const dry = calls.find((c) => c.method === 'PUT')!;
 		expect(dry.path).toBe('/api/v1/routers/my-route?dry_run=true');
 		expect(dry.headers['if-none-match']).toBe('*');
-		expect(dry.body).toEqual({ entry_points: [], domain_name: 'main-domain', subdomain: 'app', service: 'web', middlewares: ['auth'] });
+		expect(dry.body).toEqual({
+			entry_points: [],
+			domain_name: 'main-domain',
+			subdomain: 'app',
+			service: 'web',
+			middlewares: ['auth'],
+		});
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Apply changes' }));
 		await waitFor(() => expect(flashes.some((f) => f.title.startsWith('Applied'))).toBe(true));
@@ -166,11 +356,16 @@ describe('create flow', () => {
 		expect(calls.some((c) => c.path.includes('/draft'))).toBe(false);
 	});
 	it('sends explicit hostnames with TLS settings chosen on the route', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/routers/plain?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/routers/plain?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		await openCreate();
 		await fireEvent.input(document.getElementById('route-name')!, { target: { value: 'plain' } });
 		await pick('route-mode', /^Hostnames/);
-		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), { target: { value: 'App.Example.com' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), {
+			target: { value: 'App.Example.com' },
+		});
 		await fireEvent.input(document.getElementById('route-path')!, { target: { value: '/api' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await pick('route-service', /web/);
@@ -180,7 +375,12 @@ describe('create flow', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
 		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({
-			entry_points: [], domains: ['app.example.com'], path_prefix: '/api', service: 'web', priority: 20, tls: { enabled: true, cert_resolver: 'le' }
+			entry_points: [],
+			domains: ['app.example.com'],
+			path_prefix: '/api',
+			service: 'web',
+			priority: 20,
+			tls: { enabled: true, cert_resolver: 'le' },
 		});
 	});
 	it('does not call the server while required fields are missing', async () => {
@@ -206,14 +406,22 @@ describe('create flow', () => {
 });
 
 describe('customize an external router', () => {
-	const bootstrap = router('console-bootstrap', { domains: undefined, rule: 'Host(`console.example.com`)', service: 'console-bootstrap', tls: {} }, 1, { origin: 'external', provider: 'file', read_only: true });
+	const bootstrap = router(
+		'console-bootstrap',
+		{ domains: undefined, rule: 'Host(`console.example.com`)', service: 'console-bootstrap', tls: {} },
+		1,
+		{ origin: 'external', provider: 'file', read_only: true },
+	);
 	it('saves a managed copy that takes over, leaving the original as a fallback', async () => {
 		handlers = {
 			...base([bootstrap]),
-			'PUT /api/v1/routers/console-bootstrap-custom?dry_run=true': () => json({ preview: preview(), restart_required: false })
+			'PUT /api/v1/routers/console-bootstrap-custom?dry_run=true': () =>
+				json({ preview: preview(), restart_required: false }),
 		};
 		render(RoutesPage, { navigate: () => {}, mode: 'customize', name: 'console-bootstrap' });
-		await waitFor(() => expect((document.getElementById('route-name') as HTMLInputElement)?.value).toBe('console-bootstrap-custom'));
+		await waitFor(() =>
+			expect((document.getElementById('route-name') as HTMLInputElement)?.value).toBe('console-bootstrap-custom'),
+		);
 		expect(screen.getByText(/takes over from console-bootstrap/)).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -222,10 +430,26 @@ describe('customize an external router', () => {
 		const dry = calls.find((c) => c.method === 'PUT')!;
 		expect(dry.headers['if-none-match']).toBe('*');
 		expect(dry.headers['if-match']).toBeUndefined();
-		expect(dry.body).toMatchObject({ entry_points: ['websecure'], custom_rule: 'Host(`console.example.com`)', service: 'console-bootstrap', priority: 28 });
+		expect(dry.body).toMatchObject({
+			entry_points: ['websecure'],
+			custom_rule: 'Host(`console.example.com`)',
+			service: 'console-bootstrap',
+			priority: 28,
+		});
 	});
 	it('qualifies references of another provider and outranks an explicit priority', () => {
-		const docker = router('whoami@docker', { domains: undefined, rule: 'Host(`w.example.com`)', service: 'whoami', middlewares: ['auth', 'gzip@file'], priority: 50 }, 1, { origin: 'external', provider: 'docker', read_only: true });
+		const docker = router(
+			'whoami@docker',
+			{
+				domains: undefined,
+				rule: 'Host(`w.example.com`)',
+				service: 'whoami',
+				middlewares: ['auth', 'gzip@file'],
+				priority: 50,
+			},
+			1,
+			{ origin: 'external', provider: 'docker', read_only: true },
+		);
 		const form = customizeForm(docker as any);
 		expect(form.name).toBe('whoami-custom');
 		expect(form.service).toBe('whoami@docker');
@@ -284,12 +508,17 @@ describe('requests', () => {
 		expect(paths()).toEqual(['GET /api/v1/routers']);
 	});
 	it('does not read the routers again after a review', async () => {
-		handlers = { ...base([]), 'PUT /api/v1/routers/plain?dry_run=true': () => json({ preview: preview(), restart_required: false }) };
+		handlers = {
+			...base([]),
+			'PUT /api/v1/routers/plain?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+		};
 		render(RoutesPage, { navigate: () => {}, mode: 'create' });
 		await waitFor(() => expect(document.getElementById('route-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('route-name')!, { target: { value: 'plain' } });
 		await pick('route-mode', /^Hostnames/);
-		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), { target: { value: 'app.example.com' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), {
+			target: { value: 'app.example.com' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await pick('route-service', /web/);
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -299,7 +528,13 @@ describe('requests', () => {
 	});
 	it('says so inside the dialog when the list could not be read, and reads it again on retry', async () => {
 		let attempts = 0;
-		handlers = { ...base([router('shop')]), 'GET /api/v1/routers': () => (++attempts === 1 ? json({ code: 'ERR_INTERNAL', message: 'The list is down.', operation_id: 'o', retryable: true }, 500) : json([router('shop')])) };
+		handlers = {
+			...base([router('shop')]),
+			'GET /api/v1/routers': () =>
+				++attempts === 1
+					? json({ code: 'ERR_INTERNAL', message: 'The list is down.', operation_id: 'o', retryable: true }, 500)
+					: json([router('shop')]),
+		};
 		render(RoutesPage, { navigate: () => {}, mode: 'edit', name: 'shop' });
 		await waitFor(() => expect(screen.getAllByText(/The list is down/).length).toBeGreaterThan(1));
 		await fireEvent.click(within(document.querySelector('dialog')!).getByRole('button', { name: 'Retry' }));
@@ -313,7 +548,10 @@ describe('requests', () => {
 		expect(count('/api/v1/routers')).toBe(1);
 	});
 	it('the service dialog reads the services itself when it is opened without a list, as on the map', async () => {
-		handlers = { 'GET /api/v1/services': () => json([envelope('service', 'web', { servers: [{ url: 'http://app:8080' }], used_by: { routers: [] } })]) };
+		handlers = {
+			'GET /api/v1/services': () =>
+				json([envelope('service', 'web', { servers: [{ url: 'http://app:8080' }], used_by: { routers: [] } })]),
+		};
 		render(ServiceDialog, { mode: 'edit', name: 'web', navigate: () => {} });
 		await waitFor(() => expect((document.getElementById('service-name') as HTMLInputElement).value).toBe('web'));
 		expect(count('/api/v1/services')).toBe(1);
@@ -322,7 +560,10 @@ describe('requests', () => {
 
 describe('table', () => {
 	it('has no Source column: an external router carries a badge next to its name', async () => {
-		handlers = base([router('shop'), router('dash@docker', {}, 1, { origin: 'external', provider: 'docker', read_only: true })]);
+		handlers = base([
+			router('shop'),
+			router('dash@docker', {}, 1, { origin: 'external', provider: 'docker', read_only: true }),
+		]);
 		render(RoutesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('shop')[0]).toBeTruthy());
 		expect(screen.queryByRole('columnheader', { name: /Source/ })).toBeNull();
@@ -332,7 +573,10 @@ describe('table', () => {
 		expect(within(shop).queryByText('External')).toBeNull();
 	});
 	it('still filters by ownership, and finds an external router by its provider', async () => {
-		handlers = base([router('shop'), router('dash@docker', {}, 1, { origin: 'external', provider: 'docker', read_only: true })]);
+		handlers = base([
+			router('shop'),
+			router('dash@docker', {}, 1, { origin: 'external', provider: 'docker', read_only: true }),
+		]);
 		render(RoutesPage, { navigate: () => {} });
 		await waitFor(() => expect(screen.getAllByText('shop')[0]).toBeTruthy());
 		await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'docker' } });
@@ -350,15 +594,38 @@ describe('table', () => {
 
 describe('view', () => {
 	it('shows the router the way Traefik declares it', async () => {
-		handlers = base([router('shop', { entry_points: ['websecure'], middlewares: ['auth'], priority: 5, tls: { enabled: true, cert_resolver: 'le', options: 'modern' } })]);
+		handlers = base([
+			router('shop', {
+				entry_points: ['websecure'],
+				middlewares: ['auth'],
+				priority: 5,
+				tls: { enabled: true, cert_resolver: 'le', options: 'modern' },
+			}),
+		]);
 		render(RoutesPage, { navigate: () => {}, mode: 'view', name: 'shop' });
-		const code = await waitFor(() => { const el = document.querySelector('dialog pre, dialog code.yaml, dialog [class*="code"]'); expect(el).toBeTruthy(); return el!; });
+		const code = await waitFor(() => {
+			const el = document.querySelector('dialog pre, dialog code.yaml, dialog [class*="code"]');
+			expect(el).toBeTruthy();
+			return el!;
+		});
 		const text = document.querySelector('dialog')!.textContent ?? '';
-		for (const line of ['entryPoints:', 'rule: Host(`app.example.com`)', 'service: web', 'middlewares:', '- auth', 'priority: 5', 'certResolver: le', 'options: modern']) expect(text).toContain(line);
+		for (const line of [
+			'entryPoints:',
+			'rule: Host(`app.example.com`)',
+			'service: web',
+			'middlewares:',
+			'- auth',
+			'priority: 5',
+			'certResolver: le',
+			'options: modern',
+		])
+			expect(text).toContain(line);
 		expect(code).toBeTruthy();
 	});
 	it('shows a router without a backend with its middleware', async () => {
-		handlers = base([router('old-site', { service: 'noop@internal', middlewares: ['to-https'], tls: null, entry_points: ['web'] })]);
+		handlers = base([
+			router('old-site', { service: 'noop@internal', middlewares: ['to-https'], tls: null, entry_points: ['web'] }),
+		]);
 		render(RoutesPage, { navigate: () => {}, mode: 'view', name: 'old-site' });
 		await waitFor(() => expect(document.querySelector('dialog')!.textContent).toContain('service:'));
 		const dialog = document.querySelector('dialog')!;
@@ -367,7 +634,9 @@ describe('view', () => {
 		expect(dialog.textContent).not.toContain('tls:');
 	});
 	it('shows an external router with what Traefik reports, and the External source', async () => {
-		handlers = base([router('dash@docker', { tls: null }, 1, { origin: 'external', provider: 'docker', read_only: true })]);
+		handlers = base([
+			router('dash@docker', { tls: null }, 1, { origin: 'external', provider: 'docker', read_only: true }),
+		]);
 		render(RoutesPage, { navigate: () => {}, mode: 'view', name: 'dash@docker' });
 		await waitFor(() => expect(document.querySelector('dialog')!.textContent).toContain('service:'));
 		expect(document.querySelector('dialog')!.textContent).toMatch(/external · docker/i);
@@ -381,25 +650,38 @@ describe('a router without a backend', () => {
 		await waitFor(() => expect(document.getElementById('route-name')).toBeTruthy());
 		await fireEvent.input(document.getElementById('route-name')!, { target: { value: 'old-site' } });
 		await pick('route-mode', /^Hostnames/);
-		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), { target: { value: 'old.example.com' } });
+		await fireEvent.input(await waitFor(() => document.getElementById('route-hosts')!), {
+			target: { value: 'old.example.com' },
+		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 	}
-	const dry = () => ({ ...base([]), 'PUT /api/v1/routers/old-site?dry_run=true': () => json({ preview: preview(), restart_required: false }) });
+	const dry = () => ({
+		...base([]),
+		'PUT /api/v1/routers/old-site?dry_run=true': () => json({ preview: preview(), restart_required: false }),
+	});
 
 	it('is offered first in the service list, with the reason', async () => {
 		handlers = dry();
 		await reachService();
 		await fireEvent.click(await waitFor(() => document.getElementById('route-service')!));
-		const options = within(await waitFor(() => document.getElementById('route-service-listbox')!)).getAllByRole('option');
+		const options = within(await waitFor(() => document.getElementById('route-service-listbox')!)).getAllByRole(
+			'option',
+		);
 		expect(options[0].textContent).toContain('No backend (a middleware answers)');
 		expect(options.map((o) => o.textContent).join(' ')).toContain('web');
 	});
 	it('still opens when Traefik itself reports noop@internal as a service, and lists it once', async () => {
-		const noop = envelope('service', 'noop@internal', { servers: null }, 1, { origin: 'external', provider: 'internal', read_only: true });
+		const noop = envelope('service', 'noop@internal', { servers: null }, 1, {
+			origin: 'external',
+			provider: 'internal',
+			read_only: true,
+		});
 		handlers = { ...dry(), 'GET /api/v1/services': () => json([web, noop]) };
 		await reachService();
 		await fireEvent.click(await waitFor(() => document.getElementById('route-service')!));
-		const options = within(await waitFor(() => document.getElementById('route-service-listbox')!)).getAllByRole('option');
+		const options = within(await waitFor(() => document.getElementById('route-service-listbox')!)).getAllByRole(
+			'option',
+		);
 		expect(options.filter((o) => o.textContent?.includes('noop@internal'))).toHaveLength(0);
 		expect(options.filter((o) => o.textContent?.includes('No backend'))).toHaveLength(1);
 	});
@@ -410,7 +692,9 @@ describe('a router without a backend', () => {
 		expect(screen.getByText(/the Console writes the built-in noop@internal/)).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
-		await waitFor(() => expect(screen.getAllByText(/Attach a middleware that answers the request/).length).toBeGreaterThan(0));
+		await waitFor(() =>
+			expect(screen.getAllByText(/Attach a middleware that answers the request/).length).toBeGreaterThan(0),
+		);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
 	});
 	it('is saved as noop@internal once a middleware is attached', async () => {
@@ -421,13 +705,21 @@ describe('a router without a backend', () => {
 		await pick('route-add-middleware', /auth/);
 		await fireEvent.click(screen.getByRole('button', { name: 'Review change' }));
 		await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
-		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({ entry_points: [], domains: ['old.example.com'], service: 'noop@internal', middlewares: ['auth'], tls: { enabled: true } });
+		expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({
+			entry_points: [],
+			domains: ['old.example.com'],
+			service: 'noop@internal',
+			middlewares: ['auth'],
+			tls: { enabled: true },
+		});
 	});
 	it('still has to choose something: an empty service is refused', async () => {
 		handlers = dry();
 		await reachService();
 		await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-		await waitFor(() => expect(screen.getAllByText('Select or enter a valid target service reference.').length).toBeGreaterThan(0));
+		await waitFor(() =>
+			expect(screen.getAllByText('Select or enter a valid target service reference.').length).toBeGreaterThan(0),
+		);
 		expect(calls.some((c) => c.method === 'PUT')).toBe(false);
 	});
 	it('is not mistaken for an external reference', () => {
@@ -439,15 +731,51 @@ describe('a router without a backend', () => {
 
 describe('router definition', () => {
 	it('writes only what is set, in the order Traefik documents', () => {
-		expect(routerDefinition({ entry_points: ['web'], domains: null, rule: 'Host(`a.example`)', service: 'web' })).toEqual({ entryPoints: ['web'], rule: 'Host(`a.example`)', service: 'web' });
-		expect(Object.keys(routerDefinition({ entry_points: ['websecure'], domains: null, rule: 'r', service: 's', middlewares: ['m'], priority: 3, tls: { enabled: true, cert_resolver: 'le', options: 'o', domains: [{ main: '*.a.example', sans: ['a.example'] }, { main: 'b.example' }] } })))
-			.toEqual(['entryPoints', 'rule', 'service', 'middlewares', 'priority', 'tls']);
-		expect(routerDefinition({ entry_points: ['websecure'], domains: null, rule: 'r', service: 's', tls: { enabled: true, cert_resolver: 'le', domains: [{ main: '*.a.example', sans: ['a.example'] }, { main: 'b.example', sans: null }] } }).tls)
-			.toEqual({ certResolver: 'le', domains: [{ main: '*.a.example', sans: ['a.example'] }, { main: 'b.example' }] });
+		expect(
+			routerDefinition({ entry_points: ['web'], domains: null, rule: 'Host(`a.example`)', service: 'web' }),
+		).toEqual({ entryPoints: ['web'], rule: 'Host(`a.example`)', service: 'web' });
+		expect(
+			Object.keys(
+				routerDefinition({
+					entry_points: ['websecure'],
+					domains: null,
+					rule: 'r',
+					service: 's',
+					middlewares: ['m'],
+					priority: 3,
+					tls: {
+						enabled: true,
+						cert_resolver: 'le',
+						options: 'o',
+						domains: [{ main: '*.a.example', sans: ['a.example'] }, { main: 'b.example' }],
+					},
+				}),
+			),
+		).toEqual(['entryPoints', 'rule', 'service', 'middlewares', 'priority', 'tls']);
+		expect(
+			routerDefinition({
+				entry_points: ['websecure'],
+				domains: null,
+				rule: 'r',
+				service: 's',
+				tls: {
+					enabled: true,
+					cert_resolver: 'le',
+					domains: [
+						{ main: '*.a.example', sans: ['a.example'] },
+						{ main: 'b.example', sans: null },
+					],
+				},
+			}).tls,
+		).toEqual({ certResolver: 'le', domains: [{ main: '*.a.example', sans: ['a.example'] }, { main: 'b.example' }] });
 	});
 	it('writes an empty tls block for TLS without options, and none without TLS', () => {
-		expect(routerDefinition({ entry_points: [], domains: null, rule: 'r', service: 's', tls: { enabled: true } }).tls).toEqual({});
-		expect('tls' in routerDefinition({ entry_points: [], domains: null, rule: 'r', service: 's', tls: null })).toBe(false);
+		expect(
+			routerDefinition({ entry_points: [], domains: null, rule: 'r', service: 's', tls: { enabled: true } }).tls,
+		).toEqual({});
+		expect('tls' in routerDefinition({ entry_points: [], domains: null, rule: 'r', service: 's', tls: null })).toBe(
+			false,
+		);
 	});
 	it('is empty for a router Traefik reported nothing about', () => {
 		expect(routerDefinition({ entry_points: null, domains: null, rule: '', service: '' })).toEqual({});
@@ -459,8 +787,12 @@ describe('validation of the service', () => {
 	it('needs a service, or the no-backend choice with a middleware', () => {
 		expect(routeErrors({ ...form, service: '' }, ctx, messages).service).toBe('sv');
 		expect(routeErrors({ ...form, service: 'web' }, ctx, messages).service).toBeUndefined();
-		expect(routeErrors({ ...form, service: 'noop@internal' }, ctx, { ...messages, noBackendNeedsMiddleware: 'nbm' }).service).toBe('nbm');
+		expect(
+			routeErrors({ ...form, service: 'noop@internal' }, ctx, { ...messages, noBackendNeedsMiddleware: 'nbm' }).service,
+		).toBe('nbm');
 		expect(routeErrors({ ...form, service: 'noop@internal' }, ctx, messages).service).toBe('sv');
-		expect(routeErrors({ ...form, service: 'noop@internal', middlewares: ['to-https'] }, ctx, messages).service).toBeUndefined();
+		expect(
+			routeErrors({ ...form, service: 'noop@internal', middlewares: ['to-https'] }, ctx, messages).service,
+		).toBeUndefined();
 	});
 });
