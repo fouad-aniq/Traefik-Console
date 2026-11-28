@@ -14,6 +14,7 @@ import (
 
 	api "github.com/traefik-console/internal/api/handlers"
 	"github.com/traefik-console/internal/api/middleware"
+	"github.com/traefik-console/internal/auth"
 	"github.com/traefik-console/internal/config"
 	"github.com/traefik-console/internal/config/files"
 	"github.com/traefik-console/internal/config/secrets"
@@ -59,14 +60,19 @@ func runServer() error {
 	if err != nil {
 		return fmt.Errorf("open state: %w", err)
 	}
-	defer state.Close()
+	defer func(state *stateResources) {
+		_ = state.Close()
+	}(state)
 
 	store := state.store
 	authStore, authSvc, err := openAuth(opts, state.key)
 	if err != nil {
 		return fmt.Errorf("authentication: %w", err)
 	}
-	defer authStore.Close()
+	defer func(authStore *auth.Store) {
+		_ = authStore.Close()
+	}(authStore)
+
 	if err = announceSetup(authSvc); err != nil {
 		return fmt.Errorf("authentication: %w", err)
 	}

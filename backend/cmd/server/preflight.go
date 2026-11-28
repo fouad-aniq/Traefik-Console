@@ -25,16 +25,21 @@ func runPreflight() error {
 		return err
 	}
 	defer runtime.Close()
+
 	if err := checkLayout(opts); err != nil {
 		return err
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
 	observer := status.NewObservationClient(opts.TraefikAPIURL)
 	defer observer.Close()
+
 	if _, err := observer.FetchRawData(ctx); err != nil {
 		return errors.New("cannot read the registered private Traefik API /api/rawdata")
 	}
+
 	cliOut.Infof("Preflight passed: file provider, registered directories, state and private Traefik API")
 	return nil
 }
@@ -42,17 +47,23 @@ func runPreflight() error {
 // Only stat, bounded reads and access checks are permitted before attach.
 func checkLayout(opts *config.Options) error {
 	staticDir := filepath.Dir(opts.TraefikStaticPath)
-	if under(opts.TraefikDynamicDir, staticDir) || under(opts.TraefikDynamicDir, opts.SecretsDir) || under(opts.TraefikDynamicDir, opts.MasterKeyFile) || under(opts.TraefikDynamicDir, opts.DBPath) || under(opts.TraefikDynamicDir, opts.Auth.DBPath) {
+	if under(opts.TraefikDynamicDir, staticDir) ||
+		under(opts.TraefikDynamicDir, opts.SecretsDir) ||
+		under(opts.TraefikDynamicDir, opts.MasterKeyFile) ||
+		under(opts.TraefikDynamicDir, opts.DBPath) ||
+		under(opts.TraefikDynamicDir, opts.Auth.DBPath) {
 		return errors.New("keep static configuration, secrets and private state outside the watched directory")
 	}
 	if opts.TraefikStaticPath == filepath.Join(staticDir, files.ConsoleDomainsFilename) {
 		return errors.New("static filename collides with Console domain metadata")
 	}
+
 	// Console creates its missing folders at start (when their parent exists and is writable).
 	startFolders := map[string]bool{}
 	for _, f := range config.StartFolders(opts) {
 		startFolders[f.Path] = true
 	}
+
 	willCreate := func(dir string) bool { return startFolders[dir] && config.Creatable(dir) }
 	for _, dir := range []string{staticDir, opts.TraefikDynamicDir, opts.SecretsDir, filepath.Dir(opts.DBPath), filepath.Dir(opts.Auth.DBPath), filepath.Dir(opts.MasterKeyFile)} {
 		if willCreate(dir) {
@@ -121,7 +132,7 @@ func checkLayout(opts *config.Options) error {
 		case f.Watch != nil && !*f.Watch:
 			found = "providers.file.watch: false"
 		}
-		return fmt.Errorf("Traefik must watch the registered file-provider directory. %s has %s; it needs providers.file.directory: %s with watch on (or set DYNAMIC_DIR and TRAEFIK_DYNAMIC_DIR to your folder)", opts.TraefikStaticPath, found, expected)
+		return fmt.Errorf("traefik must watch the registered file-provider directory. %s has %s; it needs providers.file.directory: %s with watch on (or set DYNAMIC_DIR and TRAEFIK_DYNAMIC_DIR to your folder)", opts.TraefikStaticPath, found, expected)
 	}
 	_, err = os.Lstat(opts.DBPath)
 	fresh := os.IsNotExist(err)
@@ -170,12 +181,18 @@ func mountID(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
+
 	info, err := os.Open(fmt.Sprintf("/proc/self/fdinfo/%d", f.Fd()))
 	if err != nil {
 		return "", err
 	}
-	defer info.Close()
+	defer func(info *os.File) {
+		_ = info.Close()
+	}(info)
+
 	scan := bufio.NewScanner(info)
 	for scan.Scan() {
 		if id, ok := strings.CutPrefix(scan.Text(), "mnt_id:"); ok {
